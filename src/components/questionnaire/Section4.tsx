@@ -1,10 +1,25 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Section4Props {
   initialData: QuestionnaireData;
@@ -12,22 +27,126 @@ interface Section4Props {
   onBack?: () => void;
 }
 
-const Section4 = ({ initialData, onNext, onBack }: Section4Props) => {
-  const [Q34, setQ34] = useState(initialData.Q34 || "");
+interface Element {
+  id: string;
+  emoji: string;
+  name: string;
+  description: string;
+}
 
-  const handleNext = () => {
-    onNext({ Q34 });
+interface SortableItemProps {
+  element: Element;
+  index: number;
+}
+
+const SortableItem = ({ element, index }: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: element.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
   };
 
-  const elements = [
-    { emoji: "🔥", name: "FIRE", description: "Volcanic, intense, transformative landscapes" },
-    { emoji: "🌊", name: "WATER", description: "Calm, still, emotionally regulating spaces" },
-    { emoji: "🪨", name: "STONE", description: "Ancient, sacred, grounded environments" },
-    { emoji: "🏙", name: "URBAN", description: "Modern, buzzing, architecturally stimulating" },
-    { emoji: "🏜", name: "DESERT", description: "Silent, minimal, open horizons" },
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group ${isDragging ? "z-50" : ""}`}
+    >
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className={`flex items-center gap-4 p-5 rounded-xl border transition-all ${
+          isDragging
+            ? "bg-primary/10 border-primary shadow-lg scale-105"
+            : "bg-muted/30 border-border hover:border-primary/50 hover:bg-muted/50"
+        }`}
+      >
+        {/* Rank Number */}
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+          <span className="font-bold text-primary text-lg">{index + 1}</span>
+        </div>
+
+        {/* Element Info */}
+        <span className="text-3xl flex-shrink-0">{element.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-lg">{element.name}</h4>
+          <p className="text-sm text-muted-foreground">{element.description}</p>
+        </div>
+
+        {/* Drag Handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-5 h-5" />
+        </button>
+      </motion.div>
+    </div>
+  );
+};
+
+const Section4 = ({ initialData, onNext, onBack }: Section4Props) => {
+  const initialElements: Element[] = [
+    { id: "fire", emoji: "🔥", name: "FIRE", description: "Volcanic, intense, transformative landscapes" },
+    { id: "water", emoji: "🌊", name: "WATER", description: "Calm, still, emotionally regulating spaces" },
+    { id: "stone", emoji: "🪨", name: "STONE", description: "Ancient, sacred, grounded environments" },
+    { id: "urban", emoji: "🏙", name: "URBAN", description: "Modern, buzzing, architecturally stimulating" },
+    { id: "desert", emoji: "🏜", name: "DESERT", description: "Silent, minimal, open horizons" },
   ];
 
-  const isValid = Q34.trim().length > 0;
+  // Initialize from saved data if available
+  const getInitialOrder = () => {
+    if (initialData.Q34 && typeof initialData.Q34 === "string") {
+      const savedOrder = initialData.Q34.split(",").map((s) => s.trim().toLowerCase());
+      const orderedElements = savedOrder
+        .map((name) => initialElements.find((el) => el.name.toLowerCase() === name))
+        .filter((el): el is Element => el !== undefined);
+      
+      // If we have all elements, use saved order, otherwise use default
+      if (orderedElements.length === 5) {
+        return orderedElements;
+      }
+    }
+    return initialElements;
+  };
+
+  const [elements, setElements] = useState<Element[]>(getInitialOrder());
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setElements((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleNext = () => {
+    // Convert array order to comma-separated string
+    const ranking = elements.map((el) => el.name).join(", ");
+    onNext({ Q34: ranking });
+  };
 
   return (
     <motion.div
@@ -36,44 +155,35 @@ const Section4 = ({ initialData, onNext, onBack }: Section4Props) => {
       className="space-y-12"
     >
       <div className="bg-card rounded-2xl p-8 shadow-sm border border-border">
-        <h3 className="text-2xl font-heading font-semibold mb-6">
+        <h3 className="text-2xl font-heading font-semibold mb-4">
           Rank these landscape types from most to least resonant with your soul.
         </h3>
         <p className="text-sm text-muted-foreground mb-8">
-          Enter the order as comma-separated values (e.g., "Fire, Water, Stone, Urban, Desert")
+          Drag and drop to reorder. <strong>Rank 1</strong> (top) = Most Resonant
         </p>
 
-        {/* Element Cards */}
-        <div className="grid gap-4 mb-8">
-          {elements.map((element, index) => (
-            <motion.div
-              key={element.name}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/50 transition-colors"
-            >
-              <span className="text-3xl">{element.emoji}</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-lg">{element.name}</h4>
-                <p className="text-sm text-muted-foreground">{element.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {/* Drag and Drop List */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={elements.map((el) => el.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {elements.map((element, index) => (
+                <SortableItem key={element.id} element={element} index={index} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
-        {/* Input */}
-        <div className="space-y-3">
-          <Label htmlFor="ranking">Your Ranking (1 = Most Resonant)</Label>
-          <Input
-            id="ranking"
-            placeholder="e.g., Fire, Water, Stone, Urban, Desert"
-            value={Q34}
-            onChange={(e) => setQ34(e.target.value)}
-            className="text-base"
-          />
-          <p className="text-xs text-muted-foreground">
-            Scoring: Rank 1 = 100 points, Rank 2 = 75 points, Rank 3 = 50 points, Rank 4 = 25 points, Rank 5 = 0 points
+        {/* Scoring Info */}
+        <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">
+            <strong>Scoring:</strong> Rank 1 = 100 points • Rank 2 = 75 points • Rank 3 = 50 points • Rank 4 = 25 points • Rank 5 = 0 points
           </p>
         </div>
       </div>
@@ -85,7 +195,7 @@ const Section4 = ({ initialData, onNext, onBack }: Section4Props) => {
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
         )}
-        <Button onClick={handleNext} disabled={!isValid} size="lg" className="ml-auto gap-2">
+        <Button onClick={handleNext} size="lg" className="ml-auto gap-2">
           Continue <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
