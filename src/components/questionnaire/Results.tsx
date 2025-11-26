@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCcw } from "lucide-react";
+import { RefreshCcw, CheckCircle2 } from "lucide-react";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface ResultsProps {
   responses: QuestionnaireData;
@@ -9,18 +12,44 @@ interface ResultsProps {
 }
 
 const Results = ({ responses, onRestart }: ResultsProps) => {
-  const handleDownload = () => {
-    const dataStr = JSON.stringify(responses, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `soulprint-responses-${new Date().toISOString()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+  const { toast } = useToast();
+  const [emailSent, setEmailSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    const sendEmail = async () => {
+      if (emailSent || isSending) return;
+      
+      setIsSending(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('send-questionnaire-results', {
+          body: {
+            responses,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        if (error) throw error;
+
+        setEmailSent(true);
+        toast({
+          title: "Responses Submitted!",
+          description: "Your SoulPrint questionnaire has been sent to Erranza.",
+        });
+      } catch (error) {
+        console.error('Error sending questionnaire results:', error);
+        toast({
+          title: "Submission Error",
+          description: "There was an issue sending your responses. Please contact support.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSending(false);
+      }
+    };
+
+    sendEmail();
+  }, [responses, emailSent, isSending, toast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
@@ -42,12 +71,12 @@ const Results = ({ responses, onRestart }: ResultsProps) => {
             </div>
           </motion.div>
           
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-brand-lavender-mood via-brand-lavender-haze to-brand-coastal-indigo bg-clip-text text-transparent">
             Your SoulPrint is Complete
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Thank you for sharing your story. Your responses will help us craft a journey that resonates with your deepest self.
+            {isSending ? "Sending your responses..." : emailSent ? "Your responses have been sent to Erranza!" : "Thank you for sharing your story. Your responses will help us craft a journey that resonates with your deepest self."}
           </p>
         </motion.div>
 
@@ -57,15 +86,21 @@ const Results = ({ responses, onRestart }: ResultsProps) => {
           transition={{ delay: 0.4 }}
           className="bg-card rounded-2xl p-8 shadow-lg border border-border mb-8"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-heading font-semibold">Your Responses</h2>
-            <Button onClick={handleDownload} variant="outline" className="gap-2">
-              <Download className="w-4 h-4" /> Download JSON
-            </Button>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {emailSent && <CheckCircle2 className="w-8 h-8 text-brand-lavender-mood" />}
+            <h2 className="text-2xl font-heading font-semibold">
+              {emailSent ? "Successfully Submitted" : isSending ? "Submitting..." : "Submission Status"}
+            </h2>
           </div>
           
-          <div className="bg-muted/30 rounded-lg p-6 overflow-auto max-h-[500px] font-mono text-sm">
-            <pre>{JSON.stringify(responses, null, 2)}</pre>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              {isSending 
+                ? "Sending your questionnaire responses to Erranza..." 
+                : emailSent 
+                ? "Your SoulPrint questionnaire has been successfully sent to our team at Erranza. We'll be in touch soon to begin crafting your Azerbaijan experience." 
+                : "Preparing to send your responses..."}
+            </p>
           </div>
         </motion.div>
 
