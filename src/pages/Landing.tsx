@@ -85,11 +85,12 @@ const Landing = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1 }}
+              className="flex flex-col items-center"
             >
               <Button
                 onClick={() => navigate("/questionnaire")}
                 size="lg"
-                className="text-lg px-12 py-6 h-auto bg-lavender-accent hover:bg-lavender-accent/90 text-white font-heading font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="text-lg px-12 py-6 h-auto bg-lavender-accent hover:bg-lavender-accent/90 text-white font-heading font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"
               >
                 Begin SoulPrint Assessment
               </Button>

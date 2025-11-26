@@ -42,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-            <p style="color: #999; font-size: 12px;">© 2025 Erranza • Travel Smarter. Wander Better.</p>
+            <p style="color: #999; font-size: 12px;">© 2025 Erranza</p>
           </div>
         </div>
       `,

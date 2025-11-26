@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
 import { ArrowLeft, CheckCircle } from "lucide-react";
+import { countries } from "@/lib/countries";
 
 interface Section8Props {
   initialData: QuestionnaireData;
@@ -40,11 +41,6 @@ const Section8 = ({ initialData, onNext, onBack }: Section8Props) => {
   };
 
   const isValid = Q49 && Q50 && Q51 && Q52 && Q53 && Q54;
-
-  const countries = [
-    "United States", "United Kingdom", "Canada", "Australia", "Germany", 
-    "France", "Spain", "Italy", "Netherlands", "Other"
-  ];
 
   return (
     <motion.div
@@ -99,7 +95,7 @@ const Section8 = ({ initialData, onNext, onBack }: Section8Props) => {
             <SelectTrigger id="q51" className="text-base">
               <SelectValue placeholder="Select your country" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
               {countries.map((country) => (
                 <SelectItem key={country} value={country}>{country}</SelectItem>
               ))}
@@ -119,7 +115,7 @@ const Section8 = ({ initialData, onNext, onBack }: Section8Props) => {
             <SelectTrigger id="q52" className="text-base">
               <SelectValue placeholder="Select your nationality" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
               {countries.map((country) => (
                 <SelectItem key={country} value={country}>{country}</SelectItem>
               ))}
