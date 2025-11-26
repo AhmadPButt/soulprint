@@ -180,7 +180,7 @@ const SoulPrintQuestionnaire = () => {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-background border-b border-border/30 sticky top-0 z-50">
+      <header className="glass-card border-b border-border/30">
         <div className="container mx-auto px-4 py-6">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
