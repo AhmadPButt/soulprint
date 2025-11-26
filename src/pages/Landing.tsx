@@ -66,13 +66,16 @@ const Landing = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.6 }}
-              className="relative mb-16"
+              className="relative mb-16 group cursor-pointer"
             >
               <div className="relative inline-block">
+                {/* Hover glow effect */}
+                <div className="absolute inset-0 bg-lavender-accent/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-110" />
+                
                 <img 
                   src={fingerprintImage} 
                   alt="SoulPrint Fingerprint" 
-                  className="w-[400px] md:w-[500px] h-auto mx-auto relative z-10 opacity-90"
+                  className="w-[400px] md:w-[500px] h-auto mx-auto relative z-10 opacity-90 transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </motion.div>

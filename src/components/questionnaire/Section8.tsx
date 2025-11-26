@@ -6,6 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 
@@ -23,6 +33,7 @@ const Section8 = ({ initialData, onNext, onBack }: Section8Props) => {
   const [Q53, setQ53] = useState(initialData.Q53 || "");
   const [Q54, setQ54] = useState(initialData.Q54 || "");
   const [Q55, setQ55] = useState(initialData.Q55 || "");
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSubmit = () => {
     onNext({ Q49, Q50, Q51, Q52, Q53, Q54, Q55 });
@@ -193,10 +204,45 @@ const Section8 = ({ initialData, onNext, onBack }: Section8Props) => {
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
         )}
-        <Button onClick={handleSubmit} disabled={!isValid} size="lg" className="ml-auto gap-2">
+        <Button 
+          onClick={() => setShowConfirmation(true)} 
+          disabled={!isValid} 
+          size="lg" 
+          className="ml-auto gap-2"
+        >
           Complete Questionnaire <CheckCircle className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-heading">
+              Complete Your SoulPrint?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-4">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span>All required fields completed</span>
+              </div>
+              <p className="text-base text-foreground/80">
+                Your responses will be sent to Erranza to craft your personalized Azerbaijan journey. 
+                This process typically takes 2-3 business days.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Ready to submit your SoulPrint assessment?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel>Review Answers</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit} className="bg-lavender-accent hover:bg-lavender-accent/90">
+              Submit Assessment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
