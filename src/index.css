@@ -30,33 +30,33 @@ All colors MUST be HSL.
     --brand-coral-ember: 5 100% 69%;
     
     /* Design System Tokens - Dark Theme Default */
-    --background: var(--dark-base);
-    --foreground: 0 0% 98%;
+    --background: var(--brand-obsidian-smoke);
+    --foreground: var(--brand-drift-white);
 
     --card: var(--dark-card);
-    --card-foreground: 0 0% 98%;
+    --card-foreground: var(--brand-drift-white);
 
     --popover: var(--dark-card);
-    --popover-foreground: 0 0% 98%;
+    --popover-foreground: var(--brand-drift-white);
 
-    --primary: var(--lavender-accent);
-    --primary-foreground: 0 0% 10%;
+    --primary: var(--brand-lavender-mood);
+    --primary-foreground: var(--brand-obsidian-smoke);
 
-    --secondary: var(--dark-card);
-    --secondary-foreground: 0 0% 98%;
+    --secondary: var(--brand-coastal-indigo);
+    --secondary-foreground: var(--brand-linen-white);
 
     --muted: 0 0% 30%;
-    --muted-foreground: 0 0% 70%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: var(--cream-accent);
-    --accent-foreground: 0 0% 10%;
+    --accent: var(--brand-lavender-haze);
+    --accent-foreground: var(--brand-obsidian-smoke);
 
-    --destructive: 0 70% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: var(--brand-coral-ember);
+    --destructive-foreground: var(--brand-linen-white);
 
-    --border: 0 0% 35%;
+    --border: 0 0% 30%;
     --input: 0 0% 25%;
-    --ring: var(--lavender-accent);
+    --ring: var(--brand-lavender-mood);
 
     --radius: 1rem;
 
@@ -110,7 +110,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: hsl(var(--lavender-accent));
+  background: hsl(var(--brand-lavender-mood));
   border: 2px solid hsl(var(--background));
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -126,7 +126,7 @@ input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: hsl(var(--lavender-accent));
+  background: hsl(var(--brand-lavender-mood));
   border: 2px solid hsl(var(--background));
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
