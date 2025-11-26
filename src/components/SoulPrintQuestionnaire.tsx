@@ -74,7 +74,7 @@ const SoulPrintQuestionnaire = () => {
             className="flex items-center justify-between"
           >
             <div>
-              <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight text-foreground">
+              <h1 className="text-2xl md:text-3xl font-heading font-thin tracking-tight text-foreground">
                 SoulPrint
               </h1>
               <p className="text-xs text-muted-foreground mt-1">Erranza</p>
@@ -83,7 +83,7 @@ const SoulPrintQuestionnaire = () => {
               <p className="text-sm text-foreground/80">
                 {currentSection + 1} / {totalSections}
               </p>
-              <p className="text-xs text-muted-foreground">~9.5 min</p>
+              <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
             </div>
           </motion.div>
           <ProgressBar progress={progress} />

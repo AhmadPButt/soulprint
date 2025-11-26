@@ -71,7 +71,7 @@ const Results = ({ responses, onRestart }: ResultsProps) => {
             </div>
           </motion.div>
           
-          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-brand-lavender-mood via-brand-lavender-haze to-brand-coastal-indigo bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-heading font-thin mb-6 text-foreground">
             Your SoulPrint is Complete
           </h1>
           
@@ -125,7 +125,7 @@ const Results = ({ responses, onRestart }: ResultsProps) => {
           className="mt-16 text-center"
         >
           <p className="text-sm text-muted-foreground">
-            © 2025 Erranza • Travel Smarter. Wander Better.
+            © 2025 Erranza
           </p>
         </motion.div>
       </div>
