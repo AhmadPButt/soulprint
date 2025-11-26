@@ -50,22 +50,22 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-12"
+      className="space-y-8"
     >
       {/* Q1 */}
-      <div className="bg-card rounded-2xl p-8 shadow-sm border border-border">
-        <h3 className="text-2xl font-heading font-semibold mb-6">
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-foreground">
           What draws you to Azerbaijan at this moment in your life?
         </h3>
-        <p className="text-sm text-muted-foreground mb-6">Select all that apply</p>
-        <div className="space-y-4">
+        <p className="text-xs text-muted-foreground">Select all that apply</p>
+        <div className="space-y-3">
           {q1Options.map((option, index) => (
             <motion.div
               key={option}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-start space-x-3 p-4 rounded-lg hover:bg-muted/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-start space-x-3 p-3 rounded-lg hover:bg-foreground/5 transition-colors"
             >
               <Checkbox
                 id={`q1-${index}`}
@@ -74,7 +74,7 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
               />
               <Label
                 htmlFor={`q1-${index}`}
-                className="text-base cursor-pointer leading-relaxed"
+                className="text-sm cursor-pointer leading-relaxed text-foreground/90"
               >
                 {option}
               </Label>
@@ -84,23 +84,23 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
       </div>
 
       {/* Q2 */}
-      <div className="bg-card rounded-2xl p-8 shadow-sm border border-border">
-        <h3 className="text-2xl font-heading font-semibold mb-6">
+      <div className="space-y-4 pt-6 border-t border-border/50">
+        <h3 className="text-lg font-medium text-foreground">
           What pace feels right for this journey?
         </h3>
-        <RadioGroup value={Q2} onValueChange={setQ2} className="space-y-4">
+        <RadioGroup value={Q2} onValueChange={setQ2} className="space-y-3">
           {q2Options.map((option, index) => (
             <motion.div
               key={option.value}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center space-x-3 p-4 rounded-lg hover:bg-muted/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-foreground/5 transition-colors"
             >
               <RadioGroupItem value={option.value} id={`q2-${option.value}`} />
               <Label
                 htmlFor={`q2-${option.value}`}
-                className="text-base cursor-pointer leading-relaxed"
+                className="text-sm cursor-pointer leading-relaxed text-foreground/90"
               >
                 {option.label}
               </Label>
@@ -110,14 +110,14 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
       </div>
 
       {/* Q3 */}
-      <div className="bg-card rounded-2xl p-8 shadow-sm border border-border">
-        <h3 className="text-2xl font-heading font-semibold mb-6">
+      <div className="space-y-4 pt-6 border-t border-border/50">
+        <h3 className="text-lg font-medium text-foreground">
           What emotional rhythm do you seek when you travel?
         </h3>
-        <div className="space-y-6">
-          <div className="flex justify-between text-sm text-muted-foreground mb-2">
+        <div className="space-y-4">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Calm</span>
-            <span className="font-semibold text-foreground text-lg">{Q3}</span>
+            <span className="font-medium text-foreground text-sm">{Q3}</span>
             <span>Stimulating</span>
           </div>
           <input
@@ -137,7 +137,7 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
           onClick={handleNext}
           disabled={!isValid}
           size="lg"
-          className="min-w-[200px] gap-2"
+          className="gap-2"
         >
           Continue <ArrowRight className="w-4 h-4" />
         </Button>
