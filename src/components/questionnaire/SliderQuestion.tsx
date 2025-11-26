@@ -19,11 +19,7 @@ const SliderQuestion = ({ question, value, onChange, reverse, delay = 0 }: Slide
       <div className="flex justify-between items-start gap-4">
         <p className="text-sm text-foreground/90 leading-relaxed flex-1">
           {question}
-          {reverse && <span className="ml-2 text-xs text-muted-foreground font-normal">(reverse)</span>}
         </p>
-        <span className="font-medium text-base text-primary min-w-[2.5rem] text-right">
-          {value}
-        </span>
       </div>
       <div className="space-y-3">
         <input
