@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Section1 from "./questionnaire/Section1";
 import Section2 from "./questionnaire/Section2";
@@ -11,15 +11,21 @@ import Section8 from "./questionnaire/Section8";
 import Results from "./questionnaire/Results";
 import ProgressBar from "./questionnaire/ProgressBar";
 import { Button } from "./ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 export interface QuestionnaireData {
   [key: string]: any;
 }
 
+const STORAGE_KEY = "soulprint_questionnaire_progress";
+
 const SoulPrintQuestionnaire = () => {
+  const { toast } = useToast();
   const [currentSection, setCurrentSection] = useState(0);
   const [responses, setResponses] = useState<QuestionnaireData>({});
   const [showResults, setShowResults] = useState(false);
+  const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
 
   const totalSections = 8;
   const progress = ((currentSection + 1) / totalSections) * 100;
@@ -37,13 +43,77 @@ const SoulPrintQuestionnaire = () => {
 
   const CurrentComponent = sections[currentSection]?.component;
 
+  // Load saved progress on mount
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(STORAGE_KEY);
+    if (savedProgress && !hasRestoredProgress) {
+      try {
+        const { section, data, timestamp } = JSON.parse(savedProgress);
+        const hoursSinceLastSave = (Date.now() - timestamp) / (1000 * 60 * 60);
+        
+        // Only restore if saved within last 7 days
+        if (hoursSinceLastSave < 168) {
+          setCurrentSection(section);
+          setResponses(data);
+          setHasRestoredProgress(true);
+          
+          toast({
+            title: "Progress Restored",
+            description: `Continuing from Section ${section + 1}`,
+            duration: 4000,
+          });
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch (error) {
+        console.error("Failed to restore progress:", error);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, [hasRestoredProgress, toast]);
+
+  // Save progress to localStorage whenever responses or section changes
+  useEffect(() => {
+    if (hasRestoredProgress || currentSection > 0 || Object.keys(responses).length > 0) {
+      const progressData = {
+        section: currentSection,
+        data: responses,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
+    }
+  }, [currentSection, responses, hasRestoredProgress]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      if (e.target instanceof HTMLInputElement || 
+          e.target instanceof HTMLTextAreaElement ||
+          showResults) {
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [currentSection, showResults]);
+
   const handleNext = (sectionData: QuestionnaireData) => {
-    setResponses({ ...responses, ...sectionData });
+    const updatedResponses = { ...responses, ...sectionData };
+    setResponses(updatedResponses);
     
     if (currentSection < totalSections - 1) {
       setCurrentSection(currentSection + 1);
     } else {
       setShowResults(true);
+      // Clear saved progress when completing
+      localStorage.removeItem(STORAGE_KEY);
     }
   };
 
@@ -57,6 +127,8 @@ const SoulPrintQuestionnaire = () => {
     setCurrentSection(0);
     setResponses({});
     setShowResults(false);
+    setHasRestoredProgress(false);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   if (showResults) {
@@ -83,7 +155,14 @@ const SoulPrintQuestionnaire = () => {
               <p className="text-sm text-foreground/80">
                 {currentSection + 1} / {totalSections}
               </p>
-              <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
+              <div className="flex items-center gap-2 justify-end">
+                <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
+                {hasRestoredProgress && (
+                  <span className="text-xs text-lavender-accent flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Auto-saved
+                  </span>
+                )}
+              </div>
             </div>
           </motion.div>
           <ProgressBar progress={progress} />
@@ -139,10 +218,16 @@ const SoulPrintQuestionnaire = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/30 mt-20 py-6">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-xs text-muted-foreground">
-            © 2025 Erranza
-          </p>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between max-w-3xl mx-auto">
+            <p className="text-xs text-muted-foreground">
+              © 2025 Erranza
+            </p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Press <kbd className="px-2 py-1 bg-border/30 rounded text-[10px]">ESC</kbd> to go back</span>
+              <span className="text-[10px] opacity-60">Progress auto-saved</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
