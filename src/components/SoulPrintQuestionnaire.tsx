@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Section1 from "./questionnaire/Section1";
 import Section2 from "./questionnaire/Section2";
@@ -10,9 +10,20 @@ import Section7 from "./questionnaire/Section7";
 import Section8 from "./questionnaire/Section8";
 import Results from "./questionnaire/Results";
 import ProgressBar from "./questionnaire/ProgressBar";
+import ProgressSummaryModal from "./questionnaire/ProgressSummaryModal";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RotateCcw, List } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export interface QuestionnaireData {
   [key: string]: any;
@@ -26,6 +37,9 @@ const SoulPrintQuestionnaire = () => {
   const [responses, setResponses] = useState<QuestionnaireData>({});
   const [showResults, setShowResults] = useState(false);
   const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   const totalSections = 8;
   const progress = ((currentSection + 1) / totalSections) * 100;
@@ -110,6 +124,8 @@ const SoulPrintQuestionnaire = () => {
     
     if (currentSection < totalSections - 1) {
       setCurrentSection(currentSection + 1);
+      // Smooth scroll to top
+      mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
       setShowResults(true);
       // Clear saved progress when completing
@@ -120,6 +136,8 @@ const SoulPrintQuestionnaire = () => {
   const handleBack = () => {
     if (currentSection > 0) {
       setCurrentSection(currentSection - 1);
+      // Smooth scroll to top
+      mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -129,7 +147,31 @@ const SoulPrintQuestionnaire = () => {
     setShowResults(false);
     setHasRestoredProgress(false);
     localStorage.removeItem(STORAGE_KEY);
+    mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const handleClearProgress = () => {
+    setShowClearDialog(true);
+  };
+
+  const confirmClearProgress = () => {
+    handleRestart();
+    setShowClearDialog(false);
+    toast({
+      title: "Progress Cleared",
+      description: "Starting fresh from the beginning",
+    });
+  };
+
+  const handleJumpToSection = (section: number) => {
+    setCurrentSection(section);
+    mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Track completed sections
+  const completedSections = sections.map((_, index) => {
+    return index < currentSection || Object.keys(responses).length > 0;
+  });
 
   if (showResults) {
     return <Results responses={responses} onRestart={handleRestart} />;
@@ -151,17 +193,39 @@ const SoulPrintQuestionnaire = () => {
               </h1>
               <p className="text-xs text-muted-foreground mt-1">Erranza</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-foreground/80">
-                {currentSection + 1} / {totalSections}
-              </p>
-              <div className="flex items-center gap-2 justify-end">
-                <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
-                {hasRestoredProgress && (
-                  <span className="text-xs text-lavender-accent flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> Auto-saved
-                  </span>
-                )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowProgressModal(true)}
+                className="hidden sm:flex gap-2"
+              >
+                <List className="w-4 h-4" />
+                <span className="hidden md:inline">Progress</span>
+              </Button>
+              {(currentSection > 0 || Object.keys(responses).length > 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearProgress}
+                  className="gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="hidden md:inline">Clear</span>
+                </Button>
+              )}
+              <div className="text-right">
+                <p className="text-sm text-foreground/80">
+                  {currentSection + 1} / {totalSections}
+                </p>
+                <div className="flex items-center gap-2 justify-end">
+                  <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
+                  {hasRestoredProgress && (
+                    <span className="text-xs text-lavender-accent flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Auto-saved
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
@@ -170,16 +234,16 @@ const SoulPrintQuestionnaire = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-16 max-w-3xl">
+      <main ref={mainContentRef} className="container mx-auto px-4 py-8 md:py-16 max-w-3xl">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSection}
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
+            exit={{ opacity: 0, x: -60 }}
             transition={{ 
-              duration: 0.5,
-              ease: [0.4, 0, 0.2, 1]
+              duration: 0.6,
+              ease: [0.22, 1, 0.36, 1]
             }}
           >
             {/* Section Header */}
@@ -203,7 +267,7 @@ const SoulPrintQuestionnaire = () => {
             </div>
 
             {/* Section Content - Glass Card */}
-            <div className="glass-card p-8 md:p-12">
+            <div className="glass-card p-6 md:p-12">
               {CurrentComponent && (
                 <CurrentComponent
                   initialData={responses}
@@ -216,10 +280,39 @@ const SoulPrintQuestionnaire = () => {
         </AnimatePresence>
       </main>
 
+      {/* Progress Summary Modal */}
+      <ProgressSummaryModal
+        open={showProgressModal}
+        onOpenChange={setShowProgressModal}
+        currentSection={currentSection}
+        completedSections={completedSections}
+        onJumpToSection={handleJumpToSection}
+        sections={sections}
+      />
+
+      {/* Clear Progress Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Progress?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will erase all your responses and start the questionnaire from the beginning. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClearProgress}>
+              Clear Progress
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Footer */}
-      <footer className="border-t border-border/30 mt-20 py-6">
+      <footer className="border-t border-border/30 mt-12 md:mt-20 py-6">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between max-w-3xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-between max-w-3xl mx-auto gap-4">
             <p className="text-xs text-muted-foreground">
               © 2025 Erranza
             </p>
