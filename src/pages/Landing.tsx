@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import fingerprintImage from "@/assets/fingerprint.png";
+import erranzaLogo from "@/assets/erranza-logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -38,14 +39,11 @@ const Landing = () => {
               transition={{ duration: 0.6 }}
               className="flex items-center justify-center"
             >
-              <div className="text-center">
-                <h1 className="text-2xl font-heading font-bold tracking-tight text-foreground">
-                  ERRANZA
-                </h1>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Travel Smarter. Wander Better.
-                </p>
-              </div>
+              <img 
+                src={erranzaLogo} 
+                alt="Erranza" 
+                className="h-8 w-auto"
+              />
             </motion.div>
           </div>
         </header>
@@ -58,18 +56,9 @@ const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <h2 className="text-6xl md:text-7xl lg:text-8xl font-heading font-bold mb-8 bg-gradient-to-r from-lavender-accent via-cream-accent to-lavender-accent bg-clip-text text-transparent">
+              <h2 className="text-6xl md:text-7xl lg:text-8xl font-heading font-thin mb-16 text-foreground">
                 SoulPrint
               </h2>
-              
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="text-lg md:text-xl text-muted-foreground mb-16 max-w-2xl mx-auto"
-              >
-                A journey begins not with a destination, but with understanding who travels.
-              </motion.p>
             </motion.div>
 
             {/* Fingerprint with glow */}
@@ -97,13 +86,13 @@ const Landing = () => {
               <Button
                 onClick={() => navigate("/questionnaire")}
                 size="lg"
-                className="text-lg px-12 py-6 h-auto bg-lavender-accent hover:bg-lavender-accent/90 text-background font-heading font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="text-lg px-12 py-6 h-auto bg-lavender-accent hover:bg-lavender-accent/90 text-white font-heading font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
                 Begin SoulPrint Assessment
               </Button>
               
               <p className="text-sm text-muted-foreground mt-6">
-                ~9.5 minutes • Azerbaijan Edition
+                Azerbaijan Edition
               </p>
             </motion.div>
           </div>
