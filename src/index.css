@@ -15,6 +15,20 @@ All colors MUST be HSL.
     --cream-accent: 44 39% 85%;
     --purple-muted: 255 30% 50%;
     
+    /* Extended Brand Palette */
+    --brand-drift-white: 60 23% 90%;
+    --brand-lavender-mood: 228 67% 81%;
+    --brand-clay-blush: 1 65% 73%;
+    --brand-coastal-indigo: 226 58% 61%;
+    --brand-olive-smoke: 75 40% 36%;
+    --brand-desert-rose: 6 43% 73%;
+    --brand-lavender-haze: 242 67% 90%;
+    --brand-misty-sky: 149 100% 95%;
+    --brand-linen-white: 0 0% 100%;
+    --brand-obsidian-smoke: 0 0% 12%;
+    --brand-amethyst-spirit: 282 43% 42%;
+    --brand-coral-ember: 5 100% 69%;
+    
     /* Design System Tokens - Dark Theme Default */
     --background: var(--dark-base);
     --foreground: 0 0% 98%;
