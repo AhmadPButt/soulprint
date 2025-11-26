@@ -1,11 +1,7 @@
-import SoulPrintQuestionnaire from "@/components/SoulPrintQuestionnaire";
+import Landing from "./Landing";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <SoulPrintQuestionnaire />
-    </div>
-  );
+  return <Landing />;
 };
 
 export default Index;
