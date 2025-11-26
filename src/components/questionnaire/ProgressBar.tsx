@@ -6,9 +6,9 @@ interface ProgressBarProps {
 
 const ProgressBar = ({ progress }: ProgressBarProps) => {
   return (
-    <div className="mt-6 w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+    <div className="mt-4 w-full bg-border/30 rounded-full h-0.5 overflow-hidden">
       <motion.div
-        className="h-full bg-gradient-to-r from-secondary via-primary to-accent rounded-full"
+        className="h-full bg-primary"
         initial={{ width: 0 }}
         animate={{ width: `${progress}%` }}
         transition={{ duration: 0.5, ease: "easeOut" }}

@@ -66,7 +66,7 @@ const SoulPrintQuestionnaire = () => {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="glass-card border-b border-border/30 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-6">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -74,16 +74,16 @@ const SoulPrintQuestionnaire = () => {
             className="flex items-center justify-between"
           >
             <div>
-              <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">
-                Erranza
+              <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight text-foreground">
+                SoulPrint
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">SoulPrint Questionnaire v2.1</p>
+              <p className="text-xs text-muted-foreground mt-1">Erranza</p>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-muted-foreground">
-                Section {currentSection + 1} of {totalSections}
+              <p className="text-sm text-foreground/80">
+                {currentSection + 1} / {totalSections}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">~9.5 minutes</p>
+              <p className="text-xs text-muted-foreground">~9.5 min</p>
             </div>
           </motion.div>
           <ProgressBar progress={progress} />
@@ -91,53 +91,54 @@ const SoulPrintQuestionnaire = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-4xl">
+      <main className="container mx-auto px-4 py-16 max-w-3xl">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSection}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
           >
             {/* Section Header */}
-            <div className="mb-12 text-center">
+            <div className="mb-12">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
+                className="space-y-4"
               >
-                <div className="inline-block px-4 py-2 bg-secondary/30 rounded-full mb-4">
-                  <p className="text-sm font-medium text-secondary-foreground uppercase tracking-wider">
-                    Chapter {currentSection + 1}
-                  </p>
-                </div>
-                <h2 className="text-4xl md:text-5xl font-heading font-bold mb-4 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                  Chapter {currentSection + 1}
+                </p>
+                <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
                   {sections[currentSection].title}
                 </h2>
-                <p className="text-lg text-muted-foreground italic">
-                  "{sections[currentSection].subtitle}"
+                <p className="text-sm text-muted-foreground">
+                  {sections[currentSection].subtitle}
                 </p>
               </motion.div>
             </div>
 
-            {/* Section Content */}
-            {CurrentComponent && (
-              <CurrentComponent
-                initialData={responses}
-                onNext={handleNext}
-                onBack={currentSection > 0 ? handleBack : undefined}
-              />
-            )}
+            {/* Section Content - Glass Card */}
+            <div className="glass-card p-8 md:p-12">
+              {CurrentComponent && (
+                <CurrentComponent
+                  initialData={responses}
+                  onNext={handleNext}
+                  onBack={currentSection > 0 ? handleBack : undefined}
+                />
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border mt-20 py-8">
+      <footer className="border-t border-border/30 mt-20 py-6">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            © 2025 Erranza • Travel Smarter. Wander Better.
+          <p className="text-xs text-muted-foreground">
+            © 2025 Erranza
           </p>
         </div>
       </footer>

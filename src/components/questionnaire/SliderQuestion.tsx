@@ -14,18 +14,18 @@ const SliderQuestion = ({ question, value, onChange, reverse, delay = 0 }: Slide
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="space-y-4"
+      className="space-y-6"
     >
       <div className="flex justify-between items-start gap-4">
-        <p className="text-base leading-relaxed flex-1">
+        <p className="text-sm text-foreground/90 leading-relaxed flex-1">
           {question}
-          {reverse && <span className="ml-2 text-xs text-accent font-medium">(REVERSE)</span>}
+          {reverse && <span className="ml-2 text-xs text-muted-foreground font-normal">(reverse)</span>}
         </p>
-        <span className="font-semibold text-lg text-primary min-w-[3rem] text-right">
+        <span className="font-medium text-base text-primary min-w-[2.5rem] text-right">
           {value}
         </span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         <input
           type="range"
           min="0"
@@ -35,9 +35,9 @@ const SliderQuestion = ({ question, value, onChange, reverse, delay = 0 }: Slide
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Strongly Disagree</span>
+          <span>Disagree</span>
           <span>Neutral</span>
-          <span>Strongly Agree</span>
+          <span>Agree</span>
         </div>
       </div>
     </motion.div>
