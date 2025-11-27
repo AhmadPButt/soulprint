@@ -24,6 +24,7 @@ export type Database = {
           session_id: string
           time_spent_seconds: number | null
           timestamp: string
+          variant_id: string | null
         }
         Insert: {
           email?: string | null
@@ -34,6 +35,7 @@ export type Database = {
           session_id: string
           time_spent_seconds?: number | null
           timestamp?: string
+          variant_id?: string | null
         }
         Update: {
           email?: string | null
@@ -44,6 +46,45 @@ export type Database = {
           session_id?: string
           time_spent_seconds?: number | null
           timestamp?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_analytics_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_variants: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          weight?: number
         }
         Relationships: []
       }

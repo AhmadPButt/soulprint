@@ -5,11 +5,40 @@ export const useQuestionnaireAnalytics = (
   currentSection: number,
   email: string | null
 ) => {
-  const sessionIdRef = useRef<string>(
-    crypto.randomUUID()
-  );
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
   const sectionStartTimeRef = useRef<number>(Date.now());
   const hasStartedRef = useRef(false);
+  const variantIdRef = useRef<string | null>(null);
+
+  // Select variant on first load
+  useEffect(() => {
+    const selectVariant = async () => {
+      try {
+        const { data: variants } = await supabase
+          .from("questionnaire_variants")
+          .select("*")
+          .eq("is_active", true);
+
+        if (variants && variants.length > 0) {
+          // Simple weighted random selection
+          const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
+          let random = Math.random() * totalWeight;
+          
+          for (const variant of variants) {
+            random -= variant.weight;
+            if (random <= 0) {
+              variantIdRef.current = variant.id;
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error selecting variant:", error);
+      }
+    };
+
+    selectVariant();
+  }, []);
 
   // Track questionnaire start
   useEffect(() => {
@@ -50,6 +79,7 @@ export const useQuestionnaireAnalytics = (
         section_number: sectionNumber,
         email: userEmail || null,
         time_spent_seconds: timeSpent || null,
+        variant_id: variantIdRef.current,
         metadata: {
           user_agent: navigator.userAgent,
           screen_size: `${window.screen.width}x${window.screen.height}`,
