@@ -122,7 +122,10 @@ const Landing = () => {
         <footer className="glass-card border-t border-border/30">
           <div className="container mx-auto px-4 py-6 text-center">
             <p className="text-xs text-muted-foreground">
-              © 2025 Erranza • All rights reserved
+              © 2025 Erranza • All rights reserved •{" "}
+              <a href="/admin" className="hover:text-foreground transition-colors">
+                Admin
+              </a>
             </p>
           </div>
         </footer>
