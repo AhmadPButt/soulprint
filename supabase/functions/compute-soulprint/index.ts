@@ -134,26 +134,55 @@ function calculateBusinessKPIs(traits: any, eai: number) {
   };
 }
 
-async function generateNarrative(name: string, traits: any, tensions: any, kpis: any, eai: number, raw: any) {
-  const prompt = `Generate a personalized SoulPrint narrative for ${name}.
+async function generateNarrative(name: string, traits: any, tensions: any, kpis: any, eai: number, raw: any, model = "google/gemini-2.5-flash") {
+  const prompt = `You are the Erranza SoulPrint Narrator — a luxury travel intelligence service that speaks with the sophistication of haute couture.
 
-PSYCHOMETRIC PROFILE:
-- Big Five: E=${traits.E.toFixed(1)}, O=${traits.O.toFixed(1)}, C=${traits.C.toFixed(1)}, A=${traits.A.toFixed(1)}, ES=${traits.ES.toFixed(1)}
-- Travel: SF=${traits.SF.toFixed(1)}, AO=${traits.AO.toFixed(1)}, EA=${traits.EA.toFixed(1)}
-- Elements: Dominant=${traits.dominant_element} (${traits[traits.dominant_element].toFixed(1)}), Secondary=${traits.secondary_element}
-- Inner Compass: ${traits.top_motivation_1} (${traits.TR.toFixed(1)}), ${traits.top_motivation_2}
-- Tensions: Social=${tensions.T_Social.toFixed(1)}, Flow=${tensions.T_Flow.toFixed(1)}, Risk=${tensions.T_Risk.toFixed(1)}
-- Azerbaijan Alignment: ${eai.toFixed(1)}%
-- Tribe: ${kpis.tribe} (${kpis.tribe_confidence})
+Craft an exquisite, bespoke narrative for ${name} that embodies refined elegance and psychological depth.
 
-Create a 2-3 paragraph narrative that:
-1. Opens with an evocative headline capturing their essence
-2. Describes their travel personality using the elemental and trait data
-3. Highlights key tensions and growth opportunities
-4. Explains why Azerbaijan resonates with them (or doesn't)
-5. Provides 2-3 specific recommendations for their journey
+PSYCHOMETRIC ARCHITECTURE:
+• Personality Canvas: E${traits.E.toFixed(0)} | O${traits.O.toFixed(0)} | C${traits.C.toFixed(0)} | A${traits.A.toFixed(0)} | ES${traits.ES.toFixed(0)}
+• Travel Signature: SF${traits.SF.toFixed(0)} | AO${traits.AO.toFixed(0)} | EA${traits.EA.toFixed(0)}
+• Elemental Resonance: ${traits.dominant_element} (primary) × ${traits.secondary_element} (accent)
+• Inner Compass: ${traits.top_motivation_1} → ${traits.top_motivation_2}
+• Life Chapter: ${traits.life_phase} | Seeking: ${traits.shift_desired}
+• Azerbaijan Affinity: ${eai.toFixed(1)}%
+• Traveler Archetype: ${kpis.tribe}
 
-Be warm, insightful, and specific. Avoid platitudes.`;
+NARRATIVE REQUIREMENTS:
+Write 3-4 paragraphs with the sophistication of a private members' club and the insight of a master psychologist:
+
+1. OPENING OVERTURE (Headline + First Paragraph)
+   • Begin with a poetic, evocative headline that captures their essence
+   • Open with metaphor drawn from their dominant element
+   • Weave their Big Five traits into a psychological portrait
+   • Establish their unique travel signature with elegance
+
+2. THE INNER ARCHITECTURE (Second Paragraph)
+   • Illuminate the tensions and paradoxes within (T_Social: ${tensions.T_Social.toFixed(0)}, T_Flow: ${tensions.T_Flow.toFixed(0)})
+   • Reveal growth edges with grace and nuance
+   • Connect their life phase to their travel motivations
+   • Frame challenges as invitations, not obstacles
+
+3. THE AZERBAIJAN PROPOSITION (Third Paragraph)
+   • Why this destination at this moment?
+   • How does Azerbaijan's terroir (cultural, emotional, geographical) align with their inner compass?
+   • What specific experiences will resonate most deeply?
+   • Address the ${eai.toFixed(0)}% alignment with sophistication — high alignment = profound match, moderate = intriguing tension, low = transformative contrast
+
+4. BESPOKE RECOMMENDATIONS (Final Paragraph)
+   • 2-3 highly specific, unexpected experiences tailored to their psychometric profile
+   • Speak to their tribe (${kpis.tribe}) with insider knowledge
+   • Recommendations should feel like secrets whispered by someone who truly sees them
+   • Close with an elegant, forward-looking statement
+
+TONE PRINCIPLES:
+• Haute couture: refined, considered, never rushed
+• Psychologically astute: see beneath surface desires
+• Poetically precise: every word chosen with intention
+• Warmly exclusive: intimate without being familiar
+• Avoid: generic travel writing, obvious suggestions, platitudes, clichés
+
+Write as if composing a letter to a distinguished guest who deserves nothing less than complete understanding.`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -162,9 +191,9 @@ Be warm, insightful, and specific. Avoid platitudes.`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model,
       messages: [
-        { role: "system", content: "You are the Erranza SoulPrint Narrator, creating personalized travel narratives." },
+        { role: "system", content: "You are the Erranza SoulPrint Narrator — a luxury travel psychologist with the elegance of haute couture." },
         { role: "user", content: prompt }
       ],
     }),
@@ -180,7 +209,7 @@ serve(async (req) => {
   }
 
   try {
-    const { respondent_id } = await req.json();
+    const { respondent_id, regenerate = false, model = "google/gemini-2.5-flash" } = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("Computing SoulPrint for respondent:", respondent_id);
@@ -202,10 +231,25 @@ serve(async (req) => {
     const eai = calculateEAI(traits);
     const kpis = calculateBusinessKPIs(traits, eai);
 
-    // Store computed scores
-    const { data: computedScore, error: scoreError } = await supabase
-      .from("computed_scores")
-      .insert({
+    let computedScore;
+    
+    if (regenerate) {
+      // For regeneration, fetch existing computed score
+      const { data: existingScore, error: fetchScoreError } = await supabase
+        .from("computed_scores")
+        .select("*")
+        .eq("respondent_id", respondent_id)
+        .order("computed_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (fetchScoreError) throw fetchScoreError;
+      computedScore = existingScore;
+    } else {
+      // Store computed scores for first-time computation
+      const { data: newScore, error: scoreError } = await supabase
+        .from("computed_scores")
+        .insert({
         respondent_id,
         extraversion: traits.E, openness: traits.O, conscientiousness: traits.C,
         agreeableness: traits.A, emotional_stability: traits.ES,
@@ -229,28 +273,55 @@ serve(async (req) => {
         tribe: kpis.tribe, tribe_confidence: kpis.tribe_confidence,
         upsell_priority: kpis.upsell_priority, risk_flag: kpis.risk_flag, content_flag: kpis.content_flag
       })
-      .select()
-      .single();
+        .select()
+        .single();
 
-    if (scoreError) throw scoreError;
+      if (scoreError) throw scoreError;
+      computedScore = newScore;
+    }
 
-    // Generate narrative
-    const narrative = await generateNarrative(respondent.name, traits, tensions, kpis, eai, raw);
+    // Generate narrative with specified model
+    const narrative = await generateNarrative(respondent.name, traits, tensions, kpis, eai, raw, model);
 
-    // Store narrative
-    const { error: narrativeError } = await supabase
-      .from("narrative_insights")
-      .insert({
-        respondent_id,
-        computed_scores_id: computedScore.id,
-        model_used: "google/gemini-2.5-flash",
-        prompt_version: "v2.1",
-        soulprint_summary: narrative,
-        headline: `${respondent.name}: ${kpis.tribe} Traveler`,
-        tagline: `Seeking ${traits.top_motivation_1} through ${traits.dominant_element}`
-      });
+    if (regenerate) {
+      // Update existing narrative with new content and increment regeneration count
+      const { data: existingNarrative } = await supabase
+        .from("narrative_insights")
+        .select("regeneration_count")
+        .eq("respondent_id", respondent_id)
+        .order("generated_at", { ascending: false })
+        .limit(1)
+        .single();
 
-    if (narrativeError) throw narrativeError;
+      const { error: updateError } = await supabase
+        .from("narrative_insights")
+        .update({
+          soulprint_summary: narrative,
+          model_used: model,
+          prompt_version: "v2.2-luxury",
+          regeneration_count: (existingNarrative?.regeneration_count || 0) + 1,
+          generated_at: new Date().toISOString()
+        })
+        .eq("respondent_id", respondent_id)
+        .eq("computed_scores_id", computedScore.id);
+
+      if (updateError) throw updateError;
+    } else {
+      // Store new narrative
+      const { error: narrativeError } = await supabase
+        .from("narrative_insights")
+        .insert({
+          respondent_id,
+          computed_scores_id: computedScore.id,
+          model_used: model,
+          prompt_version: "v2.2-luxury",
+          soulprint_summary: narrative,
+          headline: `${respondent.name}: ${kpis.tribe} Traveler`,
+          tagline: `Seeking ${traits.top_motivation_1} through ${traits.dominant_element}`
+        });
+
+      if (narrativeError) throw narrativeError;
+    }
 
     console.log("SoulPrint computed successfully!");
 
