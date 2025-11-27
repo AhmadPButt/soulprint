@@ -635,6 +635,9 @@ export type Database = {
           email: string
           id: string
           name: string
+          paid_activities: boolean | null
+          paid_flights: boolean | null
+          paid_hotels: boolean | null
           passport_nationality: string | null
           raw_responses: Json
           room_type: string | null
@@ -650,6 +653,9 @@ export type Database = {
           email: string
           id?: string
           name: string
+          paid_activities?: boolean | null
+          paid_flights?: boolean | null
+          paid_hotels?: boolean | null
           passport_nationality?: string | null
           raw_responses: Json
           room_type?: string | null
@@ -665,6 +671,9 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          paid_activities?: boolean | null
+          paid_flights?: boolean | null
+          paid_hotels?: boolean | null
           passport_nationality?: string | null
           raw_responses?: Json
           room_type?: string | null

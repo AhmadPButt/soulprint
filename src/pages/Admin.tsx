@@ -463,6 +463,31 @@ const Admin = () => {
     }
   };
 
+  const togglePaymentStatus = async (respondentId: string, field: 'paid_flights' | 'paid_hotels' | 'paid_activities', currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('respondents')
+        .update({ [field]: !currentValue })
+        .eq('id', respondentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Status Updated",
+        description: `${field.replace('paid_', '').replace('_', ' ')} marked as ${!currentValue ? 'paid' : 'unpaid'}`,
+      });
+
+      await loadRespondents();
+    } catch (error: any) {
+      console.error("Error updating payment status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update payment status",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       loadAnalytics();
@@ -1005,6 +1030,40 @@ const Admin = () => {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Payment Tracking */}
+                              <div className="border border-border rounded-lg p-3 bg-background/50">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">Payment Status:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant={respondent.paid_flights ? "default" : "outline"}
+                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_flights', respondent.paid_flights)}
+                                    className="text-xs"
+                                  >
+                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_flights ? '' : 'opacity-30'}`} />
+                                    Flights {respondent.paid_flights ? 'Paid' : 'Unpaid'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={respondent.paid_hotels ? "default" : "outline"}
+                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_hotels', respondent.paid_hotels)}
+                                    className="text-xs"
+                                  >
+                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_hotels ? '' : 'opacity-30'}`} />
+                                    Hotels {respondent.paid_hotels ? 'Paid' : 'Unpaid'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={respondent.paid_activities ? "default" : "outline"}
+                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_activities', respondent.paid_activities)}
+                                    className="text-xs"
+                                  >
+                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_activities ? '' : 'opacity-30'}`} />
+                                    Activities {respondent.paid_activities ? 'Paid' : 'Unpaid'}
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                           )})
                         )}
