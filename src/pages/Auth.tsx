@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { User, Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
@@ -13,6 +15,10 @@ const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -80,6 +86,75 @@ const Auth = () => {
     }
   };
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/questionnaire`,
+          }
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Account Created",
+          description: "Please check your email to verify your account.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      toast({
+        title: isSignUp ? "Sign Up Error" : "Sign In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for the reset link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background flex items-center justify-center">
@@ -100,7 +175,7 @@ const Auth = () => {
             </div>
             <CardTitle className="text-3xl font-heading">Welcome to SoulPrint</CardTitle>
             <CardDescription className="text-base">
-              Sign in to begin your personalized travel journey assessment
+              {isSignUp ? "Create an account to begin your journey" : "Sign in to begin your personalized travel journey assessment"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -108,6 +183,7 @@ const Auth = () => {
               onClick={signInWithGoogle}
               className="w-full h-12 text-base"
               size="lg"
+              variant="outline"
             >
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -130,17 +206,91 @@ const Auth = () => {
               Continue with Google
             </Button>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <p>By continuing, you agree to our Terms of Service and Privacy Policy</p>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Please enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {!isSignUp && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forget password?
+                  </button>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-12 text-base"
+                size="lg"
+                disabled={authLoading}
+              >
+                {authLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isSignUp ? (
+                  "Sign up"
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center">
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                <span className="text-primary font-medium hover:underline">
+                  {isSignUp ? "Sign in" : "Sign up"}
+                </span>
+              </button>
             </div>
 
             <div className="pt-4 border-t border-border">
               <p className="text-xs text-center text-muted-foreground">
-                We'll use your Google account to personalize your SoulPrint journey and save your responses.
+                By continuing, you agree to our Terms of Service and Privacy Policy
               </p>
             </div>
           </CardContent>
         </Card>
+        
+        <div className="mt-8 text-center">
+          <p className="text-sm text-muted-foreground">© 2025 Erranza Ltd.</p>
+        </div>
       </div>
     </div>
   );
