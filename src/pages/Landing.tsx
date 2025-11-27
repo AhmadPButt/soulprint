@@ -1,11 +1,27 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import fingerprintImage from "@/assets/fingerprint.png";
 import erranzaLogo from "@/assets/erranza-logo.png";
+import TermsDialog from "@/components/TermsDialog";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [showTermsDialog, setShowTermsDialog] = useState(false);
+
+  const handleBeginAssessment = () => {
+    setShowTermsDialog(true);
+  };
+
+  const handleTermsAccepted = () => {
+    setShowTermsDialog(false);
+    navigate("/questionnaire");
+  };
+
+  const handleTermsCancelled = () => {
+    setShowTermsDialog(false);
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -88,7 +104,7 @@ const Landing = () => {
               className="flex flex-col items-center"
             >
               <Button
-                onClick={() => navigate("/questionnaire")}
+                onClick={handleBeginAssessment}
                 size="lg"
                 className="text-lg px-12 py-6 h-auto bg-lavender-accent hover:bg-lavender-accent/90 text-white font-heading font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto"
               >
@@ -111,6 +127,12 @@ const Landing = () => {
           </div>
         </footer>
       </div>
+
+      <TermsDialog
+        open={showTermsDialog}
+        onAccept={handleTermsAccepted}
+        onCancel={handleTermsCancelled}
+      />
     </div>
   );
 };
