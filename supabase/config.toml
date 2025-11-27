@@ -2,3 +2,12 @@ project_id = "wmrgkkubpkuqjojcfvyg"
 
 [functions.send-questionnaire-results]
 verify_jwt = false
+
+[functions.generate-itinerary]
+verify_jwt = false
+
+[functions.compute-soulprint]
+verify_jwt = false
+
+[functions.send-weekly-analytics]
+verify_jwt = false

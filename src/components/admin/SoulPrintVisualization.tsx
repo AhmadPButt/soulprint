@@ -1,15 +1,30 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
+import { Download, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface SoulPrintVisualizationProps {
   computed: any;
   narrative: any;
+  respondentId?: string;
+  onRegenerateComplete?: () => void;
 }
 
-const SoulPrintVisualization = ({ computed, narrative }: SoulPrintVisualizationProps) => {
+const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerateComplete }: SoulPrintVisualizationProps) => {
+  const { toast } = useToast();
+  const [regenerating, setRegenerating] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("google/gemini-2.5-flash");
+  const [exporting, setExporting] = useState(false);
+
   // Big Five data
   const bigFiveData = [
     { trait: "Extraversion", value: parseFloat(computed.extraversion) },
@@ -59,8 +74,299 @@ const SoulPrintVisualization = ({ computed, narrative }: SoulPrintVisualizationP
     { name: "Content Generation", value: parseFloat(computed.cgs), tier: computed.cgs_tier }
   ];
 
+  const handleRegenerate = async () => {
+    if (!respondentId) {
+      toast({
+        title: "Error",
+        description: "Respondent ID is required for regeneration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke("compute-soulprint", {
+        body: { 
+          respondent_id: respondentId,
+          regenerate: true,
+          model: selectedModel
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Narrative Regenerated",
+        description: `Successfully regenerated with ${selectedModel}`,
+      });
+
+      onRegenerateComplete?.();
+    } catch (error: any) {
+      console.error("Error regenerating narrative:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate narrative",
+        variant: "destructive",
+      });
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    setExporting(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Header
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('SoulPrint Research Report', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Erranza Travel Psychology Research', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      
+      yPosition += 10;
+
+      // Respondent Overview
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Respondent Profile', 15, yPosition);
+      yPosition += 10;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Tribe: ${computed.tribe}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Tribe Confidence: ${computed.tribe_confidence}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Azerbaijan Alignment: ${computed.eai_azerbaijan}%`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`NPS Prediction: ${computed.nps_predicted}/10 (${computed.nps_tier})`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Risk Flag: ${computed.risk_flag}`, 15, yPosition);
+      yPosition += 10;
+
+      // Big Five Personality
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Big Five Personality Traits', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      bigFiveData.forEach(trait => {
+        pdf.text(`${trait.trait}: ${trait.value.toFixed(1)}`, 15, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 5;
+
+      // Travel Behavior
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Travel Behavior', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      travelData.forEach(item => {
+        pdf.text(`${item.name}: ${item.value.toFixed(1)}`, 15, yPosition);
+        yPosition += 6;
+      });
+      pdf.text(`Travel Freedom Index: ${computed.travel_freedom_index}`, 15, yPosition);
+      yPosition += 10;
+
+      // Elemental Resonance
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Elemental Resonance', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      elementalData.forEach(element => {
+        pdf.text(`${element.name}: ${element.value.toFixed(1)}`, 15, yPosition);
+        yPosition += 6;
+      });
+      pdf.text(`Dominant Element: ${computed.dominant_element}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Secondary Element: ${computed.secondary_element}`, 15, yPosition);
+      yPosition += 10;
+
+      // Check if we need a new page
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      // Inner Compass
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Inner Compass & Motivations', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      innerCompassData.forEach(item => {
+        pdf.text(`${item.motivation}: ${item.value.toFixed(1)}`, 15, yPosition);
+        yPosition += 6;
+      });
+      pdf.text(`Primary Motivation: ${computed.top_motivation_1}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Secondary Motivation: ${computed.top_motivation_2}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Life Phase: ${computed.life_phase}`, 15, yPosition);
+      yPosition += 6;
+      pdf.text(`Seeking: ${computed.shift_desired}`, 15, yPosition);
+      yPosition += 10;
+
+      // Business KPIs
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Business Key Performance Indicators', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      kpisData.forEach(kpi => {
+        pdf.text(`${kpi.name}: ${kpi.value.toFixed(1)} (${kpi.tier})`, 15, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 5;
+
+      // Tensions
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Tensions & Friction Points', 15, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      tensionsData.forEach(tension => {
+        pdf.text(`${tension.name}: ${tension.value.toFixed(1)}`, 15, yPosition);
+        yPosition += 6;
+      });
+
+      if (yPosition > pageHeight - 50 && narrative) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      // Narrative Insights
+      if (narrative) {
+        yPosition += 10;
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Psychological Narrative', 15, yPosition);
+        yPosition += 10;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text(narrative.headline || '', 15, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const summaryLines = pdf.splitTextToSize(narrative.soulprint_summary || '', pageWidth - 30);
+        summaryLines.forEach((line: string) => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          pdf.text(line, 15, yPosition);
+          yPosition += 5;
+        });
+
+        if (narrative.traveler_archetype) {
+          yPosition += 5;
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Traveler Archetype:', 15, yPosition);
+          yPosition += 6;
+          pdf.setFont('helvetica', 'normal');
+          const archetypeLines = pdf.splitTextToSize(narrative.traveler_archetype, pageWidth - 30);
+          archetypeLines.forEach((line: string) => {
+            if (yPosition > pageHeight - 20) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            pdf.text(line, 15, yPosition);
+            yPosition += 5;
+          });
+        }
+      }
+
+      // Footer
+      const timestamp = new Date().toLocaleString();
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Generated: ${timestamp}`, 15, pageHeight - 10);
+      pdf.text('Erranza © 2025 - Confidential Research Data', pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+      pdf.save(`soulprint-research-${respondentId?.substring(0, 8) || 'report'}.pdf`);
+
+      toast({
+        title: "PDF Exported",
+        description: "Research report downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Action Bar */}
+      {respondentId && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select AI Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                    <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+                    <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={handleRegenerate} 
+                disabled={regenerating}
+                variant="outline"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
+                {regenerating ? "Regenerating..." : "Regenerate Narrative"}
+              </Button>
+              <Button onClick={exportToPDF} disabled={exporting}>
+                <Download className="h-4 w-4 mr-2" />
+                {exporting ? "Exporting..." : "Export Research Report"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Headline */}
       {narrative && (
         <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10">
