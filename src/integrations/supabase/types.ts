@@ -382,6 +382,7 @@ export type Database = {
           status: string | null
           travel_companion: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           country?: string | null
@@ -396,6 +397,7 @@ export type Database = {
           status?: string | null
           travel_companion?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           country?: string | null
@@ -410,6 +412,7 @@ export type Database = {
           status?: string | null
           travel_companion?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
