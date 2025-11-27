@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,110 +13,61 @@ serve(async (req) => {
   try {
     const { type, params } = await req.json();
     
-    const SERP_API_KEY = Deno.env.get('SERP_API_KEY');
-    if (!SERP_API_KEY) {
-      throw new Error('SERP_API_KEY is not configured');
+    if (type !== 'hotels') {
+      throw new Error('Invalid search type. Only "hotels" is supported');
     }
 
-    let results;
-
-    if (type === 'flights') {
-      // Search Google Flights via SerpApi
-      const { origin, destination, departure_date, return_date, adults = 1 } = params;
-      
-      const flightParams = new URLSearchParams({
-        engine: 'google_flights',
-        departure_id: origin,
-        arrival_id: destination,
-        outbound_date: departure_date,
-        return_date: return_date || '',
-        adults: adults.toString(),
-        currency: 'USD',
-        hl: 'en',
-        api_key: SERP_API_KEY,
-      });
-
-      console.log('Searching flights:', flightParams.toString());
-
-      const flightResponse = await fetch(`https://serpapi.com/search?${flightParams}`);
-      
-      if (!flightResponse.ok) {
-        const errorText = await flightResponse.text();
-        console.error('Flight search error:', flightResponse.status, errorText);
-        throw new Error(`Flight search failed: ${errorText}`);
-      }
-
-      const flightData = await flightResponse.json();
-      
-      // Extract best flights with pricing
-      results = {
-        type: 'flights',
-        best_flights: flightData.best_flights?.slice(0, 3).map((flight: any) => ({
-          price: flight.price,
-          airline: flight.flights?.[0]?.airline,
-          duration: flight.total_duration,
-          departure_time: flight.flights?.[0]?.departure_airport?.time,
-          arrival_time: flight.flights?.[flight.flights.length - 1]?.arrival_airport?.time,
-          stops: flight.flights?.length - 1,
-        })) || [],
-        other_flights: flightData.other_flights?.slice(0, 5).map((flight: any) => ({
-          price: flight.price,
-          airline: flight.flights?.[0]?.airline,
-          duration: flight.total_duration,
-          stops: flight.flights?.length - 1,
-        })) || [],
-        price_insights: flightData.price_insights,
-      };
-
-    } else if (type === 'hotels') {
-      // Search Google Hotels via SerpApi
-      const { location, check_in_date, check_out_date, adults = 1, currency = 'USD' } = params;
-      
-      const hotelParams = new URLSearchParams({
-        engine: 'google_hotels',
-        q: location,
-        check_in_date: check_in_date,
-        check_out_date: check_out_date,
-        adults: adults.toString(),
-        currency: currency,
-        hl: 'en',
-        api_key: SERP_API_KEY,
-      });
-
-      console.log('Searching hotels:', hotelParams.toString());
-
-      const hotelResponse = await fetch(`https://serpapi.com/search?${hotelParams}`);
-      
-      if (!hotelResponse.ok) {
-        const errorText = await hotelResponse.text();
-        console.error('Hotel search error:', hotelResponse.status, errorText);
-        throw new Error(`Hotel search failed: ${errorText}`);
-      }
-
-      const hotelData = await hotelResponse.json();
-      
-      // Extract top hotels with pricing
-      results = {
-        type: 'hotels',
-        properties: hotelData.properties?.slice(0, 10).map((hotel: any) => ({
-          name: hotel.name,
-          type: hotel.type,
-          rating: hotel.overall_rating,
-          reviews: hotel.reviews,
-          price: hotel.rate_per_night?.lowest,
-          total_rate: hotel.total_rate?.lowest,
-          description: hotel.description,
-          images: hotel.images?.slice(0, 3),
-          amenities: hotel.amenities,
-          link: hotel.link,
-        })) || [],
-      };
-
-    } else {
-      throw new Error('Invalid search type. Use "flights" or "hotels"');
+    const LITEFUL_API_KEY = Deno.env.get('AMADEUS_API_KEY');
+    if (!LITEFUL_API_KEY) {
+      throw new Error('AMADEUS_API_KEY is not configured');
     }
 
-    console.log('Search completed successfully');
+    const { location, check_in_date, check_out_date, adults = 1 } = params;
+    
+    console.log('Searching hotels with Liteful API:', { location, check_in_date, check_out_date, adults });
+
+    // Call Liteful API for hotel search
+    const hotelResponse = await fetch('https://api.liteful.com/v1/hotels/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LITEFUL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        location: location,
+        check_in: check_in_date,
+        check_out: check_out_date,
+        guests: adults,
+      })
+    });
+
+    if (!hotelResponse.ok) {
+      const errorText = await hotelResponse.text();
+      console.error('Liteful API error:', hotelResponse.status, errorText);
+      throw new Error(`Hotel search failed: ${errorText}`);
+    }
+
+    const hotelData = await hotelResponse.json();
+    console.log('Liteful API response:', JSON.stringify(hotelData, null, 2));
+    
+    // Transform Liteful API response to match our expected format
+    const results = {
+      type: 'hotels',
+      properties: (hotelData.hotels || hotelData.results || []).slice(0, 10).map((hotel: any) => ({
+        name: hotel.name || hotel.hotel_name,
+        type: hotel.type || hotel.category || 'Hotel',
+        rating: hotel.rating || hotel.star_rating,
+        reviews: hotel.reviews || hotel.review_count,
+        price: hotel.price || hotel.rate_per_night || hotel.nightly_rate,
+        total_rate: hotel.total_price || hotel.total_rate,
+        description: hotel.description,
+        images: hotel.images || hotel.photos?.slice(0, 3) || [],
+        amenities: hotel.amenities || hotel.facilities || [],
+        link: hotel.booking_url || hotel.link || hotel.url,
+      })) || [],
+    };
+
+    console.log('Transformed results:', JSON.stringify(results, null, 2));
 
     return new Response(
       JSON.stringify(results),
