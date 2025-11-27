@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -20,15 +21,34 @@ interface AnalyticsData {
     started_at: string;
     last_section: number;
     status: string;
+    variant_name?: string;
   }[];
+  variantMetrics?: {
+    variant_id: string;
+    variant_name: string;
+    starts: number;
+    completions: number;
+    completionRate: number;
+  }[];
+}
+
+interface Variant {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  weight: number;
 }
 
 const Admin = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [variants, setVariants] = useState<Variant[]>([]);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const loadAnalytics = async () => {
     try {
@@ -97,6 +117,7 @@ const Admin = () => {
             started_at: event.timestamp,
             last_section: 0,
             status: "started",
+            variant_id: event.variant_id,
           });
         }
         const session = sessionMap.get(event.session_id);
@@ -110,8 +131,34 @@ const Admin = () => {
           session.status = "abandoned";
         }
       });
+
+      // Fetch variants to add names to sessions
+      const { data: variantsData } = await supabase
+        .from("questionnaire_variants")
+        .select("*");
+
+      const variantMap = new Map(variantsData?.map(v => [v.id, v.name]) || []);
+
       const recentSessions = Array.from(sessionMap.values())
+        .map(session => ({
+          ...session,
+          variant_name: variantMap.get(session.variant_id) || "Control"
+        }))
         .slice(0, 20);
+
+      // Calculate variant metrics
+      const variantMetrics = variantsData?.map(variant => {
+        const variantEvents = allEvents.filter(e => e.variant_id === variant.id);
+        const variantStarts = variantEvents.filter(e => e.event_type === "started").length;
+        const variantCompletions = variantEvents.filter(e => e.event_type === "completed").length;
+        return {
+          variant_id: variant.id,
+          variant_name: variant.name,
+          starts: variantStarts,
+          completions: variantCompletions,
+          completionRate: variantStarts > 0 ? (variantCompletions / variantStarts) * 100 : 0
+        };
+      }) || [];
 
       setAnalytics({
         totalStarts: starts,
@@ -120,6 +167,7 @@ const Admin = () => {
         sectionDropoffs,
         averageTimePerSection,
         recentSessions,
+        variantMetrics,
       });
     } catch (error) {
       console.error("Error loading analytics:", error);
@@ -128,9 +176,47 @@ const Admin = () => {
     }
   };
 
+  const loadVariants = async () => {
+    const { data, error } = await supabase
+      .from("questionnaire_variants")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error loading variants:", error);
+      return;
+    }
+
+    setVariants(data || []);
+  };
+
+  const sendWeeklyReport = async () => {
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-weekly-analytics");
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Email Sent",
+        description: "Weekly analytics report sent to ahmad@erranza.ai",
+      });
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send email report",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       loadAnalytics();
+      loadVariants();
       // Set up realtime subscription
       const channel = supabase
         .channel("analytics-changes")
@@ -155,11 +241,45 @@ const Admin = () => {
 
   const handleLogin = () => {
     // Simple password check - in production, use proper authentication
-    if (password === "erranza2025") {
+    if (password === "Zahrasoulprint123") {
       setIsAuthenticated(true);
     } else {
       alert("Incorrect password");
     }
+  };
+
+  const exportToCSV = (startDate?: string, endDate?: string) => {
+    if (!analytics) return;
+
+    // Filter events by date range if provided
+    let eventsToExport = analytics.recentSessions;
+    
+    // Create CSV content
+    const headers = ["Session ID", "Email", "Started At", "Last Section", "Status", "Variant"];
+    const rows = eventsToExport.map((session) => [
+      session.session_id,
+      session.email || "Anonymous",
+      new Date(session.started_at).toLocaleString(),
+      session.last_section,
+      session.status,
+      session.variant_name || "Control"
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `soulprint-analytics-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   if (!isAuthenticated) {
@@ -199,15 +319,27 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-heading font-bold mb-2">SoulPrint Analytics Dashboard</h1>
-            <p className="text-muted-foreground">Monitor completion and dropoff rates</p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-heading font-bold mb-2">SoulPrint Analytics Dashboard</h1>
+              <p className="text-muted-foreground">Monitor completion and dropoff rates</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => exportToCSV()}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button variant="outline" onClick={sendWeeklyReport} disabled={sendingEmail}>
+                <Mail className="mr-2 h-4 w-4" />
+                {sendingEmail ? "Sending..." : "Send Report"}
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={() => navigate("/")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
         </div>
 
         {analytics && (
@@ -266,10 +398,11 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time per Section</TabsTrigger>
                 <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
+                <TabsTrigger value="variants">A/B Testing</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -374,6 +507,82 @@ const Admin = () => {
                         )}
                       </div>
                     </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="variants">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FlaskConical className="h-5 w-5" />
+                      A/B Test Variants
+                    </CardTitle>
+                    <CardDescription>
+                      Compare completion rates across different questionnaire variants
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {analytics?.variantMetrics && analytics.variantMetrics.length > 0 ? (
+                        analytics.variantMetrics.map((metric) => (
+                          <div key={metric.variant_id} className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold">{metric.variant_name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {metric.starts} starts, {metric.completions} completions
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold">{metric.completionRate.toFixed(1)}%</p>
+                                <p className="text-xs text-muted-foreground">Completion Rate</p>
+                              </div>
+                            </div>
+                            <Progress value={metric.completionRate} className="h-3" />
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-8">
+                          No A/B test data available yet
+                        </p>
+                      )}
+                      
+                      <div className="pt-6 border-t">
+                        <h3 className="font-semibold mb-3">Active Variants</h3>
+                        <div className="space-y-2">
+                          {variants.map((variant) => (
+                            <div
+                              key={variant.id}
+                              className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                            >
+                              <div>
+                                <p className="font-medium">{variant.name}</p>
+                                {variant.description && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {variant.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  Weight: {variant.weight}%
+                                </span>
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full ${
+                                    variant.is_active
+                                      ? "bg-green-500/20 text-green-500"
+                                      : "bg-red-500/20 text-red-500"
+                                  }`}
+                                >
+                                  {variant.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
