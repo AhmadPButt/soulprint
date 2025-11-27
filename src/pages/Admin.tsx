@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 
 const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
+import { GroupDiscussionsTab } from "@/components/admin/GroupDiscussionsTab";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -660,13 +661,14 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time per Section</TabsTrigger>
                 <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
                 <TabsTrigger value="variants">A/B Testing</TabsTrigger>
                 <TabsTrigger value="respondents">SoulPrint Submissions</TabsTrigger>
                 <TabsTrigger value="groups">Travel Groups</TabsTrigger>
+                <TabsTrigger value="discussions">Discussions</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -1126,6 +1128,10 @@ const Admin = () => {
                     </ScrollArea>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="discussions">
+                <GroupDiscussionsTab />
               </TabsContent>
             </Tabs>
           </>
