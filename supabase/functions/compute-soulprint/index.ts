@@ -16,21 +16,30 @@ function reverseScore(value: number): number {
 }
 
 function calculateTraitScores(raw: Record<string, any>) {
-  // Big Five Traits
-  const E = (raw.extraversionQ1 + raw.extraversionQ2 + raw.extraversionQ3 + reverseScore(raw.extraversionQ4)) / 4;
-  const O = (raw.opennessQ1 + raw.opennessQ2 + raw.opennessQ3 + reverseScore(raw.opennessQ4)) / 4;
-  const C = (raw.conscientiousnessQ1 + raw.conscientiousnessQ2 + raw.conscientiousnessQ3 + reverseScore(raw.conscientiousnessQ4)) / 4;
-  const A = (raw.agreeablenessQ1 + raw.agreeablenessQ2 + raw.agreeablenessQ3 + reverseScore(raw.agreeablenessQ4)) / 4;
-  const ES = (raw.emotionalStabilityQ1 + raw.emotionalStabilityQ2 + reverseScore(raw.emotionalStabilityQ3) + reverseScore(raw.emotionalStabilityQ4)) / 4;
+  // Big Five Traits (Q4-Q23 from questionnaire)
+  const E = (raw.Q4 + raw.Q5 + raw.Q6 + reverseScore(raw.Q7)) / 4;
+  const O = (raw.Q8 + raw.Q9 + raw.Q10 + reverseScore(raw.Q11)) / 4;
+  const C = (raw.Q12 + raw.Q13 + raw.Q14 + reverseScore(raw.Q15)) / 4;
+  const A = (raw.Q16 + raw.Q17 + raw.Q18 + reverseScore(raw.Q19)) / 4;
+  const ES = (raw.Q20 + raw.Q21 + reverseScore(raw.Q22) + reverseScore(raw.Q23)) / 4;
   
-  // Travel Behavior
-  const SF = (raw.spontaneityQ1 + raw.spontaneityQ2 + raw.spontaneityQ3 + reverseScore(raw.spontaneityQ4)) / 4;
-  const AO = (raw.adventureQ1 + raw.adventureQ2 + reverseScore(raw.adventureQ3)) / 3;
-  const EA = (raw.adaptationQ1 + raw.adaptationQ2 + reverseScore(raw.adaptationQ3)) / 3;
+  // Travel Behavior (Q24-Q33 from questionnaire)
+  const SF = (raw.Q24 + raw.Q25 + raw.Q26 + reverseScore(raw.Q27)) / 4;
+  const AO = (raw.Q28 + raw.Q29 + reverseScore(raw.Q30)) / 3;
+  const EA = (raw.Q31 + raw.Q32 + reverseScore(raw.Q33)) / 3;
   const TFI = 0.4 * SF + 0.4 * AO + 0.2 * EA;
   
-  // Elemental Resonance
-  const elementRanks = raw.elements;
+  // Elemental Resonance (Q34 from questionnaire - parse comma-separated string)
+  const elementString = raw.Q34 || "";
+  const elementArray = elementString.split(",").map((s: string) => s.trim().toLowerCase());
+  const elementRanks = {
+    fire: elementArray.indexOf("fire") + 1,
+    water: elementArray.indexOf("water") + 1,
+    stone: elementArray.indexOf("stone") + 1,
+    urban: elementArray.indexOf("urban") + 1,
+    desert: elementArray.indexOf("desert") + 1
+  };
+  
   const fire = (5 - elementRanks.fire) * 25;
   const water = (5 - elementRanks.water) * 25;
   const stone = (5 - elementRanks.stone) * 25;
@@ -42,19 +51,19 @@ function calculateTraitScores(raw: Record<string, any>) {
   const dominant_element = sortedElements[0][0];
   const secondary_element = sortedElements[1][0];
   
-  // Inner Compass
-  const TR = (raw.transformationQ1 + raw.transformationQ2) / 2;
-  const CL = (raw.clarityQ1 + raw.clarityQ2) / 2;
-  const AL = (raw.alivenessQ1 + raw.alivenessQ2) / 2;
-  const CON = (raw.connectionQ1 + raw.connectionQ2) / 2;
+  // Inner Compass (Q35-Q42 from questionnaire)
+  const TR = (raw.Q35 + raw.Q36) / 2;
+  const CL = (raw.Q37 + raw.Q38) / 2;
+  const AL = (raw.Q39 + raw.Q40) / 2;
+  const CON = (raw.Q41 + raw.Q42) / 2;
   
   const motivationScores = { Transformation: TR, Clarity: CL, Aliveness: AL, Connection: CON };
   const sortedMotivations = Object.entries(motivationScores).sort((a, b) => b[1] - a[1]);
   const top_motivation_1 = sortedMotivations[0][0];
   const top_motivation_2 = sortedMotivations[1][0];
   
-  // State Variables
-  const EBI = (raw.overwhelm + raw.uncertainty + raw.burnout + raw.disconnection) / 4;
+  // State Variables (Q45_* and Q43, Q44, Q46 from questionnaire)
+  const EBI = (raw.Q45_overwhelm + raw.Q45_uncertainty + raw.Q45_burnout + raw.Q45_disconnection) / 4;
   const ETI = (ES + (100 - EBI)) / 2;
   
   return {
@@ -64,10 +73,10 @@ function calculateTraitScores(raw: Record<string, any>) {
     dominant_element, secondary_element,
     TR, CL, AL, CON,
     top_motivation_1, top_motivation_2,
-    life_phase: raw.lifePhase,
-    shift_desired: raw.shiftDesired,
+    life_phase: raw.Q43,
+    shift_desired: raw.Q44,
     EBI, ETI,
-    completion_need: raw.completionNeed
+    completion_need: raw.Q46
   };
 }
 
