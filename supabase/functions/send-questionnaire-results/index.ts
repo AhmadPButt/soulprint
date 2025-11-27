@@ -14,6 +14,11 @@ const corsHeaders = {
 interface QuestionnaireResults {
   responses: Record<string, any>;
   timestamp: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,14 +27,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { responses, timestamp }: QuestionnaireResults = await req.json();
+    const { responses, timestamp, user }: QuestionnaireResults = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("Processing questionnaire submission...");
 
-    // Extract user info
-    const name = responses.Q49 || "Anonymous";
-    const email = responses.Q50 || `anonymous_${Date.now()}@erranza.ai`;
+    // Extract user info - prioritize authenticated user data over form data
+    const name = user?.name || responses.Q49 || "Anonymous";
+    const email = user?.email || responses.Q50 || `anonymous_${Date.now()}@erranza.ai`;
+    const userId = user?.id || null;
 
     // Store in database
     const { data: respondent, error: dbError } = await supabase
@@ -37,6 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         name,
         email,
+        user_id: userId,
         country: responses.Q51,
         passport_nationality: responses.Q52,
         travel_companion: responses.Q53,

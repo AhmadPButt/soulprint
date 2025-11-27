@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, CheckCircle2 } from "lucide-react";
+import { User } from "@supabase/supabase-js";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,9 +10,10 @@ import { useState, useEffect } from "react";
 interface ResultsProps {
   responses: QuestionnaireData;
   onRestart: () => void;
+  user: User;
 }
 
-const Results = ({ responses, onRestart }: ResultsProps) => {
+const Results = ({ responses, onRestart, user }: ResultsProps) => {
   const { toast } = useToast();
   const [emailSent, setEmailSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -25,7 +27,12 @@ const Results = ({ responses, onRestart }: ResultsProps) => {
         const { data, error } = await supabase.functions.invoke('send-questionnaire-results', {
           body: {
             responses,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            }
           }
         });
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { User } from "@supabase/supabase-js";
 import Section1 from "./questionnaire/Section1";
 import Section2 from "./questionnaire/Section2";
 import Section3 from "./questionnaire/Section3";
@@ -30,9 +31,13 @@ export interface QuestionnaireData {
   [key: string]: any;
 }
 
+interface SoulPrintQuestionnaireProps {
+  user: User;
+}
+
 const STORAGE_KEY = "soulprint_questionnaire_progress";
 
-const SoulPrintQuestionnaire = () => {
+const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
   const { toast } = useToast();
   const [currentSection, setCurrentSection] = useState(0);
   const [responses, setResponses] = useState<QuestionnaireData>({});
@@ -183,7 +188,7 @@ const SoulPrintQuestionnaire = () => {
   });
 
   if (showResults) {
-    return <Results responses={responses} onRestart={handleRestart} />;
+    return <Results responses={responses} onRestart={handleRestart} user={user} />;
   }
 
   return (
