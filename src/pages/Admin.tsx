@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
@@ -798,90 +799,143 @@ const Admin = () => {
                             No submissions yet
                           </p>
                         ) : (
-                          respondents.map((respondent) => (
+                           respondents.map((respondent) => {
+                            const itinerary = respondent.itineraries?.[0];
+                            const itineraryData = itinerary?.itinerary_data;
+                            
+                            return (
                             <div
                               key={respondent.id}
-                              className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                              className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors space-y-3"
                             >
-                              <div className="flex-1">
-                                <p className="font-semibold">{respondent.name}</p>
-                                <p className="text-sm text-muted-foreground">{respondent.email}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Submitted {new Date(respondent.created_at).toLocaleString()}
-                                </p>
-                                {respondent.computed_scores?.length > 0 && (
-                                  <p className="text-xs text-green-500 mt-1">
-                                    ✓ SoulPrint Computed
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <p className="font-semibold">{respondent.name}</p>
+                                  <p className="text-sm text-muted-foreground">{respondent.email}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Submitted {new Date(respondent.created_at).toLocaleString()}
                                   </p>
-                                )}
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => downloadJSON(respondent)}
-                                >
-                                  <FileJson className="h-4 w-4 mr-1" />
-                                  Download
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => computeSoulPrint(respondent.id)}
-                                  disabled={computingId === respondent.id}
-                                >
-                                  <Brain className="h-4 w-4 mr-1" />
-                                  {computingId === respondent.id
-                                    ? "Computing..."
-                                    : "Compute"}
-                                </Button>
-                                {respondent.computed_scores?.length > 0 && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => viewSoulPrint(respondent)}
-                                    >
-                                      View SoulPrint
-                                    </Button>
-                                    {respondent.itineraries?.length > 0 ? (
-                                      <>
+                                  {respondent.computed_scores?.length > 0 && (
+                                    <p className="text-xs text-green-500 mt-1">
+                                      ✓ SoulPrint Computed
+                                    </p>
+                                  )}
+                                  {itinerary && (
+                                    <p className="text-xs text-primary mt-1">
+                                      ✓ Itinerary Created
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadJSON(respondent)}
+                                  >
+                                    <FileJson className="h-4 w-4 mr-1" />
+                                    Download
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => computeSoulPrint(respondent.id)}
+                                    disabled={computingId === respondent.id}
+                                  >
+                                    <Brain className="h-4 w-4 mr-1" />
+                                    {computingId === respondent.id
+                                      ? "Computing..."
+                                      : "Compute"}
+                                  </Button>
+                                  {respondent.computed_scores?.length > 0 && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => viewSoulPrint(respondent)}
+                                      >
+                                        View SoulPrint
+                                      </Button>
+                                      {respondent.itineraries?.length > 0 ? (
+                                        <>
+                                          <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() => viewItinerary(respondent.id)}
+                                          >
+                                            <MapPin className="h-4 w-4 mr-1" />
+                                            View Itinerary
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => generateItinerary(respondent.id, true)}
+                                            disabled={generatingItinerary === respondent.id}
+                                          >
+                                            {generatingItinerary === respondent.id
+                                              ? "Regenerating..."
+                                              : "Regenerate"}
+                                          </Button>
+                                        </>
+                                      ) : (
                                         <Button
                                           size="sm"
                                           variant="secondary"
-                                          onClick={() => viewItinerary(respondent.id)}
-                                        >
-                                          <MapPin className="h-4 w-4 mr-1" />
-                                          View Itinerary
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => generateItinerary(respondent.id, true)}
+                                          onClick={() => generateItinerary(respondent.id)}
                                           disabled={generatingItinerary === respondent.id}
                                         >
+                                          <MapPin className="h-4 w-4 mr-1" />
                                           {generatingItinerary === respondent.id
-                                            ? "Regenerating..."
-                                            : "Regenerate"}
+                                            ? "Generating..."
+                                            : "Generate Itinerary"}
                                         </Button>
-                                      </>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        onClick={() => generateItinerary(respondent.id)}
-                                        disabled={generatingItinerary === respondent.id}
-                                      >
-                                        <MapPin className="h-4 w-4 mr-1" />
-                                        {generatingItinerary === respondent.id
-                                          ? "Generating..."
-                                          : "Generate Itinerary"}
-                                      </Button>
-                                    )}
-                                  </>
-                                )}
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Itinerary Preview Card */}
+                              {itinerary && itineraryData && (
+                                <div className="border border-border rounded-lg p-3 bg-background/50">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                        <MapPin className="h-4 w-4" />
+                                        {itineraryData.title || "Azerbaijan Journey"}
+                                      </h4>
+                                      <p className="text-xs text-muted-foreground mb-2">
+                                        {itineraryData.duration || "7 days"} • {itineraryData.days?.length || 7} locations
+                                      </p>
+                                      <div className="flex flex-wrap gap-1 mb-2">
+                                        {itineraryData.days?.slice(0, 3).map((day: any, idx: number) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">
+                                            {day.location}
+                                          </Badge>
+                                        ))}
+                                        {itineraryData.days?.length > 3 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{itineraryData.days.length - 3} more
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {itineraryData.highlights && (
+                                        <p className="text-xs text-muted-foreground line-clamp-2">
+                                          {itineraryData.highlights}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {itineraryData.estimated_cost && (
+                                      <div className="text-right">
+                                        <p className="text-xs text-muted-foreground">Est. Cost</p>
+                                        <p className="text-lg font-bold text-primary">
+                                          ${itineraryData.estimated_cost}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ))
+                          )})
                         )}
                       </div>
                     </ScrollArea>
