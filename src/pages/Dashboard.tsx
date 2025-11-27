@@ -8,10 +8,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home } from "lucide-react";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
 import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
 import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
+import { MoodLogger } from "@/components/trip/MoodLogger";
+import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { NavLink } from "@/components/NavLink";
 
 interface RespondentData {
   id: string;
@@ -288,6 +304,8 @@ export default function Dashboard() {
     }
   };
 
+  const [currentView, setCurrentView] = useState<string>("pre-trip");
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -299,219 +317,413 @@ export default function Dashboard() {
   const showGroupSection = respondent?.raw_responses?.travel_companion === "friends" || 
                           respondent?.raw_responses?.travel_companion === "group";
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">My SoulPrint Dashboard</h1>
-          <Button variant="outline" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+  const DashboardSidebar = () => (
+    <Sidebar className="border-r">
+      <SidebarContent>
+        <div className="p-4 border-b">
+          <h2 className="font-bold text-lg text-primary">Travel Phases</h2>
         </div>
-      </header>
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Trip Status</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setCurrentView("pre-trip")}
+                  className={currentView === "pre-trip" ? "bg-muted text-primary font-medium" : ""}
+                >
+                  <Plane className="mr-2 h-4 w-4" />
+                  <span>Pre-Trip</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setCurrentView("in-trip")}
+                  className={currentView === "in-trip" ? "bg-muted text-primary font-medium" : ""}
+                >
+                  <Compass className="mr-2 h-4 w-4" />
+                  <span>In-Trip</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setCurrentView("post-trip")}
+                  className={currentView === "post-trip" ? "bg-muted text-primary font-medium" : ""}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  <span>Post-Trip</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="soulprint" className="space-y-6">
-          <TabsList className={`grid w-full ${itinerary && showGroupSection ? "grid-cols-4" : itinerary || showGroupSection ? "grid-cols-3" : "grid-cols-2"}`}>
-            <TabsTrigger value="soulprint">My SoulPrint</TabsTrigger>
-            <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
-            {itinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
-            {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
-          </TabsList>
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <DashboardSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          <header className="border-b">
+            <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <h1 className="text-2xl font-bold text-primary">My SoulPrint Dashboard</h1>
+              </div>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </header>
 
-          <TabsContent value="soulprint" className="space-y-6">
-            {computed && narrative ? (
-              <SoulPrintVisualization
-                computed={computed}
-                narrative={narrative}
-                respondentId={respondent?.id}
-              />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>SoulPrint Not Yet Computed</CardTitle>
-                  <CardDescription>
-                    Your SoulPrint analysis is being processed. Please check back soon.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )}
-          </TabsContent>
+          <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
+            {/* PRE-TRIP VIEW */}
+            {currentView === "pre-trip" && (
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <h2 className="text-3xl font-bold mb-2">Pre-Trip Preparation</h2>
+                  <p className="text-muted-foreground">Review your SoulPrint, itinerary, and group details before your journey</p>
+                </div>
 
-          <TabsContent value="itinerary">
-            {itinerary ? (
-              <ItineraryDisplay itinerary={itinerary.itinerary_data} />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Itinerary Not Yet Created</CardTitle>
-                  <CardDescription>
-                    Your personalized itinerary is being created by our team. You'll be notified when it's ready.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )}
-          </TabsContent>
+                <Tabs defaultValue="soulprint" className="space-y-6">
+                  <TabsList className={`grid w-full ${itinerary && showGroupSection ? "grid-cols-4" : itinerary || showGroupSection ? "grid-cols-3" : "grid-cols-2"}`}>
+                    <TabsTrigger value="soulprint">My SoulPrint</TabsTrigger>
+                    <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
+                    {itinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
+                    {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
+                  </TabsList>
 
-          {itinerary && (
-            <TabsContent value="discussion" className="space-y-6">
-              <ItineraryDiscussionForum 
-                itineraryId={itinerary.id}
-                itineraryData={itinerary.itinerary_data}
-                isGroup={false}
-              />
-            </TabsContent>
-          )}
-
-          {showGroupSection && (
-            <TabsContent value="group" className="space-y-6">
-              {!group ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Create or Join a Travel Group</CardTitle>
-                    <CardDescription>
-                      Coordinate your trip with friends or family
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex gap-4">
-                    <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Users className="h-4 w-4 mr-2" />
-                          Create Group
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Create Travel Group</DialogTitle>
-                          <DialogDescription>
-                            Create a group and share the join code with your travel companions
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="groupName">Group Name</Label>
-                            <Input
-                              id="groupName"
-                              value={groupName}
-                              onChange={(e) => setGroupName(e.target.value)}
-                              placeholder="e.g., Azerbaijan Adventure 2025"
-                            />
-                          </div>
-                          <Button onClick={handleCreateGroup} className="w-full">
-                            Create Group
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Dialog open={joinGroupOpen} onOpenChange={setJoinGroupOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">Join Existing Group</Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Join Travel Group</DialogTitle>
-                          <DialogDescription>
-                            Enter the join code shared by your group creator
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="joinCode">Join Code</Label>
-                            <Input
-                              id="joinCode"
-                              value={joinCode}
-                              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                              placeholder="Enter 8-character code"
-                              maxLength={8}
-                            />
-                          </div>
-                          <Button onClick={handleJoinGroup} className="w-full">
-                            Join Group
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{group.name}</CardTitle>
-                      <CardDescription>
-                        Share this code with your travel companions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2">
-                        <code className="bg-muted px-4 py-2 rounded text-lg font-mono">
-                          {group.join_code}
-                        </code>
-                        <Button variant="outline" size="icon" onClick={copyJoinCode}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Group Members</CardTitle>
-                      <CardDescription>
-                        {groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {groupMembers.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between p-2 border rounded">
-                            <div>
-                              <p className="font-medium">{member.respondents.name}</p>
-                              <p className="text-sm text-muted-foreground">{member.respondents.email}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {groupItinerary ? (
-                    <>
+                  <TabsContent value="soulprint" className="space-y-6">
+                    {computed && narrative ? (
+                      <SoulPrintVisualization
+                        computed={computed}
+                        narrative={narrative}
+                        respondentId={respondent?.id}
+                      />
+                    ) : (
                       <Card>
                         <CardHeader>
-                          <CardTitle>Group Itinerary</CardTitle>
-                          <CardDescription>Your customized group travel plan</CardDescription>
+                          <CardTitle>SoulPrint Not Yet Computed</CardTitle>
+                          <CardDescription>
+                            Your SoulPrint analysis is being processed. Please check back soon.
+                          </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                          <ItineraryDisplay itinerary={groupItinerary.itinerary_data} />
-                        </CardContent>
                       </Card>
-                      
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="itinerary">
+                    {itinerary ? (
+                      <ItineraryDisplay itinerary={itinerary.itinerary_data} />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Itinerary Not Yet Created</CardTitle>
+                          <CardDescription>
+                            Your personalized itinerary is being created by our team. You'll be notified when it's ready.
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  {itinerary && (
+                    <TabsContent value="discussion" className="space-y-6">
                       <ItineraryDiscussionForum 
-                        groupItineraryId={groupItinerary.id}
-                        itineraryData={groupItinerary.itinerary_data}
-                        isGroup={true}
+                        itineraryId={itinerary.id}
+                        itineraryData={itinerary.itinerary_data}
+                        isGroup={false}
                       />
+                    </TabsContent>
+                  )}
+
+                  {showGroupSection && (
+                    <TabsContent value="group" className="space-y-6">
+                      {!group ? (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Create or Join a Travel Group</CardTitle>
+                            <CardDescription>
+                              Coordinate your trip with friends or family
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="flex gap-4">
+                            <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
+                              <DialogTrigger asChild>
+                                <Button>
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Create Group
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Create Travel Group</DialogTitle>
+                                  <DialogDescription>
+                                    Create a group and share the join code with your travel companions
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="groupName">Group Name</Label>
+                                    <Input
+                                      id="groupName"
+                                      value={groupName}
+                                      onChange={(e) => setGroupName(e.target.value)}
+                                      placeholder="e.g., Azerbaijan Adventure 2025"
+                                    />
+                                  </div>
+                                  <Button onClick={handleCreateGroup} className="w-full">
+                                    Create Group
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={joinGroupOpen} onOpenChange={setJoinGroupOpen}>
+                              <DialogTrigger asChild>
+                                <Button variant="outline">Join Existing Group</Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Join Travel Group</DialogTitle>
+                                  <DialogDescription>
+                                    Enter the join code shared by your group creator
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="joinCode">Join Code</Label>
+                                    <Input
+                                      id="joinCode"
+                                      value={joinCode}
+                                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                                      placeholder="Enter 8-character code"
+                                      maxLength={8}
+                                    />
+                                  </div>
+                                  <Button onClick={handleJoinGroup} className="w-full">
+                                    Join Group
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="space-y-6">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>{group.name}</CardTitle>
+                              <CardDescription>
+                                Share this code with your travel companions
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center gap-2">
+                                <code className="bg-muted px-4 py-2 rounded text-lg font-mono">
+                                  {group.join_code}
+                                </code>
+                                <Button variant="outline" size="icon" onClick={copyJoinCode}>
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Group Members</CardTitle>
+                              <CardDescription>
+                                {groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2">
+                                {groupMembers.map((member) => (
+                                  <div key={member.id} className="flex items-center justify-between p-2 border rounded">
+                                    <div>
+                                      <p className="font-medium">{member.respondents.name}</p>
+                                      <p className="text-sm text-muted-foreground">{member.respondents.email}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {groupItinerary ? (
+                            <>
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>Group Itinerary</CardTitle>
+                                  <CardDescription>Your customized group travel plan</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <ItineraryDisplay itinerary={groupItinerary.itinerary_data} />
+                                </CardContent>
+                              </Card>
+                              
+                              <ItineraryDiscussionForum 
+                                groupItineraryId={groupItinerary.id}
+                                itineraryData={groupItinerary.itinerary_data}
+                                isGroup={true}
+                              />
+                            </>
+                          ) : (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle>Group Itinerary Pending</CardTitle>
+                                <CardDescription>
+                                  Once all group members complete their SoulPrints, our team will create a customized group itinerary
+                                </CardDescription>
+                              </CardHeader>
+                            </Card>
+                          )}
+                        </div>
+                      )}
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </div>
+            )}
+
+            {/* IN-TRIP VIEW */}
+            {currentView === "in-trip" && (
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <h2 className="text-3xl font-bold mb-2">In-Trip Experience</h2>
+                  <p className="text-muted-foreground">Track your mood, explore your itinerary, and connect with your travel group</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {respondent && (
+                    <>
+                      <MoodLogger 
+                        respondentId={respondent.id}
+                        onLogComplete={() => {}}
+                      />
+                      <EmotionalFluctuationGraph respondentId={respondent.id} />
                     </>
-                  ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Group Itinerary Pending</CardTitle>
-                        <CardDescription>
-                          Once all group members complete their SoulPrints, our team will create a customized group itinerary
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
                   )}
                 </div>
-              )}
-            </TabsContent>
-          )}
-        </Tabs>
-      </main>
-    </div>
+
+                <Tabs defaultValue="itinerary" className="space-y-6">
+                  <TabsList className={`grid w-full ${showGroupSection ? "grid-cols-4" : "grid-cols-3"}`}>
+                    <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                    <TabsTrigger value="soulprint">SoulPrint</TabsTrigger>
+                    <TabsTrigger value="discussion">Discussion</TabsTrigger>
+                    {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
+                  </TabsList>
+
+                  <TabsContent value="itinerary">
+                    {itinerary ? (
+                      <ItineraryDisplay itinerary={itinerary.itinerary_data} />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Itinerary Not Yet Created</CardTitle>
+                          <CardDescription>
+                            Your personalized itinerary is being created by our team.
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="soulprint">
+                    {computed && narrative ? (
+                      <>
+                        <SoulPrintVisualization
+                          computed={computed}
+                          narrative={narrative}
+                          respondentId={respondent?.id}
+                        />
+                        {respondent && (
+                          <div className="mt-6">
+                            <EmotionalFluctuationGraph respondentId={respondent.id} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>SoulPrint Not Available</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="discussion">
+                    {itinerary ? (
+                      <ItineraryDiscussionForum 
+                        itineraryId={itinerary.id}
+                        itineraryData={itinerary.itinerary_data}
+                        isGroup={false}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>No Itinerary Yet</CardTitle>
+                          <CardDescription>Discussions will be available once your itinerary is created</CardDescription>
+                        </CardHeader>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  {showGroupSection && (
+                    <TabsContent value="group">
+                      {groupItinerary ? (
+                        <ItineraryDiscussionForum 
+                          groupItineraryId={groupItinerary.id}
+                          itineraryData={groupItinerary.itinerary_data}
+                          isGroup={true}
+                        />
+                      ) : (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Group Itinerary Pending</CardTitle>
+                          </CardHeader>
+                        </Card>
+                      )}
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </div>
+            )}
+
+            {/* POST-TRIP VIEW */}
+            {currentView === "post-trip" && (
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <h2 className="text-3xl font-bold mb-2">Post-Trip Reflection</h2>
+                  <p className="text-muted-foreground">Review your journey and emotional evolution</p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Post-Trip Features Coming Soon</CardTitle>
+                    <CardDescription>
+                      Reflection tools, trip summary, and memory collection will be available here
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {respondent && (
+                      <EmotionalFluctuationGraph respondentId={respondent.id} />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
