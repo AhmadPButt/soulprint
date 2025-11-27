@@ -241,7 +241,7 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
       <Tabs value={selectedDay.toString()} onValueChange={(v) => setSelectedDay(parseInt(v))}>
         <TabsList className="grid w-full grid-cols-8">
           {localItinerary.days.map((day) => (<TabsTrigger key={day.day} value={day.day.toString()}>Day {day.day}</TabsTrigger>))}
-          <TabsTrigger value="costs"><DollarSign className="h-4 w-4" /></TabsTrigger>
+          <TabsTrigger value="costs">Bookings</TabsTrigger>
         </TabsList>
         {localItinerary.days.map((day) => (
           <TabsContent key={day.day} value={day.day.toString()}>
