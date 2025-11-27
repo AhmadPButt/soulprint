@@ -8,7 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
 import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
 import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
@@ -37,6 +39,7 @@ interface RespondentData {
   email: string;
   raw_responses: any;
   travel_companion?: string;
+  avatar_url?: string;
 }
 
 interface ComputedScores {
@@ -322,8 +325,8 @@ export default function Dashboard() {
   const DashboardSidebar = () => (
     <Sidebar className="border-r">
       <SidebarContent>
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg text-primary">Travel Phases</h2>
+        <div className="p-4 border-b flex items-center justify-center">
+          <img src={erranzaLogo} alt="Erranza" className="h-10 w-auto object-contain" />
         </div>
         
         <SidebarGroup>
@@ -372,24 +375,54 @@ export default function Dashboard() {
         <DashboardSidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="border-b">
-            <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger />
-                <h1 className="text-2xl font-bold text-primary">My SoulPrint Dashboard</h1>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => navigate('/profile')}>
+          {/* Cover Photo Section */}
+          <div className="relative">
+            {/* Cover Photo */}
+            <div className="h-48 bg-gradient-to-r from-primary via-secondary to-accent relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzBoLTJ2LTJoMnYyem0tNiAwaDJ2LTJoLTJ2MnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
+              <SidebarTrigger className="absolute top-4 left-4 bg-background/80 backdrop-blur" />
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button variant="outline" onClick={() => navigate('/profile')} className="bg-background/80 backdrop-blur">
                   <UserCircle className="h-4 w-4 mr-2" />
-                  Profile
+                  Profile Settings
                 </Button>
-                <Button variant="outline" onClick={handleSignOut}>
+                <Button variant="outline" onClick={handleSignOut} className="bg-background/80 backdrop-blur">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </Button>
               </div>
             </div>
-          </header>
+            
+            {/* Profile Section */}
+            <div className="container mx-auto px-4">
+              <div className="relative -mt-16 mb-6">
+                <div className="flex flex-col items-center text-center">
+                  {/* Profile Avatar */}
+                  <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
+                    <AvatarImage 
+                      src={respondent?.avatar_url} 
+                      alt={respondent?.name}
+                    />
+                    <AvatarFallback className="bg-primary text-white text-3xl font-bold">
+                      {respondent?.name?.charAt(0)?.toUpperCase() || 'T'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  {/* Name with Verified Badge */}
+                  <div className="mt-4 flex items-center gap-2">
+                    <h1 className="text-3xl font-bold">{respondent?.name || 'Traveler'}</h1>
+                    <BadgeCheck className="h-7 w-7 text-primary fill-primary/20" />
+                  </div>
+                  
+                  {/* Hello Message with Fingerprint */}
+                  <div className="mt-2 flex items-center gap-2 text-muted-foreground">
+                    <span className="text-lg">Hello, {respondent?.name?.split(' ')[0] || 'Traveler'}</span>
+                    <Fingerprint className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
             {/* PRE-TRIP VIEW */}
