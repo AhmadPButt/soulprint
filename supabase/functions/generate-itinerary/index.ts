@@ -72,12 +72,29 @@ serve(async (req) => {
       throw new Error("Computed scores not found. Please compute SoulPrint first.");
     }
 
+    // Fetch existing itinerary if editing
+    let existingItinerary = null;
+    if (edit_suggestions) {
+      const { data: itineraryData } = await supabaseClient
+        .from('itineraries')
+        .select('itinerary_data')
+        .eq('respondent_id', respondent_id)
+        .single();
+      
+      existingItinerary = itineraryData?.itinerary_data;
+    }
+
     // Build comprehensive prompt for itinerary generation
     let userPrompt = edit_suggestions 
       ? `Based on the following psychological profile and the ADMIN'S EDIT SUGGESTIONS, UPDATE the existing itinerary for Azerbaijan.
       
 ADMIN EDIT SUGGESTIONS:
 ${edit_suggestions}
+
+EXISTING ITINERARY (MUST KEEP ALL DAYS AND UPDATE ONLY AS REQUESTED):
+${JSON.stringify(existingItinerary, null, 2)}
+
+CRITICAL: Return the COMPLETE itinerary with ALL 7 DAYS. Only modify the specific parts mentioned in the edit suggestions. Keep all other days, activities, and details exactly as they are in the existing itinerary.
 
 Apply these suggestions while maintaining the psychological alignment and luxury experience. Make specific changes requested while keeping the overall structure coherent.
 
