@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2, LogOut, Users, Copy } from "lucide-react";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
 import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
-import { GroupDiscussionForum } from "@/components/group/GroupDiscussionForum";
+import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
 
 interface RespondentData {
   id: string;
@@ -37,6 +37,7 @@ interface NarrativeInsights {
 }
 
 interface Itinerary {
+  id: string;
   itinerary_data: any;
 }
 
@@ -312,11 +313,11 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="soulprint" className="space-y-6">
-          <TabsList className={showGroupSection && groupItinerary ? "grid w-full grid-cols-4" : "grid w-full grid-cols-3"}>
+          <TabsList className={`grid w-full ${itinerary && showGroupSection ? "grid-cols-4" : itinerary || showGroupSection ? "grid-cols-3" : "grid-cols-2"}`}>
             <TabsTrigger value="soulprint">My SoulPrint</TabsTrigger>
             <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
+            {itinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
             {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
-            {showGroupSection && groupItinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="soulprint" className="space-y-6">
@@ -352,6 +353,16 @@ export default function Dashboard() {
               </Card>
             )}
           </TabsContent>
+
+          {itinerary && (
+            <TabsContent value="discussion" className="space-y-6">
+              <ItineraryDiscussionForum 
+                itineraryId={itinerary.id}
+                itineraryData={itinerary.itinerary_data}
+                isGroup={false}
+              />
+            </TabsContent>
+          )}
 
           {showGroupSection && (
             <TabsContent value="group" className="space-y-6">
@@ -479,9 +490,10 @@ export default function Dashboard() {
                         </CardContent>
                       </Card>
                       
-                      <GroupDiscussionForum 
+                      <ItineraryDiscussionForum 
                         groupItineraryId={groupItinerary.id}
                         itineraryData={groupItinerary.itinerary_data}
+                        isGroup={true}
                       />
                     </>
                   ) : (
@@ -496,15 +508,6 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
-            </TabsContent>
-          )}
-
-          {showGroupSection && groupItinerary && (
-            <TabsContent value="discussion" className="space-y-6">
-              <GroupDiscussionForum 
-                groupItineraryId={groupItinerary.id}
-                itineraryData={groupItinerary.itinerary_data}
-              />
             </TabsContent>
           )}
         </Tabs>
