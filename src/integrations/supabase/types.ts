@@ -332,8 +332,9 @@ export type Database = {
           comment_type: string
           created_at: string
           day_reference: number | null
-          group_itinerary_id: string
+          group_itinerary_id: string | null
           id: string
+          itinerary_id: string | null
           parent_comment_id: string | null
           updated_at: string
           user_id: string
@@ -344,8 +345,9 @@ export type Database = {
           comment_type?: string
           created_at?: string
           day_reference?: number | null
-          group_itinerary_id: string
+          group_itinerary_id?: string | null
           id?: string
+          itinerary_id?: string | null
           parent_comment_id?: string | null
           updated_at?: string
           user_id: string
@@ -356,8 +358,9 @@ export type Database = {
           comment_type?: string
           created_at?: string
           day_reference?: number | null
-          group_itinerary_id?: string
+          group_itinerary_id?: string | null
           id?: string
+          itinerary_id?: string | null
           parent_comment_id?: string | null
           updated_at?: string
           user_id?: string
@@ -368,6 +371,13 @@ export type Database = {
             columns: ["group_itinerary_id"]
             isOneToOne: false
             referencedRelation: "group_itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itinerary_discussions_itinerary_id_fkey"
+            columns: ["itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
             referencedColumns: ["id"]
           },
           {
@@ -386,9 +396,10 @@ export type Database = {
           created_at: string
           created_by: string
           day_reference: number | null
-          group_itinerary_id: string
+          group_itinerary_id: string | null
           id: string
           is_active: boolean
+          itinerary_id: string | null
           options: Json
           poll_type: string
           question: string
@@ -399,9 +410,10 @@ export type Database = {
           created_at?: string
           created_by: string
           day_reference?: number | null
-          group_itinerary_id: string
+          group_itinerary_id?: string | null
           id?: string
           is_active?: boolean
+          itinerary_id?: string | null
           options: Json
           poll_type?: string
           question: string
@@ -412,9 +424,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           day_reference?: number | null
-          group_itinerary_id?: string
+          group_itinerary_id?: string | null
           id?: string
           is_active?: boolean
+          itinerary_id?: string | null
           options?: Json
           poll_type?: string
           question?: string
@@ -425,6 +438,13 @@ export type Database = {
             columns: ["group_itinerary_id"]
             isOneToOne: false
             referencedRelation: "group_itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itinerary_polls_itinerary_id_fkey"
+            columns: ["itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
             referencedColumns: ["id"]
           },
         ]
@@ -667,6 +687,14 @@ export type Database = {
       }
       user_has_poll_access: {
         Args: { _poll_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_poll_access_v2: {
+        Args: { _poll_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_owns_itinerary: {
+        Args: { _itinerary_id: string; _user_id: string }
         Returns: boolean
       }
     }

@@ -16,7 +16,8 @@ import { Plus, X } from "lucide-react";
 interface CreatePollDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  groupItineraryId: string;
+  itineraryId?: string;
+  groupItineraryId?: string;
   days: { index: number; title: string }[];
   activities: string[];
 }
@@ -24,6 +25,7 @@ interface CreatePollDialogProps {
 export function CreatePollDialog({
   open,
   onOpenChange,
+  itineraryId,
   groupItineraryId,
   days,
   activities,
@@ -85,14 +87,28 @@ export function CreatePollDialog({
       return;
     }
 
-    const pollData = {
-      group_itinerary_id: groupItineraryId,
+    const pollData: any = {
       created_by: user.id,
       question,
       options: validOptions,
       day_reference: contextType === "day" ? selectedDay : null,
       activity_reference: contextType === "activity" ? selectedActivity : null,
     };
+
+    // Set the appropriate reference
+    if (groupItineraryId) {
+      pollData.group_itinerary_id = groupItineraryId;
+    } else if (itineraryId) {
+      pollData.itinerary_id = itineraryId;
+    } else {
+      toast({
+        title: "Error",
+        description: "No itinerary reference found",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase
       .from('itinerary_polls')
