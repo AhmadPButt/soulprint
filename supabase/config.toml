@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-weekly-analytics]
 verify_jwt = false
+
+[functions.search-travel]
+verify_jwt = false
