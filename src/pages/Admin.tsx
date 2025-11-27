@@ -61,6 +61,8 @@ const Admin = () => {
   const [generatingItinerary, setGeneratingItinerary] = useState<string | null>(null);
   const [selectedItinerary, setSelectedItinerary] = useState<any>(null);
   const [showItineraryModal, setShowItineraryModal] = useState(false);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [generatingGroupItinerary, setGeneratingGroupItinerary] = useState<string | null>(null);
 
   const loadAnalytics = async () => {
     try {
@@ -336,6 +338,63 @@ const Admin = () => {
     }
   };
 
+  const loadGroups = async () => {
+    try {
+      const { data: groupsData, error } = await supabase
+        .from('groups')
+        .select(`
+          *,
+          group_members (
+            id,
+            respondent_id,
+            respondents (
+              name,
+              email,
+              computed_scores (id),
+              itineraries (id)
+            )
+          ),
+          group_itineraries (
+            id,
+            itinerary_data,
+            created_at
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setGroups(groupsData || []);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  };
+
+  const generateGroupItinerary = async (groupId: string) => {
+    setGeneratingGroupItinerary(groupId);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-group-itinerary', {
+        body: { group_id: groupId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Group itinerary generated successfully",
+      });
+
+      await loadGroups();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate group itinerary",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingGroupItinerary(null);
+    }
+  };
+
   const generateItinerary = async (respondentId: string, forceRegenerate = false) => {
     setGeneratingItinerary(respondentId);
     try {
@@ -408,6 +467,7 @@ const Admin = () => {
       loadAnalytics();
       loadVariants();
       loadRespondents();
+      loadGroups();
       // Set up realtime subscription
       const channel = supabase
         .channel("analytics-changes")
@@ -600,12 +660,13 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time per Section</TabsTrigger>
                 <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
                 <TabsTrigger value="variants">A/B Testing</TabsTrigger>
                 <TabsTrigger value="respondents">SoulPrint Submissions</TabsTrigger>
+                <TabsTrigger value="groups">Travel Groups</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -944,6 +1005,122 @@ const Admin = () => {
                               )}
                             </div>
                           )})
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="groups">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Travel Groups</CardTitle>
+                    <CardDescription>
+                      Manage group travel arrangements and generate group itineraries
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[500px]">
+                      <div className="space-y-4">
+                        {groups.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-8">
+                            No travel groups created yet
+                          </p>
+                        ) : (
+                          groups.map((group) => {
+                            const members = group.group_members || [];
+                            const allMembersComplete = members.every((m: any) => 
+                              m.respondents?.computed_scores?.length > 0
+                            );
+                            const hasGroupItinerary = group.group_itineraries?.length > 0;
+
+                            return (
+                              <div
+                                key={group.id}
+                                className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors space-y-3"
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold">{group.name}</p>
+                                      <Badge variant="outline">
+                                        Join Code: {group.join_code}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Created {new Date(group.created_at).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-sm mt-2">
+                                      {members.length} {members.length === 1 ? 'member' : 'members'}
+                                    </p>
+                                    {allMembersComplete && (
+                                      <p className="text-xs text-green-500 mt-1">
+                                        ✓ All members completed SoulPrints
+                                      </p>
+                                    )}
+                                    {hasGroupItinerary && (
+                                      <p className="text-xs text-primary mt-1">
+                                        ✓ Group Itinerary Created
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {allMembersComplete && !hasGroupItinerary && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => generateGroupItinerary(group.id)}
+                                        disabled={generatingGroupItinerary === group.id}
+                                      >
+                                        <MapPin className="h-4 w-4 mr-1" />
+                                        {generatingGroupItinerary === group.id
+                                          ? "Generating..."
+                                          : "Generate Group Itinerary"}
+                                      </Button>
+                                    )}
+                                    {!allMembersComplete && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Waiting for all members
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <p className="text-xs font-medium text-muted-foreground">Group Members:</p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {members.map((member: any) => (
+                                      <div
+                                        key={member.id}
+                                        className="p-2 rounded border border-border bg-card text-xs"
+                                      >
+                                        <p className="font-medium">{member.respondents?.name || 'Unknown'}</p>
+                                        <p className="text-muted-foreground">{member.respondents?.email || 'No email'}</p>
+                                        {member.respondents?.computed_scores?.length > 0 ? (
+                                          <Badge variant="outline" className="mt-1 text-xs">
+                                            ✓ Completed
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="secondary" className="mt-1 text-xs">
+                                            Pending
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {hasGroupItinerary && (
+                                  <div className="pt-2 border-t">
+                                    <p className="text-xs text-muted-foreground">
+                                      Group itinerary created on{' '}
+                                      {new Date(group.group_itineraries[0].created_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
                         )}
                       </div>
                     </ScrollArea>
