@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, LogOut, Users, Copy } from "lucide-react";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
 import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
+import { GroupDiscussionForum } from "@/components/group/GroupDiscussionForum";
 
 interface RespondentData {
   id: string;
@@ -466,15 +467,22 @@ export default function Dashboard() {
                   </Card>
 
                   {groupItinerary ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Group Itinerary</CardTitle>
-                        <CardDescription>Your customized group travel plan</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ItineraryDisplay itinerary={groupItinerary.itinerary_data} />
-                      </CardContent>
-                    </Card>
+                    <>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Group Itinerary</CardTitle>
+                          <CardDescription>Your customized group travel plan</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ItineraryDisplay itinerary={groupItinerary.itinerary_data} />
+                        </CardContent>
+                      </Card>
+                      
+                      <GroupDiscussionForum 
+                        groupItineraryId={groupItinerary.id}
+                        itineraryData={groupItinerary.itinerary_data}
+                      />
+                    </>
                   ) : (
                     <Card>
                       <CardHeader>
