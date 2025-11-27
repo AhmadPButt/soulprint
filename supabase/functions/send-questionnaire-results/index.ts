@@ -28,8 +28,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Processing questionnaire submission...");
 
     // Extract user info
-    const name = responses.name || "Anonymous";
-    const email = responses.email || `anonymous_${Date.now()}@erranza.ai`;
+    const name = responses.Q49 || "Anonymous";
+    const email = responses.Q50 || `anonymous_${Date.now()}@erranza.ai`;
 
     // Store in database
     const { data: respondent, error: dbError } = await supabase
@@ -37,11 +37,11 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         name,
         email,
-        country: responses.country,
-        passport_nationality: responses.passportNationality,
-        travel_companion: responses.travelCompanion,
-        room_type: responses.roomType,
-        dietary_preferences: responses.dietaryRestrictions,
+        country: responses.Q51,
+        passport_nationality: responses.Q52,
+        travel_companion: responses.Q53,
+        room_type: responses.Q54,
+        dietary_preferences: responses.Q55,
         raw_responses: responses,
       })
       .select()

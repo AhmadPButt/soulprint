@@ -203,6 +203,7 @@ const Admin = () => {
   };
 
   const loadRespondents = async () => {
+    console.log('Loading respondents with itineraries...');
     const { data, error } = await supabase
       .from("respondents")
       .select(`
@@ -217,6 +218,12 @@ const Admin = () => {
       console.error("Error loading respondents:", error);
       return;
     }
+
+    console.log('Loaded respondents:', data?.map(r => ({
+      id: r.id,
+      name: r.name,
+      itineraries_count: Array.isArray(r.itineraries) ? r.itineraries.length : 0
+    })));
 
     setRespondents(data || []);
   };
@@ -799,8 +806,9 @@ const Admin = () => {
                             No submissions yet
                           </p>
                         ) : (
-                           respondents.map((respondent) => {
-                            const itinerary = respondent.itineraries?.[0];
+                          respondents.map((respondent) => {
+                            const itineraries = Array.isArray(respondent.itineraries) ? respondent.itineraries : [];
+                            const itinerary = itineraries[0];
                             const itineraryData = itinerary?.itinerary_data;
                             
                             return (
@@ -826,7 +834,7 @@ const Admin = () => {
                                     </p>
                                   )}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -854,7 +862,7 @@ const Admin = () => {
                                       >
                                         View SoulPrint
                                       </Button>
-                                      {respondent.itineraries?.length > 0 ? (
+                                      {Array.isArray(respondent.itineraries) && respondent.itineraries.length > 0 ? (
                                         <>
                                           <Button
                                             size="sm"
