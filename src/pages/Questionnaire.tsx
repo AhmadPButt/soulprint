@@ -27,7 +27,7 @@ const Questionnaire = () => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Questionnaire - Session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
@@ -36,6 +36,17 @@ const Questionnaire = () => {
       // If not logged in, redirect to auth
       if (!session?.user) {
         navigate('/auth');
+      } else {
+        // Check if user has already completed questionnaire
+        const { data: respondent } = await supabase
+          .from('respondents')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (respondent) {
+          navigate('/dashboard');
+        }
       }
     });
 
