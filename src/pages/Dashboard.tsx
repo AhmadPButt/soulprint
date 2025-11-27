@@ -312,10 +312,11 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="soulprint" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={showGroupSection && groupItinerary ? "grid w-full grid-cols-4" : "grid w-full grid-cols-3"}>
             <TabsTrigger value="soulprint">My SoulPrint</TabsTrigger>
             <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
             {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
+            {showGroupSection && groupItinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="soulprint" className="space-y-6">
@@ -495,6 +496,15 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
+            </TabsContent>
+          )}
+
+          {showGroupSection && groupItinerary && (
+            <TabsContent value="discussion" className="space-y-6">
+              <GroupDiscussionForum 
+                groupItineraryId={groupItinerary.id}
+                itineraryData={groupItinerary.itinerary_data}
+              />
             </TabsContent>
           )}
         </Tabs>
