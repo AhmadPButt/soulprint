@@ -81,13 +81,13 @@ serve(async (req) => {
     }
 
     // Build comprehensive prompt for group itinerary
-    const memberProfiles = members.map((member, index) => {
+    const memberProfiles = members.map((member: any, index: number) => {
       const computed = computedScores.find(c => c.respondent_id === member.respondent_id);
       const narrative = narratives?.find(n => n.respondent_id === member.respondent_id);
       const itinerary = itineraries?.find(i => i.respondent_id === member.respondent_id);
       
       return {
-        name: member.respondents.name,
+        name: member.respondents?.name || 'Unknown',
         computed,
         narrative,
         individualItinerary: itinerary?.itinerary_data

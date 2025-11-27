@@ -325,6 +325,110 @@ export type Database = {
           },
         ]
       }
+      itinerary_discussions: {
+        Row: {
+          activity_reference: string | null
+          comment_text: string
+          comment_type: string
+          created_at: string
+          day_reference: number | null
+          group_itinerary_id: string
+          id: string
+          parent_comment_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_reference?: string | null
+          comment_text: string
+          comment_type?: string
+          created_at?: string
+          day_reference?: number | null
+          group_itinerary_id: string
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_reference?: string | null
+          comment_text?: string
+          comment_type?: string
+          created_at?: string
+          day_reference?: number | null
+          group_itinerary_id?: string
+          id?: string
+          parent_comment_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itinerary_discussions_group_itinerary_id_fkey"
+            columns: ["group_itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "group_itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itinerary_discussions_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itinerary_polls: {
+        Row: {
+          activity_reference: string | null
+          closes_at: string | null
+          created_at: string
+          created_by: string
+          day_reference: number | null
+          group_itinerary_id: string
+          id: string
+          is_active: boolean
+          options: Json
+          poll_type: string
+          question: string
+        }
+        Insert: {
+          activity_reference?: string | null
+          closes_at?: string | null
+          created_at?: string
+          created_by: string
+          day_reference?: number | null
+          group_itinerary_id: string
+          id?: string
+          is_active?: boolean
+          options: Json
+          poll_type?: string
+          question: string
+        }
+        Update: {
+          activity_reference?: string | null
+          closes_at?: string | null
+          created_at?: string
+          created_by?: string
+          day_reference?: number | null
+          group_itinerary_id?: string
+          id?: string
+          is_active?: boolean
+          options?: Json
+          poll_type?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itinerary_polls_group_itinerary_id_fkey"
+            columns: ["group_itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "group_itineraries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       narrative_insights: {
         Row: {
           computed_scores_id: string | null
@@ -393,6 +497,38 @@ export type Database = {
             columns: ["respondent_id"]
             isOneToOne: false
             referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          poll_id: string
+          selected_option: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          poll_id: string
+          selected_option: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          poll_id?: string
+          selected_option?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "itinerary_polls"
             referencedColumns: ["id"]
           },
         ]
