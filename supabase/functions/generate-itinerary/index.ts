@@ -12,15 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { respondent_id } = await req.json();
+    const { respondent_id, force_regenerate = false, edit_suggestions } = await req.json();
     
     if (!respondent_id) {
       throw new Error("respondent_id is required");
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     // Import Supabase client
@@ -28,10 +23,35 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Check if itinerary already exists (unless force regenerate or editing)
+    if (!force_regenerate && !edit_suggestions) {
+      const { data: existingItinerary, error: fetchError } = await supabaseClient
+        .from('itineraries')
+        .select('*')
+        .eq('respondent_id', respondent_id)
+        .single();
+
+      if (existingItinerary && !fetchError) {
+        console.log('Returning existing itinerary');
+        return new Response(
+          JSON.stringify({ 
+            itinerary: existingItinerary.itinerary_data,
+            itinerary_id: existingItinerary.id 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
+    }
 
     // Fetch respondent data with computed scores and narrative
-    const { data: respondent, error: respondentError } = await supabase
+    const { data: respondent, error: respondentError } = await supabaseClient
       .from('respondents')
       .select(`
         *,
@@ -47,14 +67,24 @@ serve(async (req) => {
 
     const computed = respondent.computed_scores?.[0];
     const narrative = respondent.narrative_insights?.[0];
-    const raw = respondent.raw_responses;
 
     if (!computed) {
       throw new Error("Computed scores not found. Please compute SoulPrint first.");
     }
 
     // Build comprehensive prompt for itinerary generation
-    const prompt = `You are an expert travel designer for Erranza, a luxury experiential travel company specializing in Azerbaijan. Generate a personalized 7-day itinerary for this traveler based on their psychological profile and preferences.
+    let userPrompt = edit_suggestions 
+      ? `Based on the following psychological profile and the ADMIN'S EDIT SUGGESTIONS, UPDATE the existing itinerary for Azerbaijan.
+      
+ADMIN EDIT SUGGESTIONS:
+${edit_suggestions}
+
+Apply these suggestions while maintaining the psychological alignment and luxury experience. Make specific changes requested while keeping the overall structure coherent.
+
+Original context:`
+      : `Based on the following psychological profile and travel preferences, create a detailed 7-day luxury itinerary for Azerbaijan:`;
+
+    userPrompt += `
 
 TRAVELER PROFILE:
 Name: ${respondent.name}
@@ -193,7 +223,7 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
           },
           {
             role: "user",
-            content: prompt
+            content: userPrompt
           }
         ],
         temperature: 0.8,
@@ -212,33 +242,62 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
     console.log("AI Response received:", generatedText.substring(0, 200));
 
     // Parse JSON from response
-    let itinerary;
+    let parsedItinerary;
     try {
-      // Try to extract JSON from markdown code blocks if present
       const jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
                         generatedText.match(/```\n([\s\S]*?)\n```/);
       const jsonText = jsonMatch ? jsonMatch[1] : generatedText;
-      itinerary = JSON.parse(jsonText);
+      parsedItinerary = JSON.parse(jsonText);
     } catch (parseError) {
       console.error("Failed to parse AI response as JSON:", parseError);
       throw new Error("Failed to parse itinerary from AI response");
     }
 
-    // Store itinerary in a new table or return directly
-    const itineraryRecord = {
-      respondent_id,
-      itinerary_data: itinerary,
-      generated_at: new Date().toISOString(),
-      model_used: "google/gemini-2.5-flash",
-    };
-
     console.log("Itinerary generated successfully");
 
+    // Save or update itinerary in database
+    let itineraryId;
+    if (edit_suggestions) {
+      // Update existing itinerary
+      const { data: updateData, error: updateError } = await supabaseClient
+        .from('itineraries')
+        .update({ itinerary_data: parsedItinerary })
+        .eq('respondent_id', respondent_id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating itinerary:', updateError);
+        throw updateError;
+      }
+      itineraryId = updateData.id;
+      console.log('Itinerary updated in database');
+    } else {
+      // Insert new itinerary or update if exists
+      const { data: upsertData, error: upsertError } = await supabaseClient
+        .from('itineraries')
+        .upsert(
+          { 
+            respondent_id: respondent_id, 
+            itinerary_data: parsedItinerary 
+          },
+          { onConflict: 'respondent_id' }
+        )
+        .select()
+        .single();
+
+      if (upsertError) {
+        console.error('Error saving itinerary:', upsertError);
+        throw upsertError;
+      }
+      itineraryId = upsertData.id;
+      console.log('Itinerary saved to database');
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        itinerary: itinerary,
-        metadata: itineraryRecord
+      JSON.stringify({ 
+        itinerary: parsedItinerary,
+        itinerary_id: itineraryId 
       }),
       { 
         headers: { 
