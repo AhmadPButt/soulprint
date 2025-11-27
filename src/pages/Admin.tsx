@@ -284,18 +284,23 @@ const Admin = () => {
     setShowSoulPrintModal(true);
   };
 
-  const generateItinerary = async (respondentId: string) => {
+  const generateItinerary = async (respondentId: string, forceRegenerate = false) => {
     setGeneratingItinerary(respondentId);
     try {
       const { data, error } = await supabase.functions.invoke("generate-itinerary", {
-        body: { respondent_id: respondentId },
+        body: { 
+          respondent_id: respondentId,
+          force_regenerate: forceRegenerate 
+        },
       });
 
       if (error) throw error;
 
       toast({
-        title: "Itinerary Generated",
-        description: "Personalized journey created successfully!",
+        title: forceRegenerate ? "Itinerary Regenerated" : "Itinerary Loaded",
+        description: forceRegenerate 
+          ? "New personalized journey created!"
+          : "Itinerary loaded successfully!",
       });
 
       // Find the respondent to get name
@@ -303,6 +308,8 @@ const Admin = () => {
       
       setSelectedItinerary({
         itinerary: data.itinerary,
+        itineraryId: data.itinerary_id,
+        respondentId: respondentId,
         respondentName: respondent?.name || 'Traveler'
       });
       setShowItineraryModal(true);
@@ -854,7 +861,15 @@ const Admin = () => {
               <Suspense fallback={<div className="p-8 text-center">Loading map...</div>}>
                 <ItineraryVisualization
                   itinerary={selectedItinerary.itinerary}
+                  itineraryId={selectedItinerary.itineraryId}
+                  respondentId={selectedItinerary.respondentId}
                   respondentName={selectedItinerary.respondentName}
+                  onItineraryUpdate={(updatedItinerary) => {
+                    setSelectedItinerary({
+                      ...selectedItinerary,
+                      itinerary: updatedItinerary
+                    });
+                  }}
                 />
               </Suspense>
             )}

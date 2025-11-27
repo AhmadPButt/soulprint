@@ -190,6 +190,38 @@ export type Database = {
           },
         ]
       }
+      itineraries: {
+        Row: {
+          created_at: string
+          id: string
+          itinerary_data: Json
+          respondent_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          itinerary_data: Json
+          respondent_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          itinerary_data?: Json
+          respondent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itineraries_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       narrative_insights: {
         Row: {
           computed_scores_id: string | null
