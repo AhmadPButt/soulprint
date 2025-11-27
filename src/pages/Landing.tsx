@@ -16,7 +16,7 @@ const Landing = () => {
 
   const handleTermsAccepted = () => {
     setShowTermsDialog(false);
-    navigate("/questionnaire");
+    navigate("/auth");
   };
 
   const handleTermsCancelled = () => {
