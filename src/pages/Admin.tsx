@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
+
+const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
+const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
 
 interface AnalyticsData {
   totalStarts: number;
@@ -55,6 +57,9 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [computingId, setComputingId] = useState<string | null>(null);
+  const [generatingItinerary, setGeneratingItinerary] = useState<string | null>(null);
+  const [selectedItinerary, setSelectedItinerary] = useState<any>(null);
+  const [showItineraryModal, setShowItineraryModal] = useState(false);
 
   const loadAnalytics = async () => {
     try {
@@ -277,6 +282,40 @@ const Admin = () => {
       narrative: respondent.narrative_insights?.[0] || null,
     });
     setShowSoulPrintModal(true);
+  };
+
+  const generateItinerary = async (respondentId: string) => {
+    setGeneratingItinerary(respondentId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-itinerary", {
+        body: { respondent_id: respondentId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Itinerary Generated",
+        description: "Personalized journey created successfully!",
+      });
+
+      // Find the respondent to get name
+      const respondent = respondents.find(r => r.id === respondentId);
+      
+      setSelectedItinerary({
+        itinerary: data.itinerary,
+        respondentName: respondent?.name || 'Traveler'
+      });
+      setShowItineraryModal(true);
+    } catch (error: any) {
+      console.error("Error generating itinerary:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate itinerary",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingItinerary(null);
+    }
   };
 
   const sendWeeklyReport = async () => {
@@ -743,12 +782,25 @@ const Admin = () => {
                                     : "Compute"}
                                 </Button>
                                 {respondent.computed_scores?.length > 0 && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => viewSoulPrint(respondent)}
-                                  >
-                                    View SoulPrint
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => viewSoulPrint(respondent)}
+                                    >
+                                      View SoulPrint
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => generateItinerary(respondent.id)}
+                                      disabled={generatingItinerary === respondent.id}
+                                    >
+                                      <MapPin className="h-4 w-4 mr-1" />
+                                      {generatingItinerary === respondent.id
+                                        ? "Generating..."
+                                        : "Generate Itinerary"}
+                                    </Button>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -775,10 +827,36 @@ const Admin = () => {
               </DialogDescription>
             </DialogHeader>
             {selectedSoulPrint && (
-              <SoulPrintVisualization
-                computed={selectedSoulPrint.computed}
-                narrative={selectedSoulPrint.narrative}
-              />
+              <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+                <SoulPrintVisualization
+                  computed={selectedSoulPrint.computed}
+                  narrative={selectedSoulPrint.narrative}
+                  respondentId={selectedSoulPrint.respondent.id}
+                  onRegenerateComplete={loadRespondents}
+                />
+              </Suspense>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Itinerary Visualization Modal */}
+        <Dialog open={showItineraryModal} onOpenChange={setShowItineraryModal}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedItinerary?.respondentName}'s Personalized Itinerary
+              </DialogTitle>
+              <DialogDescription>
+                7-day psychologically-aligned journey through Azerbaijan
+              </DialogDescription>
+            </DialogHeader>
+            {selectedItinerary && (
+              <Suspense fallback={<div className="p-8 text-center">Loading map...</div>}>
+                <ItineraryVisualization
+                  itinerary={selectedItinerary.itinerary}
+                  respondentName={selectedItinerary.respondentName}
+                />
+              </Suspense>
             )}
           </DialogContent>
         </Dialog>
