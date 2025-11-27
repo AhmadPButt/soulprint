@@ -449,6 +449,44 @@ export type Database = {
           },
         ]
       }
+      mood_insights: {
+        Row: {
+          emotional_patterns: Json | null
+          generated_at: string
+          id: string
+          insights_text: string
+          model_used: string | null
+          recommendations: string | null
+          respondent_id: string
+        }
+        Insert: {
+          emotional_patterns?: Json | null
+          generated_at?: string
+          id?: string
+          insights_text: string
+          model_used?: string | null
+          recommendations?: string | null
+          respondent_id: string
+        }
+        Update: {
+          emotional_patterns?: Json | null
+          generated_at?: string
+          id?: string
+          insights_text?: string
+          model_used?: string | null
+          recommendations?: string | null
+          respondent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_insights_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mood_logs: {
         Row: {
           activity_reference: string | null
@@ -727,6 +765,62 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      trip_reflections: {
+        Row: {
+          challenges_faced: string[] | null
+          created_at: string
+          favorite_moments: string[] | null
+          highlights: Json | null
+          id: string
+          nps_score: number | null
+          personal_growth: string | null
+          photo_urls: Json | null
+          respondent_id: string
+          review_text: string | null
+          trip_summary: string | null
+          updated_at: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          challenges_faced?: string[] | null
+          created_at?: string
+          favorite_moments?: string[] | null
+          highlights?: Json | null
+          id?: string
+          nps_score?: number | null
+          personal_growth?: string | null
+          photo_urls?: Json | null
+          respondent_id: string
+          review_text?: string | null
+          trip_summary?: string | null
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          challenges_faced?: string[] | null
+          created_at?: string
+          favorite_moments?: string[] | null
+          highlights?: Json | null
+          id?: string
+          nps_score?: number | null
+          personal_growth?: string | null
+          photo_urls?: Json | null
+          respondent_id?: string
+          review_text?: string | null
+          trip_summary?: string | null
+          updated_at?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_reflections_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
