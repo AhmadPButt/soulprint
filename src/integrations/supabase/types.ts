@@ -449,6 +449,50 @@ export type Database = {
           },
         ]
       }
+      mood_logs: {
+        Row: {
+          activity_reference: string | null
+          created_at: string
+          emotions: Json | null
+          id: string
+          location: string | null
+          logged_at: string
+          mood_score: number
+          notes: string | null
+          respondent_id: string
+        }
+        Insert: {
+          activity_reference?: string | null
+          created_at?: string
+          emotions?: Json | null
+          id?: string
+          location?: string | null
+          logged_at?: string
+          mood_score: number
+          notes?: string | null
+          respondent_id: string
+        }
+        Update: {
+          activity_reference?: string | null
+          created_at?: string
+          emotions?: Json | null
+          id?: string
+          location?: string | null
+          logged_at?: string
+          mood_score?: number
+          notes?: string | null
+          respondent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_logs_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       narrative_insights: {
         Row: {
           computed_scores_id: string | null
