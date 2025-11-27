@@ -13,6 +13,7 @@ import ProgressBar from "./questionnaire/ProgressBar";
 import ProgressSummaryModal from "./questionnaire/ProgressSummaryModal";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useQuestionnaireAnalytics } from "@/hooks/useQuestionnaireAnalytics";
 import { AlertCircle, RotateCcw, List } from "lucide-react";
 import {
   AlertDialog,
@@ -40,6 +41,12 @@ const SoulPrintQuestionnaire = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // Track analytics
+  const { trackCompletion } = useQuestionnaireAnalytics(
+    currentSection,
+    responses.email || null
+  );
 
   const totalSections = 8;
   const progress = ((currentSection + 1) / totalSections) * 100;
@@ -127,6 +134,8 @@ const SoulPrintQuestionnaire = () => {
       // Smooth scroll to top
       mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
+      // Track completion before showing results
+      trackCompletion();
       setShowResults(true);
       // Clear saved progress when completing
       localStorage.removeItem(STORAGE_KEY);

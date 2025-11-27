@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      questionnaire_analytics: {
+        Row: {
+          email: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          section_number: number | null
+          session_id: string
+          time_spent_seconds: number | null
+          timestamp: string
+        }
+        Insert: {
+          email?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          section_number?: number | null
+          session_id: string
+          time_spent_seconds?: number | null
+          timestamp?: string
+        }
+        Update: {
+          email?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          section_number?: number | null
+          session_id?: string
+          time_spent_seconds?: number | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
