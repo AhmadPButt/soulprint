@@ -207,7 +207,8 @@ const Admin = () => {
       .select(`
         *,
         computed_scores (*),
-        narrative_insights (*)
+        narrative_insights (*),
+        itineraries (*)
       `)
       .order("created_at", { ascending: false });
 
@@ -284,6 +285,49 @@ const Admin = () => {
     setShowSoulPrintModal(true);
   };
 
+  const viewItinerary = async (respondentId: string) => {
+    try {
+      // Fetch existing itinerary from database
+      const { data: itineraryData, error } = await supabase
+        .from('itineraries')
+        .select('*')
+        .eq('respondent_id', respondentId)
+        .single();
+
+      if (error) {
+        toast({
+          title: "No Itinerary Found",
+          description: "Please generate an itinerary first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Find the respondent to get name
+      const respondent = respondents.find(r => r.id === respondentId);
+      
+      setSelectedItinerary({
+        itinerary: itineraryData.itinerary_data,
+        itineraryId: itineraryData.id,
+        respondentId: respondentId,
+        respondentName: respondent?.name || 'Traveler'
+      });
+      setShowItineraryModal(true);
+
+      toast({
+        title: "Itinerary Loaded",
+        description: `${respondent?.name}'s itinerary loaded successfully!`,
+      });
+    } catch (error: any) {
+      console.error("Error viewing itinerary:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load itinerary",
+        variant: "destructive",
+      });
+    }
+  };
+
   const generateItinerary = async (respondentId: string, forceRegenerate = false) => {
     setGeneratingItinerary(respondentId);
     try {
@@ -297,10 +341,10 @@ const Admin = () => {
       if (error) throw error;
 
       toast({
-        title: forceRegenerate ? "Itinerary Regenerated" : "Itinerary Loaded",
+        title: forceRegenerate ? "Itinerary Regenerated" : "Itinerary Generated",
         description: forceRegenerate 
           ? "New personalized journey created!"
-          : "Itinerary loaded successfully!",
+          : "Personalized journey created successfully!",
       });
 
       // Find the respondent to get name
@@ -313,6 +357,9 @@ const Admin = () => {
         respondentName: respondent?.name || 'Traveler'
       });
       setShowItineraryModal(true);
+
+      // Reload respondents to update itinerary status
+      await loadRespondents();
     } catch (error: any) {
       console.error("Error generating itinerary:", error);
       toast({
@@ -796,17 +843,40 @@ const Admin = () => {
                                     >
                                       View SoulPrint
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={() => generateItinerary(respondent.id)}
-                                      disabled={generatingItinerary === respondent.id}
-                                    >
-                                      <MapPin className="h-4 w-4 mr-1" />
-                                      {generatingItinerary === respondent.id
-                                        ? "Generating..."
-                                        : "Generate Itinerary"}
-                                    </Button>
+                                    {respondent.itineraries?.length > 0 ? (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={() => viewItinerary(respondent.id)}
+                                        >
+                                          <MapPin className="h-4 w-4 mr-1" />
+                                          View Itinerary
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => generateItinerary(respondent.id, true)}
+                                          disabled={generatingItinerary === respondent.id}
+                                        >
+                                          {generatingItinerary === respondent.id
+                                            ? "Regenerating..."
+                                            : "Regenerate"}
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => generateItinerary(respondent.id)}
+                                        disabled={generatingItinerary === respondent.id}
+                                      >
+                                        <MapPin className="h-4 w-4 mr-1" />
+                                        {generatingItinerary === respondent.id
+                                          ? "Generating..."
+                                          : "Generate Itinerary"}
+                                      </Button>
+                                    )}
                                   </>
                                 )}
                               </div>
