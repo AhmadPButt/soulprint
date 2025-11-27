@@ -661,6 +661,14 @@ export type Database = {
     }
     Functions: {
       generate_join_code: { Args: never; Returns: string }
+      user_has_group_itinerary: {
+        Args: { _group_itinerary_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_has_poll_access: {
+        Args: { _poll_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
