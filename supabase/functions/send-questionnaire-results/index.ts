@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,31 +17,73 @@ interface QuestionnaireResults {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { responses, timestamp }: QuestionnaireResults = await req.json();
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("Sending questionnaire results to ahmad@erranza.ai");
+    console.log("Processing questionnaire submission...");
 
-    // Format the responses for better readability in email
+    // Extract user info
+    const name = responses.name || "Anonymous";
+    const email = responses.email || `anonymous_${Date.now()}@erranza.ai`;
+
+    // Store in database
+    const { data: respondent, error: dbError } = await supabase
+      .from("respondents")
+      .insert({
+        name,
+        email,
+        country: responses.country,
+        passport_nationality: responses.passportNationality,
+        travel_companion: responses.travelCompanion,
+        room_type: responses.roomType,
+        dietary_preferences: responses.dietaryRestrictions,
+        raw_responses: responses,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Database error:", dbError);
+      throw dbError;
+    }
+
+    console.log("Stored in database with ID:", respondent.id);
+
+    // Format the responses for email
     const formattedResponses = JSON.stringify(responses, null, 2);
 
+    // Send email
     const emailResponse = await resend.emails.send({
       from: "SoulPrint Questionnaire <onboarding@resend.dev>",
       to: ["ahmad@erranza.ai"],
-      subject: `New SoulPrint Questionnaire Submission - ${timestamp}`,
+      subject: `New SoulPrint Questionnaire - ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #647ED5;">New SoulPrint Questionnaire Submission</h1>
           <p style="color: #666; font-size: 14px;">Received on ${new Date(timestamp).toLocaleString()}</p>
           
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="color: #333; font-size: 16px; margin: 0 0 10px 0;">Respondent Info</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Database ID:</strong> ${respondent.id}</p>
+          </div>
+          
           <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-top: 20px;">
-            <h2 style="color: #333; font-size: 16px; margin-bottom: 15px;">Questionnaire Responses:</h2>
+            <h2 style="color: #333; font-size: 16px; margin-bottom: 15px;">Full Responses:</h2>
             <pre style="background-color: white; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; line-height: 1.5;">${formattedResponses}</pre>
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <a href="${supabaseUrl.replace('https://', 'https://app.')}/admin" 
+               style="background: #647ED5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              View in Admin Dashboard
+            </a>
           </div>
           
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
@@ -50,7 +95,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify({ success: true, emailResponse }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      respondent_id: respondent.id,
+      emailResponse 
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -58,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending questionnaire results:", error);
+    console.error("Error processing questionnaire:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

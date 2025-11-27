@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -45,10 +47,14 @@ const Admin = () => {
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [respondents, setRespondents] = useState<any[]>([]);
+  const [selectedSoulPrint, setSelectedSoulPrint] = useState<any>(null);
+  const [showSoulPrintModal, setShowSoulPrintModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [computingId, setComputingId] = useState<string | null>(null);
 
   const loadAnalytics = async () => {
     try {
@@ -190,6 +196,89 @@ const Admin = () => {
     setVariants(data || []);
   };
 
+  const loadRespondents = async () => {
+    const { data, error } = await supabase
+      .from("respondents")
+      .select(`
+        *,
+        computed_scores (*),
+        narrative_insights (*)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading respondents:", error);
+      return;
+    }
+
+    setRespondents(data || []);
+  };
+
+  const downloadJSON = (respondent: any) => {
+    const blob = new Blob([JSON.stringify(respondent.raw_responses, null, 2)], {
+      type: "application/json",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `soulprint_${respondent.name.replace(/\s+/g, "_")}_${respondent.id.substring(0, 8)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded",
+      description: `SoulPrint JSON for ${respondent.name} downloaded successfully`,
+    });
+  };
+
+  const computeSoulPrint = async (respondentId: string) => {
+    setComputingId(respondentId);
+    try {
+      const { data, error } = await supabase.functions.invoke("compute-soulprint", {
+        body: { respondent_id: respondentId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "SoulPrint Computed",
+        description: "The SoulPrint has been calculated successfully!",
+      });
+
+      // Reload respondents to get updated data
+      await loadRespondents();
+    } catch (error: any) {
+      console.error("Error computing SoulPrint:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to compute SoulPrint",
+        variant: "destructive",
+      });
+    } finally {
+      setComputingId(null);
+    }
+  };
+
+  const viewSoulPrint = async (respondent: any) => {
+    if (!respondent.computed_scores || respondent.computed_scores.length === 0) {
+      toast({
+        title: "No Computation",
+        description: "Please compute the SoulPrint first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedSoulPrint({
+      respondent,
+      computed: respondent.computed_scores[0],
+      narrative: respondent.narrative_insights?.[0] || null,
+    });
+    setShowSoulPrintModal(true);
+  };
+
   const sendWeeklyReport = async () => {
     setSendingEmail(true);
     try {
@@ -217,6 +306,7 @@ const Admin = () => {
     if (isAuthenticated) {
       loadAnalytics();
       loadVariants();
+      loadRespondents();
       // Set up realtime subscription
       const channel = supabase
         .channel("analytics-changes")
@@ -229,6 +319,17 @@ const Admin = () => {
           },
           () => {
             loadAnalytics();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "respondents",
+          },
+          () => {
+            loadRespondents();
           }
         )
         .subscribe();
@@ -398,11 +499,12 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time per Section</TabsTrigger>
                 <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
                 <TabsTrigger value="variants">A/B Testing</TabsTrigger>
+                <TabsTrigger value="respondents">SoulPrint Submissions</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -586,9 +688,100 @@ const Admin = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="respondents">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SoulPrint Submissions</CardTitle>
+                    <CardDescription>
+                      View, download, and compute SoulPrints for all respondents
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[500px]">
+                      <div className="space-y-3">
+                        {respondents.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-8">
+                            No submissions yet
+                          </p>
+                        ) : (
+                          respondents.map((respondent) => (
+                            <div
+                              key={respondent.id}
+                              className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                            >
+                              <div className="flex-1">
+                                <p className="font-semibold">{respondent.name}</p>
+                                <p className="text-sm text-muted-foreground">{respondent.email}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Submitted {new Date(respondent.created_at).toLocaleString()}
+                                </p>
+                                {respondent.computed_scores?.length > 0 && (
+                                  <p className="text-xs text-green-500 mt-1">
+                                    ✓ SoulPrint Computed
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadJSON(respondent)}
+                                >
+                                  <FileJson className="h-4 w-4 mr-1" />
+                                  Download
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => computeSoulPrint(respondent.id)}
+                                  disabled={computingId === respondent.id}
+                                >
+                                  <Brain className="h-4 w-4 mr-1" />
+                                  {computingId === respondent.id
+                                    ? "Computing..."
+                                    : "Compute"}
+                                </Button>
+                                {respondent.computed_scores?.length > 0 && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => viewSoulPrint(respondent)}
+                                  >
+                                    View SoulPrint
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </>
         )}
+
+        {/* SoulPrint Visualization Modal */}
+        <Dialog open={showSoulPrintModal} onOpenChange={setShowSoulPrintModal}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedSoulPrint?.respondent.name}'s SoulPrint
+              </DialogTitle>
+              <DialogDescription>
+                Complete psychological and travel profile with AI-generated insights
+              </DialogDescription>
+            </DialogHeader>
+            {selectedSoulPrint && (
+              <SoulPrintVisualization
+                computed={selectedSoulPrint.computed}
+                narrative={selectedSoulPrint.narrative}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
