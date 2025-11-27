@@ -6,6 +6,7 @@ import { QuestionnaireData } from "../SoulPrintQuestionnaire";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ResultsProps {
   responses: QuestionnaireData;
@@ -15,6 +16,7 @@ interface ResultsProps {
 
 const Results = ({ responses, onRestart, user }: ResultsProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [emailSent, setEmailSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -43,6 +45,11 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           title: "Responses Submitted!",
           description: "Your SoulPrint questionnaire has been sent to Erranza.",
         });
+        
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       } catch (error) {
         console.error('Error sending questionnaire results:', error);
         toast({

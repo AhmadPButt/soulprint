@@ -96,12 +96,12 @@ const Landing = () => {
               </div>
             </motion.div>
 
-            {/* CTA Button */}
+            {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1 }}
-              className="flex flex-col items-center"
+              className="flex flex-col items-center gap-4"
             >
               <Button
                 onClick={handleBeginAssessment}
@@ -111,7 +111,16 @@ const Landing = () => {
                 Begin SoulPrint Assessment
               </Button>
               
-              <p className="text-sm text-muted-foreground mt-6">
+              <Button
+                onClick={() => navigate("/auth")}
+                variant="outline"
+                size="lg"
+                className="text-lg px-12 py-6 h-auto font-heading font-semibold w-full sm:w-auto"
+              >
+                Sign In (Returning User)
+              </Button>
+              
+              <p className="text-sm text-muted-foreground mt-2">
                 Azerbaijan Edition
               </p>
             </motion.div>

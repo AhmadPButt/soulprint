@@ -28,25 +28,45 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect to questionnaire after successful sign in
+        // Check if user has completed questionnaire and redirect accordingly
         if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(() => {
-            navigate('/questionnaire');
+          setTimeout(async () => {
+            const { data: respondent } = await supabase
+              .from('respondents')
+              .select('id')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (respondent) {
+              navigate('/dashboard');
+            } else {
+              navigate('/questionnaire');
+            }
           }, 500);
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Existing session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // If already logged in, redirect to questionnaire
+      // If already logged in, check if questionnaire completed
       if (session?.user) {
-        navigate('/questionnaire');
+        const { data: respondent } = await supabase
+          .from('respondents')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (respondent) {
+          navigate('/dashboard');
+        } else {
+          navigate('/questionnaire');
+        }
       }
     });
 
