@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Utensils, Hotel, Compass, Edit, Send } from "lucide-react";
+import { MapPin, Calendar, Utensils, Hotel, Compass, Edit, Send, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import TravelCostPanel from './TravelCostPanel';
 
 interface Location {
   name: string;
@@ -238,8 +239,9 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
       </Card>
 
       <Tabs value={selectedDay.toString()} onValueChange={(v) => setSelectedDay(parseInt(v))}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           {localItinerary.days.map((day) => (<TabsTrigger key={day.day} value={day.day.toString()}>Day {day.day}</TabsTrigger>))}
+          <TabsTrigger value="costs"><DollarSign className="h-4 w-4" /></TabsTrigger>
         </TabsList>
         {localItinerary.days.map((day) => (
           <TabsContent key={day.day} value={day.day.toString()}>
@@ -275,6 +277,9 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
             </Card>
           </TabsContent>
         ))}
+        <TabsContent value="costs">
+          <TravelCostPanel itinerary={localItinerary} />
+        </TabsContent>
       </Tabs>
 
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5" />Psychological Design</CardTitle><CardDescription>How this journey supports your inner development</CardDescription></CardHeader><CardContent className="space-y-4"><div><h4 className="font-semibold mb-2">Transformation Arc</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.transformation_arc}</p></div><div><h4 className="font-semibold mb-2">Growth Opportunities</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.growth_opportunities}</p></div><div><h4 className="font-semibold mb-2">Comfort Balance</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.comfort_balance}</p></div></CardContent></Card>
