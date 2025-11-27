@@ -172,7 +172,7 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
 
   const saveItineraryUpdate = async (updatedItinerary: ItineraryData) => {
     try {
-      const { error } = await supabase.from('itineraries').update({ itinerary_data: updatedItinerary }).eq('id', itineraryId);
+      const { error } = await supabase.from('itineraries').update({ itinerary_data: updatedItinerary as any }).eq('id', itineraryId);
       if (error) throw error;
       onItineraryUpdate(updatedItinerary);
       toast({ title: "Itinerary Updated", description: "Changes saved successfully!" });
