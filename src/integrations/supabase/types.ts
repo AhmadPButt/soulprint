@@ -711,6 +711,7 @@ export type Database = {
       }
       respondents: {
         Row: {
+          avatar_url: string | null
           country: string | null
           created_at: string
           dietary_preferences: string | null
@@ -729,6 +730,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          avatar_url?: string | null
           country?: string | null
           created_at?: string
           dietary_preferences?: string | null
@@ -747,6 +749,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          avatar_url?: string | null
           country?: string | null
           created_at?: string
           dietary_preferences?: string | null
