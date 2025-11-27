@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle } from "lucide-react";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
 import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
 import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
@@ -378,10 +378,16 @@ export default function Dashboard() {
                 <SidebarTrigger />
                 <h1 className="text-2xl font-bold text-primary">My SoulPrint Dashboard</h1>
               </div>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate('/profile')}>
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Profile
+                </Button>
+                <Button variant="outline" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
             </div>
           </header>
 
