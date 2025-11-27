@@ -14,6 +14,8 @@ import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
 import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
 import { MoodLogger } from "@/components/trip/MoodLogger";
 import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
+import { MoodInsights } from "@/components/trip/MoodInsights";
+import { TripReflection } from "@/components/trip/TripReflection";
 import {
   Sidebar,
   SidebarContent,
@@ -610,6 +612,9 @@ export default function Dashboard() {
                         onLogComplete={() => {}}
                       />
                       <EmotionalFluctuationGraph respondentId={respondent.id} />
+                      <div className="lg:col-span-2">
+                        <MoodInsights respondentId={respondent.id} />
+                      </div>
                     </>
                   )}
                 </div>
@@ -703,22 +708,40 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">Post-Trip Reflection</h2>
-                  <p className="text-muted-foreground">Review your journey and emotional evolution</p>
+                  <p className="text-muted-foreground">Review your journey, share your experience, and explore your emotional evolution</p>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Post-Trip Features Coming Soon</CardTitle>
-                    <CardDescription>
-                      Reflection tools, trip summary, and memory collection will be available here
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {respondent && (
-                      <EmotionalFluctuationGraph respondentId={respondent.id} />
+                {respondent && (
+                  <div className="grid grid-cols-1 gap-6">
+                    {/* Trip Reflection & NPS */}
+                    <TripReflection respondentId={respondent.id} />
+
+                    {/* Emotional Journey Summary */}
+                    <EmotionalFluctuationGraph respondentId={respondent.id} />
+
+                    {/* AI-Powered Mood Insights */}
+                    <MoodInsights respondentId={respondent.id} />
+
+                    {/* SoulPrint with Emotional Data */}
+                    {computed && narrative && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Your Complete SoulPrint Journey</CardTitle>
+                          <CardDescription>
+                            Pre-trip personality analysis combined with in-trip emotional evolution
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <SoulPrintVisualization
+                            computed={computed}
+                            narrative={narrative}
+                            respondentId={respondent.id}
+                          />
+                        </CardContent>
+                      </Card>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
               </div>
             )}
           </main>
