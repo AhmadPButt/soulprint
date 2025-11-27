@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Upload, ArrowLeft, User, Mail, Globe, Users } from "lucide-react";
+import { Loader2, Upload, ArrowLeft, User, Mail, Globe, Users, Fingerprint } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Profile = () => {
@@ -177,34 +177,69 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Navigation Header */}
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      >
+        <div className="container max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-12 w-12 border-2 border-primary/20">
+                <AvatarImage src={formData.avatar_url} alt={formData.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {formData.name?.charAt(0)?.toUpperCase() || <User className="h-6 w-6" />}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-xl font-semibold">
+                  Hello, {formData.name || 'Traveler'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage your profile settings
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate('/dashboard')}
+                className="rounded-full"
+                title="View SoulPrint Dashboard"
+              >
+                <Fingerprint className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.header>
+
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          transition={{ delay: 0.1 }}
+          className="mb-6"
         >
           <Button
             variant="ghost"
             onClick={() => navigate('/dashboard')}
-            className="mb-4"
+            className="mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-4xl font-heading font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Your Profile
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your account details and travel preferences
-          </p>
         </motion.div>
 
         {/* Avatar Section */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
         >
           <Card className="mb-6">
             <CardHeader>
@@ -253,7 +288,7 @@ const Profile = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           <Card className="mb-6">
             <CardHeader>
@@ -351,7 +386,7 @@ const Profile = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
             <Card>
               <CardHeader>
