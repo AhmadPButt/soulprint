@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
 import { GroupDiscussionsTab } from "@/components/admin/GroupDiscussionsTab";
+import { AdminNotifications } from "@/components/admin/AdminNotifications";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -686,7 +687,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-7">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time per Section</TabsTrigger>
                 <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
@@ -694,6 +695,7 @@ const Admin = () => {
                 <TabsTrigger value="respondents">SoulPrint Submissions</TabsTrigger>
                 <TabsTrigger value="groups">Travel Groups</TabsTrigger>
                 <TabsTrigger value="discussions">Discussions</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -1191,6 +1193,10 @@ const Admin = () => {
 
               <TabsContent value="discussions">
                 <GroupDiscussionsTab />
+              </TabsContent>
+
+              <TabsContent value="notifications">
+                <AdminNotifications />
               </TabsContent>
             </Tabs>
           </>
