@@ -31,6 +31,14 @@ const Auth = () => {
         // Check if user has completed questionnaire and redirect accordingly
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
+            // Check for pending redirect (e.g. user wanted /admin or /dashboard)
+            const pendingRedirect = sessionStorage.getItem('pending_redirect');
+            if (pendingRedirect) {
+              sessionStorage.removeItem('pending_redirect');
+              navigate(pendingRedirect);
+              return;
+            }
+
             const { data: respondent } = await supabase
               .from('respondents')
               .select('id')
@@ -69,6 +77,13 @@ const Auth = () => {
       
       // If already logged in, check if questionnaire completed
       if (session?.user) {
+        const pendingRedirect = sessionStorage.getItem('pending_redirect');
+        if (pendingRedirect) {
+          sessionStorage.removeItem('pending_redirect');
+          navigate(pendingRedirect);
+          return;
+        }
+
         const { data: respondent } = await supabase
           .from('respondents')
           .select('id')
