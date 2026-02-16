@@ -50,6 +50,7 @@ export default function TripDetail() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadTrip();
@@ -59,6 +60,13 @@ export default function TripDetail() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setUserId(session.user.id);
+
+    // Check admin role
+    const { data: adminCheck } = await supabase.rpc('has_role', {
+      _user_id: session.user.id,
+      _role: 'admin'
+    });
+    if (adminCheck) setIsAdmin(true);
 
     const { data: tripData, error } = await supabase
       .from("trips")
@@ -170,8 +178,8 @@ export default function TripDetail() {
     completed: "bg-muted text-muted-foreground",
   };
 
-  const showUtilities = trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
-  const showMoodTab = trip.status === "in_progress" || trip.status === "completed";
+  const showUtilities = isAdmin || trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
+  const showMoodTab = isAdmin || trip.status === "in_progress" || trip.status === "completed";
 
   return (
     <div className="min-h-screen bg-background">
