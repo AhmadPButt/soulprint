@@ -19,6 +19,7 @@ import { DestinationsTab } from "@/components/admin/DestinationsTab";
 import { MatchTestPanel } from "@/components/admin/MatchTestPanel";
 import { AdminDocumentUpload } from "@/components/admin/AdminDocumentUpload";
 import { AdminSupportTab } from "@/components/admin/AdminSupportTab";
+import { AlgorithmPerformanceTab } from "@/components/admin/AlgorithmPerformanceTab";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -649,7 +650,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-10">
+              <TabsList className="grid w-full grid-cols-11">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>
@@ -659,6 +660,7 @@ const Admin = () => {
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
                 <TabsTrigger value="discussions">Discussions</TabsTrigger>
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
+                <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
                 <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
@@ -1186,6 +1188,10 @@ const Admin = () => {
 
               <TabsContent value="support">
                 <AdminSupportTab />
+              </TabsContent>
+
+              <TabsContent value="algorithm">
+                <AlgorithmPerformanceTab />
               </TabsContent>
 
               <TabsContent value="notifications">

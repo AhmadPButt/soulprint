@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 
 interface TripReflectionProps {
   respondentId: string;
+  tripId?: string;
 }
 
-export function TripReflection({ respondentId }: TripReflectionProps) {
+export function TripReflection({ respondentId, tripId }: TripReflectionProps) {
   const { toast } = useToast();
   const [npsScore, setNpsScore] = useState<number | null>(null);
   const [reviewText, setReviewText] = useState("");
@@ -71,6 +72,7 @@ export function TripReflection({ respondentId }: TripReflectionProps) {
     try {
       const reflectionData = {
         respondent_id: respondentId,
+        trip_id: tripId || null,
         nps_score: npsScore,
         review_text: reviewText || null,
         trip_summary: tripSummary || null,
@@ -95,6 +97,33 @@ export function TripReflection({ respondentId }: TripReflectionProps) {
       }
 
       if (error) throw error;
+
+      // Calculate prediction accuracy if this is a trip-linked reflection
+      if (tripId && npsScore !== null) {
+        try {
+          const { data: match } = await supabase
+            .from('destination_matches')
+            .select('id, fit_score')
+            .eq('respondent_id', respondentId)
+            .order('rank', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (match) {
+            const actualSatisfaction = (npsScore / 10) * 100;
+            const accuracy = 100 - Math.abs(match.fit_score - actualSatisfaction);
+            await supabase
+              .from('destination_matches')
+              .update({
+                actual_satisfaction: actualSatisfaction,
+                prediction_accuracy: Math.max(0, accuracy),
+              })
+              .eq('id', match.id);
+          }
+        } catch (accErr) {
+          console.error('Error calculating prediction accuracy:', accErr);
+        }
+      }
 
       toast({
         title: "Reflection Saved",
