@@ -68,11 +68,39 @@ serve(async (req) => {
       throw new Error("Respondent not found");
     }
 
-    const computed = respondent.computed_scores?.[0];
+    let computed = respondent.computed_scores?.[0];
     const narrative = respondent.narrative_insights?.[0];
 
+    // If no computed scores, trigger compute-soulprint first
     if (!computed) {
-      throw new Error("Computed scores not found. Please compute SoulPrint first.");
+      console.log("No computed scores found, triggering compute-soulprint...");
+      const computeResponse = await fetch(`${supabaseUrl}/functions/v1/compute-soulprint`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ respondent_id }),
+      });
+
+      if (!computeResponse.ok) {
+        const errText = await computeResponse.text();
+        console.error("compute-soulprint failed:", errText);
+        throw new Error("Failed to compute SoulPrint scores. Please try again.");
+      }
+
+      // Re-fetch computed scores
+      const { data: freshScores } = await supabaseClient
+        .from('computed_scores')
+        .select('*')
+        .eq('respondent_id', respondent_id)
+        .single();
+
+      if (!freshScores) {
+        throw new Error("Could not compute SoulPrint scores. Please complete the questionnaire first.");
+      }
+      computed = freshScores;
+      console.log("SoulPrint computed successfully");
     }
 
     // Fetch existing itinerary if editing
