@@ -11,6 +11,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function validateAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+    global: { headers: { Authorization: authHeader } }
+  });
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  return { userId: data.user.id };
+}
+
 interface QuestionnaireResults {
   responses: Record<string, any>;
   timestamp: string;
@@ -27,6 +43,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Validate authentication
+    const authResult = await validateAuth(req);
+    if (authResult instanceof Response) return authResult;
+
     const { responses, timestamp, user }: QuestionnaireResults = await req.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

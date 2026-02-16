@@ -62,8 +62,8 @@ const Admin = () => {
   const [selectedSoulPrint, setSelectedSoulPrint] = useState<any>(null);
   const [showSoulPrintModal, setShowSoulPrintModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [computingId, setComputingId] = useState<string | null>(null);
   const [generatingItinerary, setGeneratingItinerary] = useState<string | null>(null);
@@ -72,6 +72,32 @@ const Admin = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [generatingGroupItinerary, setGeneratingGroupItinerary] = useState<string | null>(null);
   const [expandedTraveler, setExpandedTraveler] = useState<string | null>(null);
+
+  // Check if current user has admin role
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setAuthChecking(false);
+          return;
+        }
+        // Use RPC to check admin role (has_role is security definer)
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: session.user.id,
+          _role: 'admin'
+        });
+        if (!error && data === true) {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        console.error('Error checking admin role:', err);
+      } finally {
+        setAuthChecking(false);
+      }
+    };
+    checkAdminRole();
+  }, []);
 
   const loadAnalytics = async () => {
     try {
@@ -478,38 +504,6 @@ const Admin = () => {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadAnalytics();
-      loadVariants();
-      loadRespondents();
-      loadGroups();
-      const channel = supabase
-        .channel("analytics-changes")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "questionnaire_analytics" },
-          () => { loadAnalytics(); }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "respondents" },
-          () => { loadRespondents(); }
-        )
-        .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = () => {
-    if (password === "Zahrasoulprint123") {
-      setIsAuthenticated(true);
-    } else {
-      alert("Incorrect password");
-    }
-  };
-
   const exportToCSV = (startDate?: string, endDate?: string) => {
     if (!analytics) return;
     let eventsToExport = analytics.recentSessions;
@@ -539,25 +533,55 @@ const Admin = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadAnalytics();
+      loadVariants();
+      loadRespondents();
+      loadGroups();
+      const channel = supabase
+        .channel("analytics-changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "questionnaire_analytics" },
+          () => { loadAnalytics(); }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "respondents" },
+          () => { loadRespondents(); }
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }
+  }, [isAuthenticated]);
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Checking access...</p>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Admin Access</CardTitle>
-            <CardDescription>Enter the admin password to view analytics</CardDescription>
+            <CardDescription>You must be signed in with an admin account to access this page.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              placeholder="Password"
-              className="w-full px-4 py-2 rounded-lg bg-input border border-border text-foreground"
-            />
-            <Button onClick={handleLogin} className="w-full">
-              Login
+            <p className="text-sm text-muted-foreground">
+              Please sign in with an account that has admin privileges.
+            </p>
+            <Button onClick={() => navigate("/auth")} className="w-full">
+              Sign In
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/")} className="w-full">
+              Go Home
             </Button>
           </CardContent>
         </Card>
