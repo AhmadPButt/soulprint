@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, Lock } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, Lock, GitCompare, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
@@ -489,6 +489,16 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="h-5 w-5 text-primary" />
                       <h3 className="text-xl font-bold">Your Matched Destinations</h3>
+                      {destinationMatches.length >= 2 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto gap-1.5"
+                          onClick={() => navigate(`/compare?destinations=${destinationMatches.map(m => m.destination.id).join(",")}`)}
+                        >
+                          <GitCompare className="h-3.5 w-3.5" /> Compare
+                        </Button>
+                      )}
                     </div>
 
                     {destinationMatches.length > 0 ? (

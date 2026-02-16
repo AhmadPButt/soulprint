@@ -14,6 +14,7 @@ import {
   Star, Sparkles, Clock, Globe, Phone, ChevronDown, ChevronUp, Bookmark
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { calculateAllTraits, TraitScores } from "@/lib/soulprint-traits";
 
 interface Destination {
@@ -279,10 +280,13 @@ export default function DestinationDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
 
         {/* Back Button */}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="bg-background/80 backdrop-blur">
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
+          {destination && (
+            <FavoriteButton destinationId={destination.id} className="bg-background/80 backdrop-blur" />
+          )}
         </div>
 
         {/* Fit Score */}

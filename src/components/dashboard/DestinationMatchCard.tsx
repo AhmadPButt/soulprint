@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plane, DollarSign, Calendar, MapPin, Star } from "lucide-react";
 import { trackEvent, trackDestinationHover } from "@/lib/analytics";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 interface DestinationMatch {
   id: string;
@@ -84,10 +85,15 @@ const DestinationMatchCard = ({ match, index }: DestinationMatchCardProps) => {
           </div>
 
           {/* Rank Badge */}
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 flex items-center gap-1.5">
             <Badge variant="secondary" className="bg-background/80 backdrop-blur text-foreground font-bold">
               #{match.rank}
             </Badge>
+          </div>
+
+          {/* Favorite Button */}
+          <div className="absolute bottom-3 right-3">
+            <FavoriteButton destinationId={dest.id} size="sm" className="bg-background/70 backdrop-blur rounded-full h-8 w-8" />
           </div>
 
           {dest.image_credit && (
