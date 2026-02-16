@@ -4,13 +4,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
-import { Download, RefreshCw } from "lucide-react";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { Download, Fingerprint } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface SoulPrintVisualizationProps {
   computed: any;
@@ -21,8 +19,6 @@ interface SoulPrintVisualizationProps {
 
 const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerateComplete }: SoulPrintVisualizationProps) => {
   const { toast } = useToast();
-  const [regenerating, setRegenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("google/gemini-2.5-flash");
   const [exporting, setExporting] = useState(false);
 
   // Big Five data
@@ -39,15 +35,6 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
     { name: "Spontaneity", value: parseFloat(computed.spontaneity_flexibility) },
     { name: "Adventure", value: parseFloat(computed.adventure_orientation) },
     { name: "Adaptation", value: parseFloat(computed.environmental_adaptation) }
-  ];
-
-  // Elemental data
-  const elementalData = [
-    { name: "Fire", value: parseFloat(computed.fire_score), color: "#FF6B6B" },
-    { name: "Water", value: parseFloat(computed.water_score), color: "#4ECDC4" },
-    { name: "Stone", value: parseFloat(computed.stone_score), color: "#95A5A6" },
-    { name: "Urban", value: parseFloat(computed.urban_score), color: "#F7DC6F" },
-    { name: "Desert", value: parseFloat(computed.desert_score), color: "#E8B87E" }
   ];
 
   // Inner Compass data
@@ -67,54 +54,7 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
     { name: "Tempo", value: parseFloat(computed.t_tempo) }
   ];
 
-  // Business KPIs
-  const kpisData = [
-    { name: "Spend Propensity", value: parseFloat(computed.spi), tier: computed.spi_tier },
-    { name: "Upsell Receptivity", value: parseFloat(computed.urs), tier: computed.urs_tier },
-    { name: "Content Generation", value: parseFloat(computed.cgs), tier: computed.cgs_tier }
-  ];
-
-  const handleRegenerate = async () => {
-    if (!respondentId) {
-      toast({
-        title: "Error",
-        description: "Respondent ID is required for regeneration",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setRegenerating(true);
-    try {
-      const { error } = await supabase.functions.invoke("compute-soulprint", {
-        body: { 
-          respondent_id: respondentId,
-          regenerate: true,
-          model: selectedModel
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Narrative Regenerated",
-        description: `Successfully regenerated with ${selectedModel}`,
-      });
-
-      onRegenerateComplete?.();
-    } catch (error: any) {
-      console.error("Error regenerating narrative:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to regenerate narrative",
-        variant: "destructive",
-      });
-    } finally {
-      setRegenerating(false);
-    }
-  };
-
-  const exportToPDF = async () => {
+  const exportSoulPrint = async () => {
     setExporting(true);
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -125,12 +65,12 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       // Header
       pdf.setFontSize(24);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('SoulPrint Research Report', pageWidth / 2, yPosition, { align: 'center' });
+      pdf.text('Your SoulPrint', pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 10;
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Erranza Travel Psychology Research', pageWidth / 2, yPosition, { align: 'center' });
+      pdf.text('Erranza Travel Personality Profile', pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 15;
       pdf.setDrawColor(200, 200, 200);
@@ -138,10 +78,10 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       
       yPosition += 10;
 
-      // Respondent Overview
+      // Profile Overview
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Respondent Profile', 15, yPosition);
+      pdf.text('Profile Overview', 15, yPosition);
       yPosition += 10;
 
       pdf.setFontSize(10);
@@ -149,12 +89,6 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       pdf.text(`Tribe: ${computed.tribe}`, 15, yPosition);
       yPosition += 6;
       pdf.text(`Tribe Confidence: ${computed.tribe_confidence}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Azerbaijan Alignment: ${computed.eai_azerbaijan}%`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`NPS Prediction: ${computed.nps_predicted}/10 (${computed.nps_tier})`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Risk Flag: ${computed.risk_flag}`, 15, yPosition);
       yPosition += 10;
 
       // Big Five Personality
@@ -186,29 +120,6 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       pdf.text(`Travel Freedom Index: ${computed.travel_freedom_index}`, 15, yPosition);
       yPosition += 10;
 
-      // Elemental Resonance
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Elemental Resonance', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      elementalData.forEach(element => {
-        pdf.text(`${element.name}: ${element.value.toFixed(1)}`, 15, yPosition);
-        yPosition += 6;
-      });
-      pdf.text(`Dominant Element: ${computed.dominant_element}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Secondary Element: ${computed.secondary_element}`, 15, yPosition);
-      yPosition += 10;
-
-      // Check if we need a new page
-      if (yPosition > pageHeight - 40) {
-        pdf.addPage();
-        yPosition = 20;
-      }
-
       // Inner Compass
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
@@ -230,24 +141,10 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       pdf.text(`Seeking: ${computed.shift_desired}`, 15, yPosition);
       yPosition += 10;
 
-      // Business KPIs
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Business Key Performance Indicators', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      kpisData.forEach(kpi => {
-        pdf.text(`${kpi.name}: ${kpi.value.toFixed(1)} (${kpi.tier})`, 15, yPosition);
-        yPosition += 6;
-      });
-      yPosition += 5;
-
       // Tensions
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Tensions & Friction Points', 15, yPosition);
+      pdf.text('Tensions & Growth Areas', 15, yPosition);
       yPosition += 8;
 
       pdf.setFontSize(10);
@@ -267,7 +164,7 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
         yPosition += 10;
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Psychological Narrative', 15, yPosition);
+        pdf.text('Your SoulPrint Narrative', 15, yPosition);
         yPosition += 10;
 
         pdf.setFontSize(12);
@@ -310,19 +207,19 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
       pdf.text(`Generated: ${timestamp}`, 15, pageHeight - 10);
-      pdf.text('Erranza © 2025 - Confidential Research Data', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      pdf.text('Erranza © 2026 - Your Travel Personality', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
-      pdf.save(`soulprint-research-${respondentId?.substring(0, 8) || 'report'}.pdf`);
+      pdf.save(`soulprint-${respondentId?.substring(0, 8) || 'profile'}.pdf`);
 
       toast({
-        title: "PDF Exported",
-        description: "Research report downloaded successfully",
+        title: "SoulPrint Exported",
+        description: "Your SoulPrint PDF has been downloaded",
       });
     } catch (error: any) {
       console.error("Error exporting PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to export PDF",
+        description: "Failed to export SoulPrint",
         variant: "destructive",
       });
     } finally {
@@ -332,35 +229,14 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
 
   return (
     <div className="space-y-6">
-      {/* Action Bar */}
+      {/* Action Bar - Export SoulPrint only */}
       {respondentId && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex-1 min-w-[200px]">
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select AI Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                    <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
-                    <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button 
-                onClick={handleRegenerate} 
-                disabled={regenerating}
-                variant="outline"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
-                {regenerating ? "Regenerating..." : "Regenerate Narrative"}
-              </Button>
-              <Button onClick={exportToPDF} disabled={exporting}>
-                <Download className="h-4 w-4 mr-2" />
-                {exporting ? "Exporting..." : "Export Research Report"}
+            <div className="flex items-center gap-4 justify-end">
+              <Button onClick={exportSoulPrint} disabled={exporting} className="gap-2">
+                <Fingerprint className="h-4 w-4" />
+                {exporting ? "Exporting..." : "Export SoulPrint"}
               </Button>
             </div>
           </CardContent>
@@ -380,8 +256,8 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
         </Card>
       )}
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Key Metrics - Tribe only, removed Azerbaijan, NPS, Risk Flag */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Tribe</CardTitle>
@@ -396,46 +272,31 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Azerbaijan Alignment</CardTitle>
+            <CardTitle className="text-sm font-medium">Primary Motivation</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{computed.eai_azerbaijan}%</div>
-            <Progress value={parseFloat(computed.eai_azerbaijan)} className="mt-2" />
+            <div className="text-2xl font-bold">{computed.top_motivation_1}</div>
+            <p className="text-xs text-muted-foreground mt-1">Life Phase: {computed.life_phase}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">NPS Prediction</CardTitle>
+            <CardTitle className="text-sm font-medium">Travel Freedom</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{computed.nps_predicted}/10</div>
-            <Badge variant={computed.nps_tier === "Promoter" ? "default" : "secondary"}>
-              {computed.nps_tier}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Risk Flag</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={computed.risk_flag === "HIGH RISK" ? "destructive" : computed.risk_flag === "Monitor" ? "secondary" : "default"}>
-              {computed.risk_flag}
-            </Badge>
-            <p className="text-xs text-muted-foreground mt-2">Upsell: {computed.upsell_priority}</p>
+            <div className="text-2xl font-bold">{computed.travel_freedom_index}</div>
+            <Progress value={parseFloat(computed.travel_freedom_index)} className="mt-2" />
           </CardContent>
         </Card>
       </div>
 
+      {/* Tabs - Removed Elements and Business */}
       <Tabs defaultValue="personality" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="personality">Personality</TabsTrigger>
           <TabsTrigger value="travel">Travel</TabsTrigger>
-          <TabsTrigger value="elements">Elements</TabsTrigger>
           <TabsTrigger value="compass">Inner Compass</TabsTrigger>
-          <TabsTrigger value="business">Business</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personality">
@@ -450,7 +311,7 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
                   <PolarGrid />
                   <PolarAngleAxis dataKey="trait" />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Score" dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                  <Radar name="Score" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                   <Legend />
                 </RadarChart>
               </ResponsiveContainer>
@@ -481,7 +342,7 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
                   <XAxis dataKey="name" />
                   <YAxis domain={[0, 100]} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#647ED5" />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-4">
@@ -491,45 +352,20 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
                   <span className="text-sm font-bold">{computed.travel_freedom_index}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="elements">
-          <Card>
-            <CardHeader>
-              <CardTitle>Elemental Resonance</CardTitle>
-              <CardDescription>Your connection to natural elements</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={elementalData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) => `${entry.name}: ${entry.value}`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {elementalData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-4 flex gap-4">
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Dominant Element</p>
-                  <p className="text-lg font-bold capitalize">{computed.dominant_element}</p>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Secondary Element</p>
-                  <p className="text-lg font-bold capitalize">{computed.secondary_element}</p>
-                </div>
+              {/* Tensions */}
+              <div className="mt-6">
+                <p className="text-sm font-medium mb-3">Tensions & Growth Areas</p>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={tensionsData}>
+                    <XAxis dataKey="name" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--destructive))" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Higher values indicate more internal friction and potential growth edges
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -547,7 +383,7 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
                   <XAxis dataKey="motivation" />
                   <YAxis domain={[0, 100]} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#A78BFA" />
+                  <Bar dataKey="value" fill="hsl(var(--accent))" />
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-4 space-y-4">
@@ -572,53 +408,6 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="business">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Business KPIs</CardTitle>
-                <CardDescription>Commercial value indicators</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {kpisData.map((kpi) => (
-                    <div key={kpi.name}>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">{kpi.name}</span>
-                        <Badge variant={kpi.tier === "High" ? "default" : kpi.tier === "Medium" ? "secondary" : "outline"}>
-                          {kpi.tier}
-                        </Badge>
-                      </div>
-                      <Progress value={kpi.value} className="h-2" />
-                      <p className="text-xs text-muted-foreground mt-1">{kpi.value.toFixed(1)}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Tensions & Friction Points</CardTitle>
-                <CardDescription>Internal conflicts and growth areas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={tensionsData}>
-                    <XAxis dataKey="name" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#EF4444" />
-                  </BarChart>
-                </ResponsiveContainer>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Higher values indicate more internal friction and potential growth edges
-                </p>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -364,21 +364,23 @@ export default function Dashboard() {
               
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => setCurrentView("in-trip")}
-                  className={currentView === "in-trip" ? "bg-muted text-primary font-medium" : ""}
+                  onClick={() => {}}
+                  className="opacity-50 cursor-not-allowed"
+                  disabled
                 >
                   <Compass className="mr-2 h-4 w-4" />
-                  <span>In-Trip</span>
+                  <span>In-Trip 🔒</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => setCurrentView("post-trip")}
-                  className={currentView === "post-trip" ? "bg-muted text-primary font-medium" : ""}
+                  onClick={() => {}}
+                  className="opacity-50 cursor-not-allowed"
+                  disabled
                 >
                   <Home className="mr-2 h-4 w-4" />
-                  <span>Post-Trip</span>
+                  <span>Post-Trip 🔒</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
