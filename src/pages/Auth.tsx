@@ -40,7 +40,20 @@ const Auth = () => {
             if (respondent) {
               navigate('/dashboard');
             } else {
-              navigate('/questionnaire');
+              // Check if intake is completed
+              const { data: intake } = await supabase
+                .from('context_intake')
+                .select('completed')
+                .eq('user_id', session.user.id)
+                .eq('completed', true)
+                .limit(1)
+                .maybeSingle();
+              
+              if (intake) {
+                navigate('/questionnaire');
+              } else {
+                navigate('/intake');
+              }
             }
           }, 500);
         }
@@ -65,7 +78,19 @@ const Auth = () => {
         if (respondent) {
           navigate('/dashboard');
         } else {
-          navigate('/questionnaire');
+          const { data: intake } = await supabase
+            .from('context_intake')
+            .select('completed')
+            .eq('user_id', session.user.id)
+            .eq('completed', true)
+            .limit(1)
+            .maybeSingle();
+          
+          if (intake) {
+            navigate('/questionnaire');
+          } else {
+            navigate('/intake');
+          }
         }
       }
     });
@@ -75,7 +100,7 @@ const Auth = () => {
 
   const signInWithGoogle = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/questionnaire`;
+      const redirectUrl = `${window.location.origin}/intake`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -108,7 +133,7 @@ const Auth = () => {
 
   const signInWithFacebook = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/questionnaire`;
+      const redirectUrl = `${window.location.origin}/intake`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
@@ -135,7 +160,7 @@ const Auth = () => {
 
   const signInWithApple = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/questionnaire`;
+      const redirectUrl = `${window.location.origin}/intake`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
@@ -162,7 +187,7 @@ const Auth = () => {
 
   const signInWithMicrosoft = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/questionnaire`;
+      const redirectUrl = `${window.location.origin}/intake`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
@@ -198,7 +223,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/questionnaire`,
+            emailRedirectTo: `${window.location.origin}/intake`,
           }
         });
 

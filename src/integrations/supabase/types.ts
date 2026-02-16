@@ -190,6 +190,68 @@ export type Database = {
           },
         ]
       }
+      context_intake: {
+        Row: {
+          budget_range: string | null
+          completed: boolean | null
+          created_at: string
+          desired_outcome: string | null
+          duration: string | null
+          geographic_constraint: string | null
+          geographic_value: string | null
+          id: string
+          occasion: string | null
+          party_composition: Json | null
+          respondent_id: string | null
+          timeline: string | null
+          travel_dates: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_range?: string | null
+          completed?: boolean | null
+          created_at?: string
+          desired_outcome?: string | null
+          duration?: string | null
+          geographic_constraint?: string | null
+          geographic_value?: string | null
+          id?: string
+          occasion?: string | null
+          party_composition?: Json | null
+          respondent_id?: string | null
+          timeline?: string | null
+          travel_dates?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_range?: string | null
+          completed?: boolean | null
+          created_at?: string
+          desired_outcome?: string | null
+          duration?: string | null
+          geographic_constraint?: string | null
+          geographic_value?: string | null
+          id?: string
+          occasion?: string | null
+          party_composition?: Json | null
+          respondent_id?: string | null
+          timeline?: string | null
+          travel_dates?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_intake_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_itineraries: {
         Row: {
           created_at: string

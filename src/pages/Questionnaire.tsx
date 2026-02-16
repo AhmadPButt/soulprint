@@ -46,6 +46,19 @@ const Questionnaire = () => {
         
         if (respondent) {
           navigate('/dashboard');
+        } else {
+          // Check if intake is completed
+          const { data: intake } = await supabase
+            .from('context_intake')
+            .select('completed')
+            .eq('user_id', session.user.id)
+            .eq('completed', true)
+            .limit(1)
+            .maybeSingle();
+          
+          if (!intake) {
+            navigate('/intake');
+          }
         }
       }
     });
