@@ -10,12 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
-  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench
+  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench, Heart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BookingsSection } from "@/components/trip/BookingsSection";
 import { DocumentsSection } from "@/components/trip/DocumentsSection";
 import { DestinationInfoSection } from "@/components/trip/DestinationInfoSection";
+import { MoodLogger } from "@/components/trip/MoodLogger";
+import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
+import { MoodInsights } from "@/components/trip/MoodInsights";
+import { TripReflection } from "@/components/trip/TripReflection";
 
 interface TripMember {
   id: string;
@@ -166,6 +170,7 @@ export default function TripDetail() {
   };
 
   const showUtilities = trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
+  const showMoodTab = trip.status === "in_progress" || trip.status === "completed";
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,6 +198,7 @@ export default function TripDetail() {
             <TabsTrigger value="travelers">Travelers ({members.length})</TabsTrigger>
             <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
             {showUtilities && <TabsTrigger value="utilities" className="gap-1.5"><Wrench className="h-3.5 w-3.5" /> Utilities</TabsTrigger>}
+            {showMoodTab && <TabsTrigger value="mood" className="gap-1.5"><Heart className="h-3.5 w-3.5" /> Mood & Reflection</TabsTrigger>}
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
 
@@ -351,6 +357,87 @@ export default function TripDetail() {
               <DocumentsSection tripId={tripId!} documents={documents} userId={userId} onReload={loadTrip} />
               {destination && (
                 <DestinationInfoSection destinationId={destination.id} destinationName={destination.name} />
+              )}
+            </TabsContent>
+          )}
+
+          {/* MOOD & REFLECTION */}
+          {showMoodTab && (
+            <TabsContent value="mood" className="space-y-8">
+              {trip.status === "in_progress" && (
+                <>
+                  {trip.respondent_id && (
+                    <MoodLogger
+                      respondentId={trip.respondent_id}
+                      tripId={tripId!}
+                      destinationName={destination?.name}
+                      onLogComplete={loadTrip}
+                    />
+                  )}
+
+                  {itinerary?.days && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Rate Activities</CardTitle>
+                        <CardDescription>How did each activity make you feel?</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {itinerary.days.map((day: any) => (
+                          <div key={day.day} className="space-y-2">
+                            <p className="text-sm font-semibold text-primary">Day {day.day}: {day.title || day.theme || ""}</p>
+                            {["morning", "afternoon", "evening"].map(slot => {
+                              const s = day[slot];
+                              if (!s) return null;
+                              return (
+                                <div key={slot} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
+                                  <div>
+                                    <p className="text-sm font-medium">{s.activity}</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{slot} — {s.time || ""}</p>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {["😊", "😐", "😔"].map((emoji, idx) => (
+                                      <button
+                                        key={emoji}
+                                        className="text-xl hover:scale-125 transition-transform p-1"
+                                        onClick={async () => {
+                                          const score = [8, 5, 3][idx];
+                                          if (!trip.respondent_id) return;
+                                          await supabase.from('mood_logs').insert({
+                                            respondent_id: trip.respondent_id,
+                                            trip_id: tripId!,
+                                            mood_score: score,
+                                            activity_reference: s.activity,
+                                            location: destination?.name || null,
+                                            emotions: { selected: [] },
+                                          } as any);
+                                          toast({ title: "Mood logged for " + s.activity });
+                                        }}
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {trip.respondent_id && (
+                    <EmotionalFluctuationGraph respondentId={trip.respondent_id} tripId={tripId!} />
+                  )}
+                </>
+              )}
+
+              {trip.status === "completed" && trip.respondent_id && (
+                <>
+                  <EmotionalFluctuationGraph respondentId={trip.respondent_id} tripId={tripId!} />
+                  <MoodInsights respondentId={trip.respondent_id} />
+                  <TripReflection respondentId={trip.respondent_id} />
+                </>
               )}
             </TabsContent>
           )}
