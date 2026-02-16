@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
@@ -14,17 +13,8 @@ interface Section1Props {
 }
 
 const Section1 = ({ initialData, onNext }: Section1Props) => {
-  const [Q1, setQ1] = useState<string[]>(initialData.Q1 || []);
   const [Q2, setQ2] = useState(initialData.Q2 || "");
   const [Q3, setQ3] = useState(initialData.Q3 || 50);
-
-  const q1Options = [
-    "The Land of Fire and its ancient mystique",
-    "A shift or transition I'm moving through",
-    "A desire for depth, meaning, and clarity",
-    "The fusion of modern architecture and old stone",
-    "The sense of unfamiliar terrain calling me",
-  ];
 
   const q2Options = [
     { value: "slow", label: "Slow, intentional, unhurried" },
@@ -32,19 +22,11 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
     { value: "adventurous", label: "Adventurous, energetic, open to the unexpected" },
   ];
 
-  const handleQ1Change = (option: string, checked: boolean) => {
-    if (checked) {
-      setQ1([...Q1, option]);
-    } else {
-      setQ1(Q1.filter((item) => item !== option));
-    }
-  };
-
   const handleNext = () => {
-    onNext({ Q1, Q2, Q3 });
+    onNext({ Q2, Q3 });
   };
 
-  const isValid = Q1.length > 0 && Q2;
+  const isValid = !!Q2;
 
   return (
     <motion.div
@@ -52,41 +34,10 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
       animate={{ opacity: 1 }}
       className="space-y-8"
     >
-      {/* Q1 */}
+      {/* Q2 */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-foreground">
-          What draws you to Azerbaijan at this moment in your life?
-        </h3>
-        <p className="text-xs text-muted-foreground">Select all that apply</p>
-        <div className="space-y-3">
-          {q1Options.map((option, index) => (
-            <motion.div
-              key={option}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="flex items-start space-x-3 p-3 rounded-lg hover:bg-foreground/5 transition-colors"
-            >
-              <Checkbox
-                id={`q1-${index}`}
-                checked={Q1.includes(option)}
-                onCheckedChange={(checked) => handleQ1Change(option, checked as boolean)}
-              />
-              <Label
-                htmlFor={`q1-${index}`}
-                className="text-sm cursor-pointer leading-relaxed text-foreground/90"
-              >
-                {option}
-              </Label>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Q2 */}
-      <div className="space-y-4 pt-6 border-t border-border/50">
-        <h3 className="text-lg font-medium text-foreground">
-          What pace feels right for this journey?
+          What pace feels right for this trip?
         </h3>
         <RadioGroup value={Q2} onValueChange={setQ2} className="space-y-3">
           {q2Options.map((option, index) => (
@@ -112,7 +63,7 @@ const Section1 = ({ initialData, onNext }: Section1Props) => {
       {/* Q3 */}
       <div className="space-y-4 pt-6 border-t border-border/50">
         <h3 className="text-lg font-medium text-foreground">
-          What emotional rhythm do you seek when you travel?
+          What emotional rhythm do you seek on this trip?
         </h3>
         <div className="space-y-4">
           <div className="flex justify-between text-xs text-muted-foreground">

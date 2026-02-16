@@ -46,7 +46,6 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           description: "Your SoulPrint questionnaire has been sent to Erranza.",
         });
         
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           navigate('/dashboard');
         }, 2000);
@@ -90,7 +89,7 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {isSending ? "Sending your responses..." : emailSent ? "Your responses have been sent to Erranza!" : "Thank you for sharing your story. Your responses will help us craft a journey that resonates with your deepest self."}
+            {isSending ? "Sending your responses..." : emailSent ? "Your responses have been sent to Erranza!" : "Thank you for sharing your story. Your responses will help us match you with your perfect destination."}
           </p>
         </motion.div>
 
@@ -110,9 +109,9 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           <div className="text-center py-8">
             <p className="text-muted-foreground">
               {isSending 
-                ? "Sending your questionnaire responses to Erranza..." 
+                ? "Sending your SoulPrint responses to Erranza..." 
                 : emailSent 
-                ? "Your SoulPrint questionnaire has been successfully sent to our team at Erranza. We'll be in touch soon to begin crafting your Azerbaijan experience." 
+                ? "Your SoulPrint has been successfully submitted. We'll use your profile to find your perfect destination and craft a personalized itinerary." 
                 : "Preparing to send your responses..."}
             </p>
           </div>
@@ -128,7 +127,7 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
             <RefreshCcw className="w-4 h-4" /> Start Over
           </Button>
           <p className="text-sm text-muted-foreground text-center">
-            We'll be in touch soon to begin crafting your Azerbaijan experience.
+            We'll be in touch soon to share your destination matches.
           </p>
         </motion.div>
 
