@@ -10,6 +10,8 @@ import { Smile, Meh, Frown, Heart, Zap, Cloud, Sun } from "lucide-react";
 
 interface MoodLoggerProps {
   respondentId: string;
+  tripId?: string;
+  destinationName?: string;
   onLogComplete?: () => void;
 }
 
@@ -23,7 +25,7 @@ const emotionOptions = [
   { label: "Sad", value: "sad", icon: Frown, color: "text-blue-600" },
 ];
 
-export function MoodLogger({ respondentId, onLogComplete }: MoodLoggerProps) {
+export function MoodLogger({ respondentId, tripId, destinationName, onLogComplete }: MoodLoggerProps) {
   const { toast } = useToast();
   const [moodScore, setMoodScore] = useState(5);
   const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
@@ -47,12 +49,13 @@ export function MoodLogger({ respondentId, onLogComplete }: MoodLoggerProps) {
         .from('mood_logs')
         .insert({
           respondent_id: respondentId,
+          trip_id: tripId || null,
           mood_score: moodScore,
           emotions: { selected: selectedEmotions },
           notes: notes || null,
           location: location || null,
           activity_reference: activityReference || null,
-        });
+        } as any);
 
       if (error) throw error;
 
@@ -86,7 +89,7 @@ export function MoodLogger({ respondentId, onLogComplete }: MoodLoggerProps) {
       <CardHeader>
         <CardTitle>Log Your Mood</CardTitle>
         <CardDescription>
-          Track your emotional state during your journey
+          {destinationName ? `How are you feeling in ${destinationName}?` : "Track your emotional state during your journey"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

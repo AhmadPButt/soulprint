@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface EmotionalFluctuationGraphProps {
   respondentId: string;
+  tripId?: string;
 }
 
 interface MoodLog {
@@ -19,7 +20,7 @@ interface MoodLog {
   notes: string | null;
 }
 
-export function EmotionalFluctuationGraph({ respondentId }: EmotionalFluctuationGraphProps) {
+export function EmotionalFluctuationGraph({ respondentId, tripId }: EmotionalFluctuationGraphProps) {
   const [moodLogs, setMoodLogs] = useState<MoodLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ average: 0, trend: 0, highest: 0, lowest: 0 });
@@ -45,10 +46,13 @@ export function EmotionalFluctuationGraph({ respondentId }: EmotionalFluctuation
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [respondentId]);
+  }, [respondentId, tripId]);
 
   const loadMoodLogs = async () => {
     try {
+      let rpcQuery = `respondent_id=eq.${respondentId}`;
+      if (tripId) rpcQuery += `&trip_id=eq.${tripId}`;
+      
       const { data, error } = await supabase
         .from('mood_logs')
         .select('*')

@@ -773,6 +773,7 @@ export type Database = {
           mood_score: number
           notes: string | null
           respondent_id: string
+          trip_id: string | null
         }
         Insert: {
           activity_reference?: string | null
@@ -784,6 +785,7 @@ export type Database = {
           mood_score: number
           notes?: string | null
           respondent_id: string
+          trip_id?: string | null
         }
         Update: {
           activity_reference?: string | null
@@ -795,6 +797,7 @@ export type Database = {
           mood_score?: number
           notes?: string | null
           respondent_id?: string
+          trip_id?: string | null
         }
         Relationships: [
           {
@@ -802,6 +805,13 @@ export type Database = {
             columns: ["respondent_id"]
             isOneToOne: false
             referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mood_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
