@@ -1373,6 +1373,14 @@ export type Database = {
         Args: { _poll_id: string; _user_id: string }
         Returns: boolean
       }
+      user_is_trip_creator: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_trip_member: {
+        Args: { _trip_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_owns_itinerary: {
         Args: { _itinerary_id: string; _user_id: string }
         Returns: boolean
