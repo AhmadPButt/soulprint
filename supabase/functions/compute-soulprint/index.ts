@@ -167,7 +167,6 @@ PSYCHOMETRIC ARCHITECTURE:
 • Elemental Resonance: ${traits.dominant_element} (primary) × ${traits.secondary_element} (accent)
 • Inner Compass: ${traits.top_motivation_1} → ${traits.top_motivation_2}
 • Life Chapter: ${traits.life_phase} | Seeking: ${traits.shift_desired}
-• Azerbaijan Affinity: ${eai.toFixed(1)}%
 • Traveler Archetype: ${kpis.tribe}
 
 NARRATIVE REQUIREMENTS:
@@ -185,11 +184,11 @@ Write 3-4 paragraphs with the sophistication of a private members' club and the 
    • Connect their life phase to their travel motivations
    • Frame challenges as invitations, not obstacles
 
-3. THE AZERBAIJAN PROPOSITION (Third Paragraph)
-   • Why this destination at this moment?
-   • How does Azerbaijan's terroir (cultural, emotional, geographical) align with their inner compass?
-   • What specific experiences will resonate most deeply?
-   • Address the ${eai.toFixed(0)}% alignment with sophistication — high alignment = profound match, moderate = intriguing tension, low = transformative contrast
+3. THE DESTINATION PROPOSITION (Third Paragraph)
+   • What types of destinations and experiences will resonate most deeply with this traveler?
+   • How do their elemental resonances suggest ideal landscapes and environments?
+   • What cultural, sensory, and emotional experiences align with their inner compass?
+   • Frame their ideal journey as a natural extension of who they are
 
 4. BESPOKE RECOMMENDATIONS (Final Paragraph)
    • 2-3 highly specific, unexpected experiences tailored to their psychometric profile

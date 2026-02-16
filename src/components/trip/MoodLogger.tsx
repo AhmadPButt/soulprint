@@ -145,7 +145,7 @@ export function MoodLogger({ respondentId, tripId, destinationName, onLogComplet
           <Label htmlFor="location">Current Location (Optional)</Label>
           <Input
             id="location"
-            placeholder="e.g., Baku Old City, Gobustan"
+            placeholder="e.g., City Centre, Beach Resort, Mountain Lodge"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />

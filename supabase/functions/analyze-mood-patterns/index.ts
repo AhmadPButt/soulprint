@@ -82,7 +82,7 @@ serve(async (req) => {
     const lowestMood = Math.min(...moodLogs.map(l => l.mood_score));
 
     // Create prompt for AI analysis
-    const prompt = `You are an empathetic travel psychologist analyzing a traveler's emotional journey through Azerbaijan. 
+    const prompt = `You are an empathetic travel psychologist analyzing a traveler's emotional journey. 
 
 Analyze these mood logs and provide:
 1. Key emotional patterns and trends

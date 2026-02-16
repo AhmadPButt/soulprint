@@ -121,7 +121,7 @@ const Landing = () => {
               </Button>
               
               <p className="text-sm text-muted-foreground mt-2">
-                Azerbaijan Edition
+                Luxury Travel, Reimagined
               </p>
             </motion.div>
           </div>

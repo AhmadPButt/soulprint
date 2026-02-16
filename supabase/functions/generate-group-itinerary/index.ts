@@ -116,7 +116,7 @@ serve(async (req) => {
       };
     });
 
-    const prompt = `You are an expert luxury travel designer for Azerbaijan. Create a comprehensive group itinerary that harmonizes the preferences and personalities of all group members.
+    const prompt = `You are an expert luxury travel designer. Create a comprehensive group itinerary that harmonizes the preferences and personalities of all group members.
 
 GROUP: ${group.name}
 NUMBER OF TRAVELERS: ${members.length}
@@ -196,18 +196,18 @@ Create a JSON itinerary with this structure:
 Respond ONLY with valid JSON, no additional text.`;
 
     // Call AI to generate group itinerary
-    const aiResponse = await fetch('https://gateway.ai.cloudflare.com/v1/lovable/default/openai/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
-            content: 'You are a luxury travel designer specializing in group dynamics and personalized experiences in Azerbaijan. You create harmonious itineraries that balance diverse personalities and preferences.'
+            content: 'You are a luxury travel designer specializing in group dynamics and personalized experiences worldwide. You create harmonious itineraries that balance diverse personalities and preferences.'
           },
           {
             role: 'user',
