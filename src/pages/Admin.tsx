@@ -2,14 +2,17 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon, BarChart3 } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon, BarChart3, Shield, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { AdminsTab } from "@/components/admin/AdminsTab";
 
 const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
@@ -72,6 +75,8 @@ const Admin = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [generatingGroupItinerary, setGeneratingGroupItinerary] = useState<string | null>(null);
   const [expandedTraveler, setExpandedTraveler] = useState<string | null>(null);
+  const [secretKey, setSecretKey] = useState("");
+  const [registering, setRegistering] = useState(false);
 
   // Check if current user has admin role
   useEffect(() => {
@@ -565,22 +570,61 @@ const Admin = () => {
     );
   }
 
+
+  const handleAdminRegister = async () => {
+    if (!secretKey.trim()) return;
+    setRegistering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("register-admin", {
+        body: { secret_key: secretKey },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Success!", description: data.message || "Admin role granted." });
+      setIsAuthenticated(true);
+      setSecretKey("");
+    } catch (err: any) {
+      toast({ title: "Access Denied", description: err.message || "Invalid secret key", variant: "destructive" });
+    } finally {
+      setRegistering(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Admin Access</CardTitle>
-            <CardDescription>You must be signed in with an admin account to access this page.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Admin Access</CardTitle>
+            <CardDescription>Sign in and enter the admin secret key to gain access.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please sign in with an account that has admin privileges.
-            </p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
-              Sign In
+            <div className="space-y-2">
+              <Label htmlFor="secret-key">Admin Secret Key</Label>
+              <Input
+                id="secret-key"
+                type="password"
+                placeholder="Enter the admin secret key"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdminRegister()}
+              />
+              <p className="text-xs text-muted-foreground">
+                This key is provided to authorized administrators only.
+              </p>
+            </div>
+            <Button onClick={handleAdminRegister} className="w-full" disabled={registering || !secretKey.trim()}>
+              {registering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+              Register as Admin
             </Button>
-            <Button variant="outline" onClick={() => navigate("/")} className="w-full">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
+            </div>
+            <Button variant="outline" onClick={() => navigate("/auth")} className="w-full">
+              Sign In to Different Account
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/")} className="w-full">
               Go Home
             </Button>
           </CardContent>
@@ -675,7 +719,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-12">
+              <TabsList className="grid w-full grid-cols-13">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>
@@ -687,6 +731,7 @@ const Admin = () => {
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
                 <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
+                <TabsTrigger value="admins" className="gap-1"><Shield className="h-3.5 w-3.5" /> Admins</TabsTrigger>
                 <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
@@ -1222,6 +1267,10 @@ const Admin = () => {
 
               <TabsContent value="analytics">
                 <BehavioralAnalyticsTab />
+              </TabsContent>
+
+              <TabsContent value="admins">
+                <AdminsTab />
               </TabsContent>
 
               <TabsContent value="notifications">
