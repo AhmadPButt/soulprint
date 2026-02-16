@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, CheckCircle2 } from "lucide-react";
+import { RefreshCcw, CheckCircle2, Loader2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
   const navigate = useNavigate();
   const [emailSent, setEmailSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [matchingStatus, setMatchingStatus] = useState<"idle" | "matching" | "done" | "error">("idle");
 
   useEffect(() => {
     const sendEmail = async () => {
@@ -45,10 +46,34 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           title: "Responses Submitted!",
           description: "Your SoulPrint questionnaire has been sent to Erranza.",
         });
+
+        // Trigger destination matching if we got a respondent_id back
+        const respondentId = data?.respondent_id;
+        if (respondentId) {
+          setMatchingStatus("matching");
+          try {
+            const { data: matchData, error: matchError } = await supabase.functions.invoke('match-destinations', {
+              body: { respondent_id: respondentId }
+            });
+            
+            if (matchError) throw matchError;
+            
+            console.log('Destination matches:', matchData?.matches);
+            setMatchingStatus("done");
+            toast({
+              title: "Destinations Matched!",
+              description: `Found ${matchData?.matches?.length || 0} perfect destinations for you.`,
+            });
+          } catch (matchErr) {
+            console.error('Error matching destinations:', matchErr);
+            setMatchingStatus("error");
+            // Don't block navigation — matching is optional
+          }
+        }
         
         setTimeout(() => {
           navigate('/dashboard');
-        }, 2000);
+        }, 3000);
       } catch (error) {
         console.error('Error sending questionnaire results:', error);
         toast({
@@ -106,7 +131,7 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
             </h2>
           </div>
           
-          <div className="text-center py-8">
+          <div className="text-center py-8 space-y-4">
             <p className="text-muted-foreground">
               {isSending 
                 ? "Sending your SoulPrint responses to Erranza..." 
@@ -114,6 +139,28 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
                 ? "Your SoulPrint has been successfully submitted. We'll use your profile to find your perfect destination and craft a personalized itinerary." 
                 : "Preparing to send your responses..."}
             </p>
+
+            {/* Matching status */}
+            {matchingStatus === "matching" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Finding your perfect destinations...
+              </motion.div>
+            )}
+            {matchingStatus === "done" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center gap-2 text-sm text-primary"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Destination matches found! Redirecting...
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
