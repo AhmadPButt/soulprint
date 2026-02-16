@@ -252,6 +252,96 @@ export type Database = {
           },
         ]
       }
+      echoprint_destinations: {
+        Row: {
+          achievement_score: number | null
+          avg_cost_per_day_gbp: number | null
+          best_time_to_visit: string | null
+          climate_tags: string[] | null
+          country: string
+          created_at: string | null
+          culinary_score: number | null
+          cultural_score: number | null
+          cultural_sensory_score: number | null
+          description: string | null
+          flight_time_from_uk_hours: number | null
+          highlights: string[] | null
+          id: string
+          image_credit: string | null
+          image_url: string | null
+          is_active: boolean | null
+          luxury_style_score: number | null
+          name: string
+          nature_score: number | null
+          region: string
+          restorative_score: number | null
+          short_description: string | null
+          social_vibe_score: number | null
+          tier: string | null
+          updated_at: string | null
+          visual_score: number | null
+          wellness_score: number | null
+        }
+        Insert: {
+          achievement_score?: number | null
+          avg_cost_per_day_gbp?: number | null
+          best_time_to_visit?: string | null
+          climate_tags?: string[] | null
+          country: string
+          created_at?: string | null
+          culinary_score?: number | null
+          cultural_score?: number | null
+          cultural_sensory_score?: number | null
+          description?: string | null
+          flight_time_from_uk_hours?: number | null
+          highlights?: string[] | null
+          id?: string
+          image_credit?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          luxury_style_score?: number | null
+          name: string
+          nature_score?: number | null
+          region: string
+          restorative_score?: number | null
+          short_description?: string | null
+          social_vibe_score?: number | null
+          tier?: string | null
+          updated_at?: string | null
+          visual_score?: number | null
+          wellness_score?: number | null
+        }
+        Update: {
+          achievement_score?: number | null
+          avg_cost_per_day_gbp?: number | null
+          best_time_to_visit?: string | null
+          climate_tags?: string[] | null
+          country?: string
+          created_at?: string | null
+          culinary_score?: number | null
+          cultural_score?: number | null
+          cultural_sensory_score?: number | null
+          description?: string | null
+          flight_time_from_uk_hours?: number | null
+          highlights?: string[] | null
+          id?: string
+          image_credit?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          luxury_style_score?: number | null
+          name?: string
+          nature_score?: number | null
+          region?: string
+          restorative_score?: number | null
+          short_description?: string | null
+          social_vibe_score?: number | null
+          tier?: string | null
+          updated_at?: string | null
+          visual_score?: number | null
+          wellness_score?: number | null
+        }
+        Relationships: []
+      }
       group_itineraries: {
         Row: {
           created_at: string
