@@ -93,6 +93,50 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          session_id: string | null
+          timestamp: string | null
+          trip_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string | null
+          timestamp?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string | null
+          timestamp?: string | null
+          trip_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       computed_scores: {
         Row: {
           adventure_orientation: number | null

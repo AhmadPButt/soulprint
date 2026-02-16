@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon, BarChart3 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import { MatchTestPanel } from "@/components/admin/MatchTestPanel";
 import { AdminDocumentUpload } from "@/components/admin/AdminDocumentUpload";
 import { AdminSupportTab } from "@/components/admin/AdminSupportTab";
 import { AlgorithmPerformanceTab } from "@/components/admin/AlgorithmPerformanceTab";
+import { BehavioralAnalyticsTab } from "@/components/admin/BehavioralAnalyticsTab";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -650,7 +651,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-11">
+              <TabsList className="grid w-full grid-cols-12">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>
@@ -661,6 +662,7 @@ const Admin = () => {
                 <TabsTrigger value="discussions">Discussions</TabsTrigger>
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
                 <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
                 <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
@@ -1192,6 +1194,10 @@ const Admin = () => {
 
               <TabsContent value="algorithm">
                 <AlgorithmPerformanceTab />
+              </TabsContent>
+
+              <TabsContent value="analytics">
+                <BehavioralAnalyticsTab />
               </TabsContent>
 
               <TabsContent value="notifications">
