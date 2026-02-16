@@ -252,6 +252,70 @@ export type Database = {
           },
         ]
       }
+      destination_matches: {
+        Row: {
+          clicked_at: string | null
+          clicked_by_user: boolean | null
+          context_intake_id: string | null
+          created_at: string | null
+          destination_id: string
+          fit_breakdown: Json
+          fit_score: number
+          id: string
+          rank: number
+          respondent_id: string
+          shown_to_user: boolean | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          clicked_by_user?: boolean | null
+          context_intake_id?: string | null
+          created_at?: string | null
+          destination_id: string
+          fit_breakdown: Json
+          fit_score: number
+          id?: string
+          rank: number
+          respondent_id: string
+          shown_to_user?: boolean | null
+        }
+        Update: {
+          clicked_at?: string | null
+          clicked_by_user?: boolean | null
+          context_intake_id?: string | null
+          created_at?: string | null
+          destination_id?: string
+          fit_breakdown?: Json
+          fit_score?: number
+          id?: string
+          rank?: number
+          respondent_id?: string
+          shown_to_user?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_matches_context_intake_id_fkey"
+            columns: ["context_intake_id"]
+            isOneToOne: false
+            referencedRelation: "context_intake"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "destination_matches_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "echoprint_destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "destination_matches_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       echoprint_destinations: {
         Row: {
           achievement_score: number | null

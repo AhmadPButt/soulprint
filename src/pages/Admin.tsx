@@ -16,6 +16,7 @@ const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVi
 import { GroupDiscussionsTab } from "@/components/admin/GroupDiscussionsTab";
 import { AdminNotifications } from "@/components/admin/AdminNotifications";
 import { DestinationsTab } from "@/components/admin/DestinationsTab";
+import { MatchTestPanel } from "@/components/admin/MatchTestPanel";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -1194,7 +1195,10 @@ const Admin = () => {
               </TabsContent>
 
               <TabsContent value="destinations">
-                <DestinationsTab />
+                <div className="space-y-6">
+                  <DestinationsTab />
+                  <MatchTestPanel respondents={respondents} />
+                </div>
               </TabsContent>
 
               <TabsContent value="discussions">
