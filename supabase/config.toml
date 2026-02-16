@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.match-destinations]
 verify_jwt = false
+
+[functions.send-trip-invitation]
+verify_jwt = false

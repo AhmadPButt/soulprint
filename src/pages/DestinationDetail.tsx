@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, Plane, DollarSign, Calendar, MapPin,
-  Star, Sparkles, Clock, Globe, Phone, ChevronDown, ChevronUp
+  Star, Sparkles, Clock, Globe, Phone, ChevronDown, ChevronUp, Bookmark
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateAllTraits, TraitScores } from "@/lib/soulprint-traits";
@@ -95,6 +97,9 @@ export default function DestinationDetail() {
   const [showItinerary, setShowItinerary] = useState(false);
   const [showCalendly, setShowCalendly] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
+  const [showSaveTrip, setShowSaveTrip] = useState(false);
+  const [tripName, setTripName] = useState("");
+  const [savingTrip, setSavingTrip] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -184,6 +189,53 @@ export default function DestinationDetail() {
 
   const toggleDay = (day: number) => {
     setExpandedDays(prev => ({ ...prev, [day]: !prev[day] }));
+  };
+
+  const handleSaveAsTrip = async () => {
+    if (!tripName.trim() || !respondent || !destination) return;
+    setSavingTrip(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: trip, error } = await supabase
+        .from("trips")
+        .insert({
+          trip_name: tripName,
+          created_by: session.user.id,
+          trip_type: context?.occasion || "solo",
+          status: "planning",
+          destination_id: destination.id,
+          context_intake_id: context?.id || null,
+          respondent_id: respondent.id,
+          budget_range: context?.budget_range || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add creator as primary member
+      await supabase.from("trip_members").insert({
+        trip_id: trip.id,
+        user_id: session.user.id,
+        email: session.user.email!,
+        role: "primary",
+        invitation_status: "accepted",
+        respondent_id: respondent.id,
+        accepted_at: new Date().toISOString(),
+      });
+
+      toast({ title: "Trip created!", description: `${tripName} has been saved.` });
+      setShowSaveTrip(false);
+      setTripName("");
+      navigate(`/trips/${trip.id}`);
+    } catch (err: any) {
+      toast({ title: "Failed to save trip", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingTrip(false);
+    }
   };
 
   if (loading) {
@@ -449,6 +501,12 @@ export default function DestinationDetail() {
                 <Button variant="outline" size="lg" className="w-full gap-2" onClick={() => setShowCalendly(true)}>
                   <Phone className="h-4 w-4" /> Speak to Travel Expert
                 </Button>
+                <Button variant="secondary" size="lg" className="w-full gap-2" onClick={() => {
+                  setTripName(`${destination.name} Trip`);
+                  setShowSaveTrip(true);
+                }} disabled={!respondent}>
+                  <Bookmark className="h-4 w-4" /> Save as Trip
+                </Button>
                 {!respondent && (
                   <p className="text-xs text-muted-foreground text-center">
                     Complete your questionnaire to generate a personalized itinerary.
@@ -506,6 +564,31 @@ export default function DestinationDetail() {
               <p>Calendly integration will be configured here.</p>
               <p className="text-sm">Contact us at <span className="text-primary">hello@erranza.com</span></p>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Trip Dialog */}
+      <Dialog open={showSaveTrip} onOpenChange={setShowSaveTrip}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Trip</DialogTitle>
+            <DialogDescription>Create a trip to start planning your journey to {destination.name}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="tripName">Trip Name</Label>
+              <Input
+                id="tripName"
+                placeholder="e.g. Summer Getaway 2026"
+                value={tripName}
+                onChange={e => setTripName(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleSaveAsTrip} disabled={savingTrip || !tripName.trim()} className="w-full">
+              {savingTrip ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bookmark className="h-4 w-4 mr-2" />}
+              Create Trip
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

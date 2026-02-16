@@ -985,6 +985,60 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_members: {
+        Row: {
+          accepted_at: string | null
+          email: string
+          id: string
+          invitation_status: string | null
+          invitation_token: string | null
+          invited_at: string | null
+          respondent_id: string | null
+          role: string | null
+          trip_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          email: string
+          id?: string
+          invitation_status?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          respondent_id?: string | null
+          role?: string | null
+          trip_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string
+          id?: string
+          invitation_status?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          respondent_id?: string | null
+          role?: string | null
+          trip_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_reflections: {
         Row: {
           challenges_faced: string[] | null
@@ -1034,6 +1088,98 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "trip_reflections_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          budget_range: string | null
+          consultation_booked: boolean | null
+          consultation_date: string | null
+          context_intake_id: string | null
+          created_at: string | null
+          created_by: string
+          destination_id: string | null
+          end_date: string | null
+          fora_booking_id: string | null
+          fora_itinerary_url: string | null
+          id: string
+          itinerary_id: string | null
+          respondent_id: string | null
+          start_date: string | null
+          status: string | null
+          trip_name: string
+          trip_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          budget_range?: string | null
+          consultation_booked?: boolean | null
+          consultation_date?: string | null
+          context_intake_id?: string | null
+          created_at?: string | null
+          created_by: string
+          destination_id?: string | null
+          end_date?: string | null
+          fora_booking_id?: string | null
+          fora_itinerary_url?: string | null
+          id?: string
+          itinerary_id?: string | null
+          respondent_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          trip_name: string
+          trip_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          budget_range?: string | null
+          consultation_booked?: boolean | null
+          consultation_date?: string | null
+          context_intake_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          destination_id?: string | null
+          end_date?: string | null
+          fora_booking_id?: string | null
+          fora_itinerary_url?: string | null
+          id?: string
+          itinerary_id?: string | null
+          respondent_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          trip_name?: string
+          trip_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_context_intake_id_fkey"
+            columns: ["context_intake_id"]
+            isOneToOne: false
+            referencedRelation: "context_intake"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "echoprint_destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_itinerary_id_fkey"
+            columns: ["itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_respondent_id_fkey"
             columns: ["respondent_id"]
             isOneToOne: false
             referencedRelation: "respondents"
