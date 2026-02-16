@@ -20,6 +20,7 @@ import { MoodLogger } from "@/components/trip/MoodLogger";
 import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
 import { MoodInsights } from "@/components/trip/MoodInsights";
 import { TripReflection } from "@/components/trip/TripReflection";
+import { AIChatWidget } from "@/components/trip/AIChatWidget";
 
 interface TripMember {
   id: string;
@@ -485,6 +486,11 @@ export default function TripDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Chat Widget for in-progress trips */}
+      {trip.status === "in_progress" && (
+        <AIChatWidget tripId={tripId!} destinationName={destination?.name} />
+      )}
     </div>
   );
 }

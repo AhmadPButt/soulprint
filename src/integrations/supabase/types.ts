@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          ended_at: string | null
+          escalated_at: string | null
+          escalated_to_human: boolean | null
+          escalation_reason: string | null
+          human_agent_id: string | null
+          id: string
+          started_at: string | null
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          escalated_at?: string | null
+          escalated_to_human?: boolean | null
+          escalation_reason?: string | null
+          human_agent_id?: string | null
+          id?: string
+          started_at?: string | null
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          escalated_at?: string | null
+          escalated_to_human?: boolean | null
+          escalation_reason?: string | null
+          human_agent_id?: string | null
+          id?: string
+          started_at?: string | null
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          id: string
+          message_text: string
+          metadata: Json | null
+          sender: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          message_text: string
+          metadata?: Json | null
+          sender: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          message_text?: string
+          metadata?: Json | null
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       computed_scores: {
         Row: {
           adventure_orientation: number | null
