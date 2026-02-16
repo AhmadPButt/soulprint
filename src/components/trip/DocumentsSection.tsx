@@ -49,6 +49,7 @@ export function DocumentsSection({ tripId, documents, userId, onReload }: Props)
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [docType, setDocType] = useState("other");
+  const [docName, setDocName] = useState("");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -71,7 +72,7 @@ export function DocumentsSection({ tripId, documents, userId, onReload }: Props)
         trip_id: tripId,
         user_id: userId,
         document_type: docType,
-        file_name: file.name,
+        file_name: docName || file.name,
         file_url: urlData.publicUrl,
         file_size: file.size,
         notes: notes || null,
@@ -83,6 +84,7 @@ export function DocumentsSection({ tripId, documents, userId, onReload }: Props)
       setShowUpload(false);
       setFile(null);
       setNotes("");
+      setDocName("");
       setDocType("other");
       onReload();
     } catch (err: any) {
@@ -165,6 +167,10 @@ export function DocumentsSection({ tripId, documents, userId, onReload }: Props)
                   {DOC_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Document Name (optional)</Label>
+              <Input value={docName} onChange={e => setDocName(e.target.value)} placeholder="e.g. John's Passport" />
             </div>
             <div className="space-y-1">
               <Label>File</Label>
