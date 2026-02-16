@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
@@ -18,6 +18,9 @@ import { MoodLogger } from "@/components/trip/MoodLogger";
 import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
 import { MoodInsights } from "@/components/trip/MoodInsights";
 import { TripReflection } from "@/components/trip/TripReflection";
+import SoulPrintCard from "@/components/dashboard/SoulPrintCard";
+import DestinationMatchCard from "@/components/dashboard/DestinationMatchCard";
+import { calculateAllTraits } from "@/lib/soulprint-traits";
 import {
   Sidebar,
   SidebarContent,
@@ -92,6 +95,7 @@ export default function Dashboard() {
   const [joinGroupOpen, setJoinGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const [destinationMatches, setDestinationMatches] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -198,6 +202,19 @@ export default function Dashboard() {
 
         setGroupItinerary(groupItinData);
       }
+
+      // Load destination matches
+      const { data: matchesData } = await supabase
+        .from("destination_matches")
+        .select(`
+          *,
+          destination:echoprint_destinations(*)
+        `)
+        .eq("respondent_id", respondentData.id)
+        .order("rank", { ascending: true })
+        .limit(3);
+
+      setDestinationMatches(matchesData || []);
     } catch (error) {
       console.error("Error loading user data:", error);
       toast.error("Failed to load dashboard data");
@@ -429,21 +446,92 @@ export default function Dashboard() {
           <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
             {/* PRE-TRIP VIEW */}
             {currentView === "pre-trip" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">Pre-Trip Preparation</h2>
-                  <p className="text-muted-foreground">Review your SoulPrint, itinerary, and group details before your journey</p>
+                  <p className="text-muted-foreground">Review your SoulPrint, matched destinations, and group details</p>
                 </div>
 
-                <Tabs defaultValue="soulprint" className="space-y-6">
+                {/* SoulPrint + Destinations Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left: SoulPrint Card */}
+                  <div>
+                    {respondent?.raw_responses ? (
+                      <SoulPrintCard
+                        traits={calculateAllTraits(respondent.raw_responses, computed)}
+                        computed={computed}
+                        narrative={narrative}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>SoulPrint Not Yet Computed</CardTitle>
+                          <CardDescription>
+                            Complete your questionnaire to see your travel personality profile.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button onClick={() => navigate('/questionnaire')}>
+                            <Fingerprint className="h-4 w-4 mr-2" />
+                            Take the Questionnaire
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Right: Matched Destinations */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <h3 className="text-xl font-bold">Your Matched Destinations</h3>
+                    </div>
+
+                    {destinationMatches.length > 0 ? (
+                      <div className="space-y-4">
+                        {destinationMatches.map((match, i) => (
+                          <DestinationMatchCard key={match.id} match={match} index={i} />
+                        ))}
+                      </div>
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5" />
+                            Destinations Coming Soon
+                          </CardTitle>
+                          <CardDescription>
+                            {respondent
+                              ? "Your matched destinations are being calculated. Check back shortly!"
+                              : "Complete your questionnaire to receive personalized destination matches."}
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+
+                {/* My Trips Placeholder */}
+                <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
+                  <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                    <Plane className="h-10 w-10 text-primary/50 mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Ready to start planning?</h3>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      Save your favorite destination as a trip. Trip planning features are coming soon.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Existing tabs: Itinerary, Discussion, Group */}
+                <Tabs defaultValue="soulprint-detail" className="space-y-6">
                   <TabsList className={`grid w-full ${itinerary && showGroupSection ? "grid-cols-4" : itinerary || showGroupSection ? "grid-cols-3" : "grid-cols-2"}`}>
-                    <TabsTrigger value="soulprint">My SoulPrint</TabsTrigger>
+                    <TabsTrigger value="soulprint-detail">Full SoulPrint</TabsTrigger>
                     <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
                     {itinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
                     {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
                   </TabsList>
 
-                  <TabsContent value="soulprint" className="space-y-6">
+                  <TabsContent value="soulprint-detail" className="space-y-6">
                     {computed && narrative ? (
                       <SoulPrintVisualization
                         computed={computed}
