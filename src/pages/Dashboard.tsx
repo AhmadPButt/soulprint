@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
@@ -493,7 +494,7 @@ export default function Dashboard() {
                     {destinationMatches.length > 0 ? (
                       <div className="space-y-4">
                         {destinationMatches.map((match, i) => (
-                          <DestinationMatchCard key={match.id} match={match} rank={i + 1} />
+                          <DestinationMatchCard key={match.id} match={match} index={i} />
                         ))}
                       </div>
                     ) : (
@@ -525,9 +526,9 @@ export default function Dashboard() {
                 {/* Itinerary */}
                 {itinerary && (
                   <div className="mt-8">
-                    <ItineraryDisplay itinerary={itinerary.itinerary_data} itineraryId={itinerary.id} />
+                    <ItineraryDisplay itinerary={itinerary.itinerary_data} />
                     <div className="mt-4">
-                      <ItineraryDiscussionForum itineraryId={itinerary.id} />
+                      <ItineraryDiscussionForum itineraryId={itinerary.id} itineraryData={itinerary.itinerary_data} />
                     </div>
                   </div>
                 )}
@@ -629,13 +630,13 @@ export default function Dashboard() {
                   </TabsContent>
 
                   <TabsContent value="utilities" className="space-y-6">
-                    <DocumentsSection tripId="" userId="" />
-                    <DestinationInfoSection destinationId="" />
-                    <BookingsSection tripId="" />
+                    <DocumentsSection tripId="" documents={[]} userId="" onReload={() => {}} />
+                    <DestinationInfoSection destinationId="" destinationName="" />
+                    <BookingsSection tripId="" bookings={[]} onReload={() => {}} />
                   </TabsContent>
 
                   <TabsContent value="discussion" className="space-y-6">
-                    {itinerary && <ItineraryDiscussionForum itineraryId={itinerary.id} />}
+                    {itinerary && <ItineraryDiscussionForum itineraryId={itinerary.id} itineraryData={itinerary.itinerary_data} />}
                   </TabsContent>
                 </Tabs>
               </div>
