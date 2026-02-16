@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ function getMatchColor(score: number) {
 }
 
 const DestinationMatchCard = ({ match, index }: DestinationMatchCardProps) => {
+  const navigate = useNavigate();
   const dest = match.destination;
   const score = Math.round(match.fit_score);
   const breakdown = match.fit_breakdown as Record<string, number>;
@@ -46,6 +48,8 @@ const DestinationMatchCard = ({ match, index }: DestinationMatchCardProps) => {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.15 }}
+      className="cursor-pointer"
+      onClick={() => navigate(`/destination/${dest.id}`)}
     >
       <Card className="overflow-hidden group hover:border-primary/40 transition-colors">
         {/* Hero Image */}
