@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plane, DollarSign, Calendar, MapPin, Star } from "lucide-react";
+import { trackEvent, trackDestinationHover } from "@/lib/analytics";
 
 interface DestinationMatch {
   id: string;
@@ -49,7 +50,15 @@ const DestinationMatchCard = ({ match, index }: DestinationMatchCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.15 }}
       className="cursor-pointer"
-      onClick={() => navigate(`/destination/${dest.id}`)}
+      {...trackDestinationHover(dest.id)}
+      onClick={() => {
+        trackEvent('destination_clicked', {
+          destination_id: dest.id,
+          rank: match.rank,
+          fit_score: match.fit_score,
+        });
+        navigate(`/destination/${dest.id}`);
+      }}
     >
       <Card className="overflow-hidden group hover:border-primary/40 transition-colors">
         {/* Hero Image */}

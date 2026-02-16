@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,11 @@ export default function DestinationDetail() {
 
         // Track view
         if (matchRes.data) {
+          trackEvent('destination_viewed', {
+            destination_id: destinationId,
+            fit_score: matchRes.data.fit_score,
+            rank: matchRes.data.rank,
+          });
           supabase.from("destination_matches")
             .update({ shown_to_user: true, clicked_by_user: true, clicked_at: new Date().toISOString() })
             .eq("id", matchRes.data.id)
@@ -175,6 +181,11 @@ export default function DestinationDetail() {
       });
 
       if (error) throw error;
+
+      trackEvent('itinerary_generated', {
+        destination_id: destination.id,
+        destination_name: destination.name,
+      });
 
       setGeneratedItinerary(data?.itinerary);
       setShowItinerary(true);
@@ -215,6 +226,11 @@ export default function DestinationDetail() {
         .single();
 
       if (error) throw error;
+
+      trackEvent('trip_created', {
+        destination_id: destination.id,
+        trip_name: tripName,
+      });
 
       // Add creator as primary member
       await supabase.from("trip_members").insert({
