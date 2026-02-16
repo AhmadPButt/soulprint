@@ -48,7 +48,6 @@ const GeographicIntake = () => {
   const totalQuestions = 7;
   const progress = ((currentQuestion + 1) / totalQuestions) * 100;
 
-  // Auth check + load existing intake
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -81,7 +80,6 @@ const GeographicIntake = () => {
           duration: existing.duration || "",
           budget_range: existing.budget_range || "",
         });
-        // Find first unanswered question
         const fields = ["geographic_constraint", "occasion", "party_composition", "desired_outcome", "timeline", "duration", "budget_range"];
         const firstEmpty = fields.findIndex((f) => {
           const val = existing[f as keyof typeof existing];
@@ -94,7 +92,6 @@ const GeographicIntake = () => {
     init();
   }, [navigate]);
 
-  // Auto-save
   const saveProgress = useCallback(async (updatedData: IntakeData, completed = false) => {
     if (!user) return;
     setSaving(true);
@@ -113,13 +110,18 @@ const GeographicIntake = () => {
       updated_at: new Date().toISOString(),
     };
 
+    let savedIntakeId = intakeId;
     if (intakeId) {
       await supabase.from("context_intake").update(payload).eq("id", intakeId);
     } else {
       const { data: inserted } = await supabase.from("context_intake").insert(payload).select("id").single();
-      if (inserted) setIntakeId(inserted.id);
+      if (inserted) {
+        setIntakeId(inserted.id);
+        savedIntakeId = inserted.id;
+      }
     }
     setSaving(false);
+    return savedIntakeId;
   }, [user, intakeId]);
 
   const updateData = (updates: Partial<IntakeData>) => {
@@ -142,10 +144,9 @@ const GeographicIntake = () => {
   };
 
   const handleNext = () => {
-    // Auto-skip Q2 (party_composition) for solo
     if (currentQuestion === 1 && data.occasion === "solo") {
       updateData({ party_composition: { type: "solo" } });
-      setCurrentQuestion(3); // skip Q2, go to Q3 (desired_outcome)
+      setCurrentQuestion(3);
       return;
     }
     if (currentQuestion < totalQuestions - 1) {
@@ -157,16 +158,80 @@ const GeographicIntake = () => {
 
   const handleBack = () => {
     if (currentQuestion === 3 && data.occasion === "solo") {
-      setCurrentQuestion(1); // skip back over party composition
+      setCurrentQuestion(1);
       return;
     }
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
   };
 
   const handleComplete = async () => {
-    await saveProgress(data, true);
-    toast({ title: "Context saved", description: "Let's build your SoulPrint." });
-    navigate("/questionnaire");
+    if (!user) return;
+    
+    const savedIntakeId = await saveProgress(data, true);
+    
+    // Check if user already has a respondent profile
+    const { data: respondent } = await supabase
+      .from("respondents")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    // Create the trip automatically
+    const tripName = data.geographic_constraint === "anywhere" 
+      ? "My Dream Trip"
+      : data.geographic_constraint === "country" 
+        ? `Trip to ${data.geographic_value}`
+        : data.geographic_constraint === "region"
+          ? `${data.geographic_value} Adventure`
+          : "My Next Adventure";
+
+    const tripType = data.occasion === "solo" ? "solo" 
+      : (data.occasion === "friends" || data.occasion === "family") ? "group" 
+      : "solo";
+
+    const { data: trip, error: tripError } = await supabase
+      .from("trips")
+      .insert({
+        created_by: user.id,
+        trip_name: tripName,
+        trip_type: tripType,
+        context_intake_id: savedIntakeId,
+        respondent_id: respondent?.id || null,
+        budget_range: data.budget_range || null,
+        start_date: data.travel_dates?.start || null,
+        end_date: data.travel_dates?.end || null,
+        status: "planning",
+      })
+      .select()
+      .single();
+
+    if (tripError) {
+      console.error("Error creating trip:", tripError);
+      toast({ title: "Error", description: "Failed to create trip", variant: "destructive" });
+      return;
+    }
+
+    // Add creator as a trip member
+    if (trip) {
+      await supabase.from("trip_members").insert({
+        trip_id: trip.id,
+        user_id: user.id,
+        email: user.email || "",
+        role: "owner",
+        invitation_status: "accepted",
+        accepted_at: new Date().toISOString(),
+        respondent_id: respondent?.id || null,
+      });
+    }
+
+    toast({ title: "Trip created!", description: "Now let's build your SoulPrint." });
+    
+    // If user has a respondent (already completed questionnaire), go to trips
+    if (respondent) {
+      navigate("/trips");
+    } else {
+      navigate("/questionnaire");
+    }
   };
 
   if (loading) {
@@ -179,7 +244,6 @@ const GeographicIntake = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="glass-card border-b border-border/30">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -196,7 +260,6 @@ const GeographicIntake = () => {
         </div>
       </header>
 
-      {/* Main */}
       <main className="container mx-auto px-4 py-8 md:py-16 max-w-3xl">
         <AnimatePresence mode="wait">
           <motion.div
@@ -216,7 +279,6 @@ const GeographicIntake = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation */}
         <div className="flex justify-between pt-8 mt-8">
           {currentQuestion > 0 ? (
             <Button onClick={handleBack} variant="outline" size="lg" className="gap-2">
@@ -276,7 +338,6 @@ const Q1Geographic = ({ data, updateData }: QProps) => (
       ))}
     </div>
 
-    {/* Follow-up inputs */}
     <AnimatePresence>
       {data.geographic_constraint === "country" && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -324,7 +385,6 @@ const Q1Geographic = ({ data, updateData }: QProps) => (
   </div>
 );
 
-// ─── Q2: Occasion ───────────────────────────
 const occasions = [
   { value: "solo", label: "Solo adventure" },
   { value: "romantic", label: "Romantic escape" },
@@ -357,7 +417,6 @@ const Q2Occasion = ({ data, updateData }: QProps) => (
   </div>
 );
 
-// ─── Q3: Party Composition ───────────────────
 interface Q3Props extends QProps {
   kidAges: number[];
   setKidAges: React.Dispatch<React.SetStateAction<number[]>>;
@@ -368,7 +427,6 @@ const Q3Party = ({ data, updateData, kidAges, setKidAges }: Q3Props) => {
   const comp = data.party_composition || {};
 
   if (occasion === "romantic") {
-    // Auto-set couple
     if (!data.party_composition || (data.party_composition as any).type !== "couple") {
       updateData({ party_composition: { type: "couple" } });
     }
@@ -480,7 +538,6 @@ const Q3Party = ({ data, updateData, kidAges, setKidAges }: Q3Props) => {
     );
   }
 
-  // Other occasions: just me / with others
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -507,7 +564,6 @@ const Q3Party = ({ data, updateData, kidAges, setKidAges }: Q3Props) => {
   );
 };
 
-// ─── Q4: Desired Outcome ───────────────────────
 const outcomes = [
   { value: "restored", emoji: "🌿", label: "Recharged and restored" },
   { value: "accomplished", emoji: "🏔️", label: "Accomplished and proud" },
@@ -540,7 +596,6 @@ const Q4Outcome = ({ data, updateData }: QProps) => (
   </div>
 );
 
-// ─── Q5: Timeline ───────────────────────────
 const timelines = [
   { value: "specific_dates", label: "Specific dates" },
   { value: "flexible_3m", label: "Flexible within 3 months" },
@@ -594,7 +649,6 @@ const Q5Timeline = ({ data, updateData }: QProps) => (
   </div>
 );
 
-// ─── Q6: Duration ───────────────────────────
 const durations = [
   { value: "weekend", label: "Weekend (2-4 days)" },
   { value: "week", label: "Week (5-7 days)" },
@@ -625,7 +679,6 @@ const Q6Duration = ({ data, updateData }: QProps) => (
   </div>
 );
 
-// ─── Q7: Budget ───────────────────────────
 const budgets = [
   { value: "under_3k", label: "Under £3,000" },
   { value: "3k_5k", label: "£3,000 - £5,000" },

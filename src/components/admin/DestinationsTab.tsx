@@ -422,6 +422,39 @@ export function DestinationsTab() {
                   <div className="space-y-1"><Label>Image URL</Label><Input value={form.image_url ?? ""} onChange={e => setField("image_url", e.target.value)} placeholder="https://example.com/image.jpg" /></div>
                   <div className="space-y-1"><Label>Image Credit</Label><Input value={form.image_credit ?? ""} onChange={e => setField("image_credit", e.target.value)} /></div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Or Upload from PC</Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) {
+                          toast({ title: "File too large", description: "Max 2MB allowed", variant: "destructive" });
+                          return;
+                        }
+                        const ext = file.name.split('.').pop();
+                        const path = `${Date.now()}_${form.name.replace(/\s+/g, '_').toLowerCase()}.${ext}`;
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                          .from('destination-images')
+                          .upload(path, file, { contentType: file.type });
+                        if (uploadError) {
+                          toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+                          return;
+                        }
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('destination-images')
+                          .getPublicUrl(path);
+                        setField("image_url", publicUrl);
+                        toast({ title: "Image uploaded", description: "Image URL set automatically" });
+                      }}
+                      className="max-w-xs"
+                    />
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   <Image className="h-3 w-3 inline mr-1" />
                   Recommended: 1200×800px minimum, 16:9 aspect ratio, JPEG/WebP format, max 2MB. High-resolution landscape photos work best for destination cards and itinerary headers.

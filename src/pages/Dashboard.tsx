@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, Lock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
@@ -21,6 +21,9 @@ import { TripReflection } from "@/components/trip/TripReflection";
 import SoulPrintCard from "@/components/dashboard/SoulPrintCard";
 import DestinationMatchCard from "@/components/dashboard/DestinationMatchCard";
 import { calculateAllTraits } from "@/lib/soulprint-traits";
+import { DocumentsSection } from "@/components/trip/DocumentsSection";
+import { DestinationInfoSection } from "@/components/trip/DestinationInfoSection";
+import { BookingsSection } from "@/components/trip/BookingsSection";
 import {
   Sidebar,
   SidebarContent,
@@ -83,6 +86,7 @@ interface GroupMember {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [respondent, setRespondent] = useState<RespondentData | null>(null);
   const [computed, setComputed] = useState<ComputedScores | null>(null);
@@ -96,6 +100,10 @@ export default function Dashboard() {
   const [groupName, setGroupName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [destinationMatches, setDestinationMatches] = useState<any[]>([]);
+  const [currentView, setCurrentView] = useState<string>("pre-trip");
+
+  // Admin mode: ?admin=true query param unlocks all sections
+  const isAdminMode = searchParams.get("admin") === "true";
 
   useEffect(() => {
     checkAuth();
@@ -106,7 +114,6 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Store that we want to come back to dashboard after auth
         sessionStorage.setItem('pending_redirect', '/dashboard');
         navigate("/auth");
         return;
@@ -121,7 +128,6 @@ export default function Dashboard() {
 
   const loadUserData = async (userId: string) => {
     try {
-      // Get respondent data
       const { data: respondentData, error: respondentError } = await supabase
         .from("respondents")
         .select("*")
@@ -130,14 +136,12 @@ export default function Dashboard() {
 
       if (respondentError && respondentError.code !== 'PGRST116') throw respondentError;
       if (!respondentData) {
-        // No respondent yet — show empty dashboard instead of redirecting
         setLoading(false);
         return;
       }
 
       setRespondent(respondentData);
 
-      // Get computed scores
       const { data: computedData } = await supabase
         .from("computed_scores")
         .select("*")
@@ -146,7 +150,6 @@ export default function Dashboard() {
 
       setComputed(computedData);
 
-      // Get narrative insights
       const { data: narrativeData } = await supabase
         .from("narrative_insights")
         .select("*")
@@ -155,7 +158,6 @@ export default function Dashboard() {
 
       setNarrative(narrativeData);
 
-      // Get itinerary
       const { data: itineraryData } = await supabase
         .from("itineraries")
         .select("*")
@@ -164,7 +166,6 @@ export default function Dashboard() {
 
       setItinerary(itineraryData);
 
-      // Check if user is part of a group
       const { data: memberData } = await supabase
         .from("group_members")
         .select("group_id")
@@ -172,7 +173,6 @@ export default function Dashboard() {
         .single();
 
       if (memberData) {
-        // Load group data
         const { data: groupData } = await supabase
           .from("groups")
           .select("*")
@@ -181,19 +181,13 @@ export default function Dashboard() {
 
         setGroup(groupData);
 
-        // Load group members
         const { data: membersData } = await supabase
           .from("group_members")
-          .select(`
-            id,
-            respondent_id,
-            respondents (name, email)
-          `)
+          .select(`id, respondent_id, respondents (name, email)`)
           .eq("group_id", memberData.group_id);
 
         setGroupMembers(membersData || []);
 
-        // Load group itinerary
         const { data: groupItinData } = await supabase
           .from("group_itineraries")
           .select("*")
@@ -203,13 +197,9 @@ export default function Dashboard() {
         setGroupItinerary(groupItinData);
       }
 
-      // Load destination matches
       const { data: matchesData } = await supabase
         .from("destination_matches")
-        .select(`
-          *,
-          destination:echoprint_destinations(*)
-        `)
+        .select(`*, destination:echoprint_destinations(*)`)
         .eq("respondent_id", respondentData.id)
         .order("rank", { ascending: true })
         .limit(3);
@@ -246,7 +236,6 @@ export default function Dashboard() {
 
       if (groupError) throw groupError;
 
-      // Add creator as member
       const { error: memberError } = await supabase
         .from("group_members")
         .insert({
@@ -261,7 +250,6 @@ export default function Dashboard() {
       setCreateGroupOpen(false);
       toast.success("Group created! Share the join code with your travel companions.");
       
-      // Reload data
       if (respondent.id) {
         await loadUserData((await supabase.auth.getSession()).data.session!.user.id);
       }
@@ -281,7 +269,6 @@ export default function Dashboard() {
     if (!joinCode.trim() || !respondent) return;
 
     try {
-      // Find group by join code
       const { data: groupData, error: groupError } = await supabase
         .from("groups")
         .select("*")
@@ -290,7 +277,6 @@ export default function Dashboard() {
 
       if (groupError) throw new Error("Invalid join code");
 
-      // Add user to group
       const { error: memberError } = await supabase
         .from("group_members")
         .insert({
@@ -311,7 +297,6 @@ export default function Dashboard() {
       setJoinGroupOpen(false);
       toast.success("Successfully joined the group!");
       
-      // Reload data
       if (respondent.id) {
         await loadUserData((await supabase.auth.getSession()).data.session!.user.id);
       }
@@ -328,8 +313,6 @@ export default function Dashboard() {
     }
   };
 
-  const [currentView, setCurrentView] = useState<string>("pre-trip");
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -340,6 +323,10 @@ export default function Dashboard() {
 
   const showGroupSection = respondent?.raw_responses?.travel_companion === "friends" || 
                           respondent?.raw_responses?.travel_companion === "group";
+
+  // In-trip and post-trip are locked unless admin mode
+  const canAccessInTrip = isAdminMode;
+  const canAccessPostTrip = isAdminMode;
 
   const DashboardSidebar = () => (
     <Sidebar className="border-r">
@@ -364,23 +351,25 @@ export default function Dashboard() {
               
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => {}}
-                  className="opacity-50 cursor-not-allowed"
-                  disabled
+                  onClick={() => canAccessInTrip && setCurrentView("in-trip")}
+                  className={currentView === "in-trip" ? "bg-muted text-primary font-medium" : !canAccessInTrip ? "opacity-50 cursor-not-allowed" : ""}
+                  disabled={!canAccessInTrip}
                 >
                   <Compass className="mr-2 h-4 w-4" />
-                  <span>In-Trip 🔒</span>
+                  <span>In-Trip {!canAccessInTrip && "🔒"}</span>
+                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1 py-0 bg-primary/20 text-primary border-primary/30">Admin</Badge>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => {}}
-                  className="opacity-50 cursor-not-allowed"
-                  disabled
+                  onClick={() => canAccessPostTrip && setCurrentView("post-trip")}
+                  className={currentView === "post-trip" ? "bg-muted text-primary font-medium" : !canAccessPostTrip ? "opacity-50 cursor-not-allowed" : ""}
+                  disabled={!canAccessPostTrip}
                 >
                   <Home className="mr-2 h-4 w-4" />
-                  <span>Post-Trip 🔒</span>
+                  <span>Post-Trip {!canAccessPostTrip && "🔒"}</span>
+                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1 py-0 bg-primary/20 text-primary border-primary/30">Admin</Badge>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -392,6 +381,17 @@ export default function Dashboard() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdminMode && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin Mode</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-3 py-2">
+                <p className="text-xs text-muted-foreground">All sections unlocked for admin viewing and editing.</p>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
@@ -404,7 +404,6 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col">
           {/* Cover Photo Section */}
           <div className="relative">
-            {/* Cover Photo */}
             <div className="h-48 bg-gradient-to-r from-primary via-secondary to-accent relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzBoLTJ2LTJoMnYyem0tNiAwaDJ2LTJoLTJ2MnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
               <SidebarTrigger className="absolute top-4 left-4 bg-background/80 backdrop-blur" />
@@ -420,32 +419,31 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Profile Section */}
             <div className="container mx-auto px-4">
               <div className="relative -mt-16 mb-6">
                 <div className="flex flex-col items-center text-center">
-                  {/* Profile Avatar */}
                   <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
-                    <AvatarImage 
-                      src={respondent?.avatar_url} 
-                      alt={respondent?.name}
-                    />
+                    <AvatarImage src={respondent?.avatar_url} alt={respondent?.name} />
                     <AvatarFallback className="bg-primary text-white text-3xl font-bold">
                       {respondent?.name?.charAt(0)?.toUpperCase() || 'T'}
                     </AvatarFallback>
                   </Avatar>
                   
-                  {/* Name with Verified Badge */}
                   <div className="mt-4 flex items-center gap-2">
                     <h1 className="text-3xl font-bold">{respondent?.name || 'Traveler'}</h1>
                     <BadgeCheck className="h-7 w-7 text-primary fill-primary/20" />
                   </div>
                   
-                  {/* Hello Message with Fingerprint */}
                   <div className="mt-2 flex items-center gap-2 text-muted-foreground">
                     <span className="text-lg">Hello, {respondent?.name?.split(' ')[0] || 'Traveler'}</span>
                     <Fingerprint className="h-5 w-5 text-primary" />
                   </div>
+
+                  {isAdminMode && (
+                    <div className="mt-2">
+                      <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Admin View Active</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -460,9 +458,7 @@ export default function Dashboard() {
                   <p className="text-muted-foreground">Review your SoulPrint, matched destinations, and group details</p>
                 </div>
 
-                {/* SoulPrint + Destinations Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left: SoulPrint Card */}
                   <div>
                     {respondent?.raw_responses ? (
                       <SoulPrintCard
@@ -488,7 +484,6 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  {/* Right: Matched Destinations */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="h-5 w-5 text-primary" />
@@ -498,387 +493,164 @@ export default function Dashboard() {
                     {destinationMatches.length > 0 ? (
                       <div className="space-y-4">
                         {destinationMatches.map((match, i) => (
-                          <DestinationMatchCard key={match.id} match={match} index={i} />
+                          <DestinationMatchCard key={match.id} match={match} rank={i + 1} />
                         ))}
                       </div>
                     ) : (
                       <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <MapPin className="h-5 w-5" />
-                            Destinations Coming Soon
-                          </CardTitle>
-                          <CardDescription>
-                            {respondent
-                              ? "Your matched destinations are being calculated. Check back shortly!"
-                              : "Complete your questionnaire to receive personalized destination matches."}
-                          </CardDescription>
-                        </CardHeader>
+                        <CardContent className="p-6 text-center text-muted-foreground">
+                          <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p>No matches yet. Complete your SoulPrint to discover your ideal destinations.</p>
+                        </CardContent>
                       </Card>
                     )}
                   </div>
                 </div>
 
-                {/* My Trips Placeholder */}
-                <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
-                  <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                    <Plane className="h-10 w-10 text-primary/50 mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Ready to start planning?</h3>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      Save your favorite destination as a trip. Trip planning features are coming soon.
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Complete SoulPrint Journey */}
+                {computed && narrative && respondent && (
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <Fingerprint className="h-5 w-5 text-primary" />
+                      Your Complete SoulPrint Journey
+                    </h3>
+                    <SoulPrintVisualization
+                      computed={computed}
+                      narrative={narrative}
+                      respondentId={respondent.id}
+                    />
+                  </div>
+                )}
 
-                {/* Existing tabs: Itinerary, Discussion, Group */}
-                <Tabs defaultValue="soulprint-detail" className="space-y-6">
-                  <TabsList className={`grid w-full ${itinerary && showGroupSection ? "grid-cols-4" : itinerary || showGroupSection ? "grid-cols-3" : "grid-cols-2"}`}>
-                    <TabsTrigger value="soulprint-detail">Full SoulPrint</TabsTrigger>
-                    <TabsTrigger value="itinerary">My Itinerary</TabsTrigger>
-                    {itinerary && <TabsTrigger value="discussion">Discussion</TabsTrigger>}
-                    {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
-                  </TabsList>
+                {/* Itinerary */}
+                {itinerary && (
+                  <div className="mt-8">
+                    <ItineraryDisplay itinerary={itinerary.itinerary_data} itineraryId={itinerary.id} />
+                    <div className="mt-4">
+                      <ItineraryDiscussionForum itineraryId={itinerary.id} />
+                    </div>
+                  </div>
+                )}
 
-                  <TabsContent value="soulprint-detail" className="space-y-6">
-                    {computed && narrative ? (
-                      <SoulPrintVisualization
-                        computed={computed}
-                        narrative={narrative}
-                        respondentId={respondent?.id}
-                      />
-                    ) : (
+                {/* Group Section */}
+                {showGroupSection && (
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-xl font-bold">Travel Group</h3>
+                    {group ? (
                       <Card>
                         <CardHeader>
-                          <CardTitle>SoulPrint Not Yet Computed</CardTitle>
+                          <CardTitle>{group.name}</CardTitle>
                           <CardDescription>
-                            Your SoulPrint analysis is being processed. Please check back soon.
+                            <span className="flex items-center gap-2">
+                              Join Code: <code className="bg-muted px-2 py-1 rounded font-mono">{group.join_code}</code>
+                              <Button variant="ghost" size="sm" onClick={copyJoinCode}>
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </span>
                           </CardDescription>
                         </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {groupMembers.map((member) => (
+                              <div key={member.id} className="flex items-center gap-2 p-2 rounded bg-muted/50">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span>{member.respondents?.name}</span>
+                                <span className="text-xs text-muted-foreground">{member.respondents?.email}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
                       </Card>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="itinerary">
-                    {itinerary ? (
-                      <ItineraryDisplay itinerary={itinerary.itinerary_data} />
                     ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Itinerary Not Yet Created</CardTitle>
-                          <CardDescription>
-                            Your personalized itinerary is being created by our team. You'll be notified when it's ready.
-                          </CardDescription>
-                        </CardHeader>
-                      </Card>
+                      <div className="flex gap-4">
+                        <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
+                          <DialogTrigger asChild>
+                            <Button><Users className="h-4 w-4 mr-2" />Create Group</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create Travel Group</DialogTitle>
+                              <DialogDescription>Start a new group and invite your companions</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Group Name</Label>
+                                <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="e.g., Summer Adventure" />
+                              </div>
+                              <Button onClick={handleCreateGroup}>Create Group</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog open={joinGroupOpen} onOpenChange={setJoinGroupOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">Join Group</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Join a Travel Group</DialogTitle>
+                              <DialogDescription>Enter the join code from your group organizer</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Join Code</Label>
+                                <Input value={joinCode} onChange={(e) => setJoinCode(e.target.value)} placeholder="Enter code" />
+                              </div>
+                              <Button onClick={handleJoinGroup}>Join Group</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     )}
-                  </TabsContent>
-
-                  {itinerary && (
-                    <TabsContent value="discussion" className="space-y-6">
-                      <ItineraryDiscussionForum 
-                        itineraryId={itinerary.id}
-                        itineraryData={itinerary.itinerary_data}
-                        isGroup={false}
-                      />
-                    </TabsContent>
-                  )}
-
-                  {showGroupSection && (
-                    <TabsContent value="group" className="space-y-6">
-                      {!group ? (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Create or Join a Travel Group</CardTitle>
-                            <CardDescription>
-                              Coordinate your trip with friends or family
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="flex gap-4">
-                            <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
-                              <DialogTrigger asChild>
-                                <Button>
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Create Group
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Create Travel Group</DialogTitle>
-                                  <DialogDescription>
-                                    Create a group and share the join code with your travel companions
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="groupName">Group Name</Label>
-                                    <Input
-                                      id="groupName"
-                                      value={groupName}
-                                      onChange={(e) => setGroupName(e.target.value)}
-                                      placeholder="e.g., Azerbaijan Adventure 2025"
-                                    />
-                                  </div>
-                                  <Button onClick={handleCreateGroup} className="w-full">
-                                    Create Group
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-
-                            <Dialog open={joinGroupOpen} onOpenChange={setJoinGroupOpen}>
-                              <DialogTrigger asChild>
-                                <Button variant="outline">Join Existing Group</Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Join Travel Group</DialogTitle>
-                                  <DialogDescription>
-                                    Enter the join code shared by your group creator
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="joinCode">Join Code</Label>
-                                    <Input
-                                      id="joinCode"
-                                      value={joinCode}
-                                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                                      placeholder="Enter 8-character code"
-                                      maxLength={8}
-                                    />
-                                  </div>
-                                  <Button onClick={handleJoinGroup} className="w-full">
-                                    Join Group
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <div className="space-y-6">
-                          <Card>
-                            <CardHeader>
-                              <CardTitle>{group.name}</CardTitle>
-                              <CardDescription>
-                                Share this code with your travel companions
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="flex items-center gap-2">
-                                <code className="bg-muted px-4 py-2 rounded text-lg font-mono">
-                                  {group.join_code}
-                                </code>
-                                <Button variant="outline" size="icon" onClick={copyJoinCode}>
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          <Card>
-                            <CardHeader>
-                              <CardTitle>Group Members</CardTitle>
-                              <CardDescription>
-                                {groupMembers.length} {groupMembers.length === 1 ? 'member' : 'members'}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                {groupMembers.map((member) => (
-                                  <div key={member.id} className="flex items-center justify-between p-2 border rounded">
-                                    <div>
-                                      <p className="font-medium">{member.respondents.name}</p>
-                                      <p className="text-sm text-muted-foreground">{member.respondents.email}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          {groupItinerary ? (
-                            <>
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Group Itinerary</CardTitle>
-                                  <CardDescription>Your customized group travel plan</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                  <ItineraryDisplay itinerary={groupItinerary.itinerary_data} />
-                                </CardContent>
-                              </Card>
-                              
-                              <ItineraryDiscussionForum 
-                                groupItineraryId={groupItinerary.id}
-                                itineraryData={groupItinerary.itinerary_data}
-                                isGroup={true}
-                              />
-                            </>
-                          ) : (
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Group Itinerary Pending</CardTitle>
-                                <CardDescription>
-                                  Once all group members complete their SoulPrints, our team will create a customized group itinerary
-                                </CardDescription>
-                              </CardHeader>
-                            </Card>
-                          )}
-                        </div>
-                      )}
-                    </TabsContent>
-                  )}
-                </Tabs>
+                  </div>
+                )}
               </div>
             )}
 
             {/* IN-TRIP VIEW */}
-            {currentView === "in-trip" && (
-              <div className="space-y-6">
+            {currentView === "in-trip" && canAccessInTrip && respondent && (
+              <div className="space-y-8">
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">In-Trip Experience</h2>
-                  <p className="text-muted-foreground">Track your mood, explore your itinerary, and connect with your travel group</p>
+                  <p className="text-muted-foreground">Track your journey, log moods, and access trip utilities</p>
+                  {isAdminMode && <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode</Badge>}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {respondent && (
-                    <>
-                      <MoodLogger 
-                        respondentId={respondent.id}
-                        onLogComplete={() => {}}
-                      />
-                      <EmotionalFluctuationGraph respondentId={respondent.id} />
-                      <div className="lg:col-span-2">
-                        <MoodInsights respondentId={respondent.id} />
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <Tabs defaultValue="itinerary" className="space-y-6">
-                  <TabsList className={`grid w-full ${showGroupSection ? "grid-cols-4" : "grid-cols-3"}`}>
-                    <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
-                    <TabsTrigger value="soulprint">SoulPrint</TabsTrigger>
+                <Tabs defaultValue="mood" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="mood">Mood Tracking</TabsTrigger>
+                    <TabsTrigger value="utilities">Utilities</TabsTrigger>
                     <TabsTrigger value="discussion">Discussion</TabsTrigger>
-                    {showGroupSection && <TabsTrigger value="group">Travel Group</TabsTrigger>}
                   </TabsList>
 
-                  <TabsContent value="itinerary">
-                    {itinerary ? (
-                      <ItineraryDisplay itinerary={itinerary.itinerary_data} />
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Itinerary Not Yet Created</CardTitle>
-                          <CardDescription>
-                            Your personalized itinerary is being created by our team.
-                          </CardDescription>
-                        </CardHeader>
-                      </Card>
-                    )}
+                  <TabsContent value="mood" className="space-y-6">
+                    <MoodLogger respondentId={respondent.id} />
+                    <EmotionalFluctuationGraph respondentId={respondent.id} />
+                    <MoodInsights respondentId={respondent.id} />
                   </TabsContent>
 
-                  <TabsContent value="soulprint">
-                    {computed && narrative ? (
-                      <>
-                        <SoulPrintVisualization
-                          computed={computed}
-                          narrative={narrative}
-                          respondentId={respondent?.id}
-                        />
-                        {respondent && (
-                          <div className="mt-6">
-                            <EmotionalFluctuationGraph respondentId={respondent.id} />
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>SoulPrint Not Available</CardTitle>
-                        </CardHeader>
-                      </Card>
-                    )}
+                  <TabsContent value="utilities" className="space-y-6">
+                    <DocumentsSection tripId="" userId="" />
+                    <DestinationInfoSection destinationId="" />
+                    <BookingsSection tripId="" />
                   </TabsContent>
 
-                  <TabsContent value="discussion">
-                    {itinerary ? (
-                      <ItineraryDiscussionForum 
-                        itineraryId={itinerary.id}
-                        itineraryData={itinerary.itinerary_data}
-                        isGroup={false}
-                      />
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>No Itinerary Yet</CardTitle>
-                          <CardDescription>Discussions will be available once your itinerary is created</CardDescription>
-                        </CardHeader>
-                      </Card>
-                    )}
+                  <TabsContent value="discussion" className="space-y-6">
+                    {itinerary && <ItineraryDiscussionForum itineraryId={itinerary.id} />}
                   </TabsContent>
-
-                  {showGroupSection && (
-                    <TabsContent value="group">
-                      {groupItinerary ? (
-                        <ItineraryDiscussionForum 
-                          groupItineraryId={groupItinerary.id}
-                          itineraryData={groupItinerary.itinerary_data}
-                          isGroup={true}
-                        />
-                      ) : (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Group Itinerary Pending</CardTitle>
-                          </CardHeader>
-                        </Card>
-                      )}
-                    </TabsContent>
-                  )}
                 </Tabs>
               </div>
             )}
 
             {/* POST-TRIP VIEW */}
-            {currentView === "post-trip" && (
-              <div className="space-y-6">
+            {currentView === "post-trip" && canAccessPostTrip && respondent && (
+              <div className="space-y-8">
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">Post-Trip Reflection</h2>
-                  <p className="text-muted-foreground">Review your journey, share your experience, and explore your emotional evolution</p>
+                  <p className="text-muted-foreground">Reflect on your journey and share your experience</p>
+                  {isAdminMode && <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode</Badge>}
                 </div>
 
-                {respondent && (
-                  <div className="grid grid-cols-1 gap-6">
-                    {/* Trip Reflection & NPS */}
-                    <TripReflection respondentId={respondent.id} />
-
-                    {/* Emotional Journey Summary */}
-                    <EmotionalFluctuationGraph respondentId={respondent.id} />
-
-                    {/* AI-Powered Mood Insights */}
-                    <MoodInsights respondentId={respondent.id} />
-
-                    {/* SoulPrint with Emotional Data */}
-                    {computed && narrative && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Your Complete SoulPrint Journey</CardTitle>
-                          <CardDescription>
-                            Pre-trip personality analysis combined with in-trip emotional evolution
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <SoulPrintVisualization
-                            computed={computed}
-                            narrative={narrative}
-                            respondentId={respondent.id}
-                          />
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                )}
+                <TripReflection respondentId={respondent.id} />
               </div>
             )}
           </main>

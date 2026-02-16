@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,10 +68,10 @@ const Admin = () => {
   const [showItineraryModal, setShowItineraryModal] = useState(false);
   const [groups, setGroups] = useState<any[]>([]);
   const [generatingGroupItinerary, setGeneratingGroupItinerary] = useState<string | null>(null);
+  const [expandedTraveler, setExpandedTraveler] = useState<string | null>(null);
 
   const loadAnalytics = async () => {
     try {
-      // Fetch all analytics data
       const { data: allEvents, error } = await supabase
         .from("questionnaire_analytics")
         .select("*")
@@ -91,12 +91,10 @@ const Admin = () => {
         return;
       }
 
-      // Calculate metrics
       const starts = allEvents.filter((e) => e.event_type === "started").length;
       const completions = allEvents.filter((e) => e.event_type === "completed").length;
       const completionRate = starts > 0 ? (completions / starts) * 100 : 0;
 
-      // Calculate section dropoffs
       const abandonments = allEvents.filter((e) => e.event_type === "abandoned");
       const dropoffCounts = new Map<number, number>();
       abandonments.forEach((e) => {
@@ -108,7 +106,6 @@ const Admin = () => {
         .map(([section, count]) => ({ section, count }))
         .sort((a, b) => a.section - b.section);
 
-      // Calculate average time per section
       const sectionCompletions = allEvents.filter((e) => e.event_type === "section_completed");
       const timeBySectionMap = new Map<number, number[]>();
       sectionCompletions.forEach((e) => {
@@ -126,7 +123,6 @@ const Admin = () => {
         }))
         .sort((a, b) => a.section - b.section);
 
-      // Get recent sessions
       const sessionMap = new Map<string, any>();
       allEvents.forEach((event) => {
         if (!sessionMap.has(event.session_id)) {
@@ -151,7 +147,6 @@ const Admin = () => {
         }
       });
 
-      // Fetch variants to add names to sessions
       const { data: variantsData } = await supabase
         .from("questionnaire_variants")
         .select("*");
@@ -165,7 +160,6 @@ const Admin = () => {
         }))
         .slice(0, 20);
 
-      // Calculate variant metrics
       const variantMetrics = variantsData?.map(variant => {
         const variantEvents = allEvents.filter(e => e.variant_id === variant.id);
         const variantStarts = variantEvents.filter(e => e.event_type === "started").length;
@@ -226,12 +220,6 @@ const Admin = () => {
       return;
     }
 
-    console.log('Loaded respondents:', data?.map(r => ({
-      id: r.id,
-      name: r.name,
-      itineraries_count: Array.isArray(r.itineraries) ? r.itineraries.length : 0
-    })));
-
     setRespondents(data || []);
   };
 
@@ -268,7 +256,6 @@ const Admin = () => {
         description: "The SoulPrint has been calculated successfully!",
       });
 
-      // Reload respondents to get updated data
       await loadRespondents();
     } catch (error: any) {
       console.error("Error computing SoulPrint:", error);
@@ -302,7 +289,6 @@ const Admin = () => {
 
   const viewItinerary = async (respondentId: string) => {
     try {
-      // Fetch existing itinerary from database
       const { data: itineraryData, error } = await supabase
         .from('itineraries')
         .select('*')
@@ -318,7 +304,6 @@ const Admin = () => {
         return;
       }
 
-      // Find the respondent to get name
       const respondent = respondents.find(r => r.id === respondentId);
       
       setSelectedItinerary({
@@ -419,7 +404,6 @@ const Admin = () => {
           : "Personalized journey created successfully!",
       });
 
-      // Find the respondent to get name
       const respondent = respondents.find(r => r.id === respondentId);
       
       setSelectedItinerary({
@@ -430,7 +414,6 @@ const Admin = () => {
       });
       setShowItineraryModal(true);
 
-      // Reload respondents to update itinerary status
       await loadRespondents();
     } catch (error: any) {
       console.error("Error generating itinerary:", error);
@@ -498,41 +481,25 @@ const Admin = () => {
       loadVariants();
       loadRespondents();
       loadGroups();
-      // Set up realtime subscription
       const channel = supabase
         .channel("analytics-changes")
         .on(
           "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "questionnaire_analytics",
-          },
-          () => {
-            loadAnalytics();
-          }
+          { event: "*", schema: "public", table: "questionnaire_analytics" },
+          () => { loadAnalytics(); }
         )
         .on(
           "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "respondents",
-          },
-          () => {
-            loadRespondents();
-          }
+          { event: "*", schema: "public", table: "respondents" },
+          () => { loadRespondents(); }
         )
         .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => { supabase.removeChannel(channel); };
     }
   }, [isAuthenticated]);
 
   const handleLogin = () => {
-    // Simple password check - in production, use proper authentication
     if (password === "Zahrasoulprint123") {
       setIsAuthenticated(true);
     } else {
@@ -542,11 +509,7 @@ const Admin = () => {
 
   const exportToCSV = (startDate?: string, endDate?: string) => {
     if (!analytics) return;
-
-    // Filter events by date range if provided
     let eventsToExport = analytics.recentSessions;
-    
-    // Create CSV content
     const headers = ["Session ID", "Email", "Started At", "Last Section", "Status", "Variant"];
     const rows = eventsToExport.map((session) => [
       session.session_id,
@@ -562,7 +525,6 @@ const Admin = () => {
       ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))
     ].join("\n");
 
-    // Create download link
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -647,7 +609,6 @@ const Admin = () => {
                   <div className="text-2xl font-bold">{analytics.totalStarts}</div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Completions</CardTitle>
@@ -657,7 +618,6 @@ const Admin = () => {
                   <div className="text-2xl font-bold">{analytics.totalCompletions}</div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
@@ -668,7 +628,6 @@ const Admin = () => {
                   <Progress value={analytics.completionRate} className="mt-2" />
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Avg. Time/Section</CardTitle>
@@ -682,33 +641,298 @@ const Admin = () => {
                             analytics.averageTimePerSection.length /
                             60
                         )
-                      : 0}
-                    m
+                      : 0}m
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            <Tabs defaultValue="dropoffs" className="space-y-4">
+            <Tabs defaultValue="travelers" className="space-y-4">
               <TabsList className="grid w-full grid-cols-9">
+                <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>
                 <TabsTrigger value="sessions">Sessions</TabsTrigger>
                 <TabsTrigger value="variants">A/B Tests</TabsTrigger>
-                <TabsTrigger value="respondents">Submissions</TabsTrigger>
                 <TabsTrigger value="groups">Groups</TabsTrigger>
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
                 <TabsTrigger value="discussions">Discussions</TabsTrigger>
                 <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
+              {/* TRAVELERS TAB */}
+              <TabsContent value="travelers">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Travelers
+                    </CardTitle>
+                    <CardDescription>
+                      CRM view of all travelers — profiles, SoulPrints, itineraries, and documents
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[600px]">
+                      <div className="space-y-3">
+                        {respondents.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-8">
+                            No travelers yet
+                          </p>
+                        ) : (
+                          respondents.map((respondent) => {
+                            const itineraries = Array.isArray(respondent.itineraries) ? respondent.itineraries : [];
+                            const itinerary = itineraries[0];
+                            const itineraryData = itinerary?.itinerary_data;
+                            const hasComputed = respondent.computed_scores?.length > 0;
+                            const isExpanded = expandedTraveler === respondent.id;
+                            
+                            return (
+                              <div
+                                key={respondent.id}
+                                className="rounded-lg border bg-card transition-colors space-y-0 overflow-hidden"
+                              >
+                                {/* Traveler Summary Row */}
+                                <div 
+                                  className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/50"
+                                  onClick={() => setExpandedTraveler(isExpanded ? null : respondent.id)}
+                                >
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                      <User className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-semibold truncate">{respondent.name}</p>
+                                        {hasComputed && (
+                                          <Fingerprint className="h-4 w-4 text-primary shrink-0" />
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground truncate">{respondent.email}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {hasComputed && (
+                                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                        SoulPrint ✓
+                                      </Badge>
+                                    )}
+                                    {itinerary && (
+                                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+                                        Itinerary ✓
+                                      </Badge>
+                                    )}
+                                    {!hasComputed && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Pending
+                                      </Badge>
+                                    )}
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(respondent.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Expanded Details */}
+                                {isExpanded && (
+                                  <div className="border-t px-4 py-4 space-y-4 bg-muted/20">
+                                    {/* Personal Info Grid */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Email</p>
+                                        <p className="text-sm font-medium">{respondent.email}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Country</p>
+                                        <p className="text-sm font-medium">{respondent.country || '—'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Passport</p>
+                                        <p className="text-sm font-medium">{respondent.passport_nationality || '—'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Travel Companion</p>
+                                        <p className="text-sm font-medium capitalize">{respondent.travel_companion || '—'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Room Type</p>
+                                        <p className="text-sm font-medium capitalize">{respondent.room_type || '—'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Dietary</p>
+                                        <p className="text-sm font-medium capitalize">{respondent.dietary_preferences || '—'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Status</p>
+                                        <p className="text-sm font-medium capitalize">{respondent.status || 'pending'}</p>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-xs text-muted-foreground">Submitted</p>
+                                        <p className="text-sm font-medium">{new Date(respondent.created_at).toLocaleString()}</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-wrap gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); downloadJSON(respondent); }}
+                                      >
+                                        <FileJson className="h-4 w-4 mr-1" />
+                                        Download JSON
+                                      </Button>
+
+                                      {!hasComputed && (
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => { e.stopPropagation(); computeSoulPrint(respondent.id); }}
+                                          disabled={computingId === respondent.id}
+                                        >
+                                          <Brain className="h-4 w-4 mr-1" />
+                                          {computingId === respondent.id ? "Computing..." : "Compute SoulPrint"}
+                                        </Button>
+                                      )}
+
+                                      {hasComputed && (
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => { e.stopPropagation(); viewSoulPrint(respondent); }}
+                                        >
+                                          <Fingerprint className="h-4 w-4 mr-1" />
+                                          View SoulPrint
+                                        </Button>
+                                      )}
+
+                                      {hasComputed && itinerary && (
+                                        <>
+                                          <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={(e) => { e.stopPropagation(); viewItinerary(respondent.id); }}
+                                          >
+                                            <MapPin className="h-4 w-4 mr-1" />
+                                            View Itinerary
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => { e.stopPropagation(); generateItinerary(respondent.id, true); }}
+                                            disabled={generatingItinerary === respondent.id}
+                                          >
+                                            {generatingItinerary === respondent.id ? "Regenerating..." : "Regenerate"}
+                                          </Button>
+                                        </>
+                                      )}
+
+                                      {hasComputed && !itinerary && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={(e) => { e.stopPropagation(); generateItinerary(respondent.id); }}
+                                          disabled={generatingItinerary === respondent.id}
+                                        >
+                                          <MapPin className="h-4 w-4 mr-1" />
+                                          {generatingItinerary === respondent.id ? "Generating..." : "Generate Itinerary"}
+                                        </Button>
+                                      )}
+                                    </div>
+
+                                    {/* Itinerary Preview */}
+                                    {itinerary && itineraryData && (
+                                      <div className="border border-border rounded-lg p-3 bg-background/50">
+                                        <div className="flex items-start justify-between gap-4">
+                                          <div className="flex-1">
+                                            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                              <MapPin className="h-4 w-4" />
+                                              {itineraryData.title || "Personalized Journey"}
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground mb-2">
+                                              {itineraryData.duration || "7 days"} • {itineraryData.days?.length || 7} locations
+                                            </p>
+                                            <div className="flex flex-wrap gap-1 mb-2">
+                                              {itineraryData.days?.slice(0, 3).map((day: any, idx: number) => (
+                                                <Badge key={idx} variant="outline" className="text-xs">
+                                                  {day.location}
+                                                </Badge>
+                                              ))}
+                                              {itineraryData.days?.length > 3 && (
+                                                <Badge variant="outline" className="text-xs">
+                                                  +{itineraryData.days.length - 3} more
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {itineraryData.estimated_cost && (
+                                            <div className="text-right">
+                                              <p className="text-xs text-muted-foreground">Est. Cost</p>
+                                              <p className="text-lg font-bold text-primary">
+                                                ${itineraryData.estimated_cost}
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Payment Tracking */}
+                                    <div className="border border-border rounded-lg p-3 bg-background/50">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">Payment Status:</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant={respondent.paid_flights ? "default" : "outline"}
+                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_flights', respondent.paid_flights); }}
+                                          className="text-xs"
+                                        >
+                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_flights ? '' : 'opacity-30'}`} />
+                                          Flights {respondent.paid_flights ? 'Paid' : 'Unpaid'}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={respondent.paid_hotels ? "default" : "outline"}
+                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_hotels', respondent.paid_hotels); }}
+                                          className="text-xs"
+                                        >
+                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_hotels ? '' : 'opacity-30'}`} />
+                                          Hotels {respondent.paid_hotels ? 'Paid' : 'Unpaid'}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={respondent.paid_activities ? "default" : "outline"}
+                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_activities', respondent.paid_activities); }}
+                                          className="text-xs"
+                                        >
+                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_activities ? '' : 'opacity-30'}`} />
+                                          Activities {respondent.paid_activities ? 'Paid' : 'Unpaid'}
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    {/* Admin Document Upload */}
+                                    <AdminDocumentUpload
+                                      respondentId={respondent.id}
+                                      respondentName={respondent.name}
+                                      userId={respondent.user_id}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* DROPOFFS TAB */}
               <TabsContent value="dropoffs">
                 <Card>
                   <CardHeader>
                     <CardTitle>Dropoff by Section</CardTitle>
-                    <CardDescription>
-                      Number of users who abandoned at each section
-                    </CardDescription>
+                    <CardDescription>Number of users who abandoned at each section</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -721,10 +945,7 @@ const Admin = () => {
                               <span className="text-sm font-medium">Section {item.section}</span>
                               <span className="text-sm text-muted-foreground">{item.count} dropoffs</span>
                             </div>
-                            <Progress
-                              value={(item.count / analytics.totalStarts) * 100}
-                              className="h-2"
-                            />
+                            <Progress value={(item.count / analytics.totalStarts) * 100} className="h-2" />
                           </div>
                         ))
                       )}
@@ -733,6 +954,7 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
+              {/* TIME TAB */}
               <TabsContent value="time">
                 <Card>
                   <CardHeader>
@@ -758,6 +980,7 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
+              {/* SESSIONS TAB */}
               <TabsContent value="sessions">
                 <Card>
                   <CardHeader>
@@ -776,26 +999,18 @@ const Admin = () => {
                               className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                             >
                               <div className="space-y-1">
-                                <p className="text-sm font-medium">
-                                  {session.email || "Anonymous"}
-                                </p>
+                                <p className="text-sm font-medium">{session.email || "Anonymous"}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {new Date(session.started_at).toLocaleString()}
                                 </p>
                               </div>
                               <div className="text-right space-y-1">
-                                <p className="text-sm font-medium">
-                                  Section {session.last_section}/8
-                                </p>
-                                <p
-                                  className={`text-xs ${
-                                    session.status === "completed"
-                                      ? "text-green-500"
-                                      : session.status === "abandoned"
-                                      ? "text-red-500"
-                                      : "text-yellow-500"
-                                  }`}
-                                >
+                                <p className="text-sm font-medium">Section {session.last_section}/8</p>
+                                <p className={`text-xs ${
+                                  session.status === "completed" ? "text-green-500"
+                                    : session.status === "abandoned" ? "text-red-500"
+                                    : "text-yellow-500"
+                                }`}>
                                   {session.status}
                                 </p>
                               </div>
@@ -808,6 +1023,7 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
+              {/* VARIANTS TAB */}
               <TabsContent value="variants">
                 <Card>
                   <CardHeader>
@@ -815,9 +1031,7 @@ const Admin = () => {
                       <FlaskConical className="h-5 w-5" />
                       A/B Test Variants
                     </CardTitle>
-                    <CardDescription>
-                      Compare completion rates across different questionnaire variants
-                    </CardDescription>
+                    <CardDescription>Compare completion rates across different questionnaire variants</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -840,38 +1054,25 @@ const Admin = () => {
                           </div>
                         ))
                       ) : (
-                        <p className="text-muted-foreground text-center py-8">
-                          No A/B test data available yet
-                        </p>
+                        <p className="text-muted-foreground text-center py-8">No A/B test data available yet</p>
                       )}
                       
                       <div className="pt-6 border-t">
                         <h3 className="font-semibold mb-3">Active Variants</h3>
                         <div className="space-y-2">
                           {variants.map((variant) => (
-                            <div
-                              key={variant.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                            >
+                            <div key={variant.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                               <div>
                                 <p className="font-medium">{variant.name}</p>
                                 {variant.description && (
-                                  <p className="text-sm text-muted-foreground">
-                                    {variant.description}
-                                  </p>
+                                  <p className="text-sm text-muted-foreground">{variant.description}</p>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                  Weight: {variant.weight}%
-                                </span>
-                                <span
-                                  className={`text-xs px-2 py-1 rounded-full ${
-                                    variant.is_active
-                                      ? "bg-green-500/20 text-green-500"
-                                      : "bg-red-500/20 text-red-500"
-                                  }`}
-                                >
+                                <span className="text-sm text-muted-foreground">Weight: {variant.weight}%</span>
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  variant.is_active ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                                }`}>
                                   {variant.is_active ? "Active" : "Inactive"}
                                 </span>
                               </div>
@@ -884,215 +1085,18 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="respondents">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>SoulPrint Submissions</CardTitle>
-                    <CardDescription>
-                      View, download, and compute SoulPrints for all respondents
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[500px]">
-                      <div className="space-y-3">
-                        {respondents.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-8">
-                            No submissions yet
-                          </p>
-                        ) : (
-                          respondents.map((respondent) => {
-                            const itineraries = Array.isArray(respondent.itineraries) ? respondent.itineraries : [];
-                            const itinerary = itineraries[0];
-                            const itineraryData = itinerary?.itinerary_data;
-                            
-                            return (
-                            <div
-                              key={respondent.id}
-                              className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors space-y-3"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                  <p className="font-semibold">{respondent.name}</p>
-                                  <p className="text-sm text-muted-foreground">{respondent.email}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Submitted {new Date(respondent.created_at).toLocaleString()}
-                                  </p>
-                                  {respondent.computed_scores?.length > 0 && (
-                                    <p className="text-xs text-green-500 mt-1">
-                                      ✓ SoulPrint Computed
-                                    </p>
-                                  )}
-                                  {itinerary && (
-                                    <p className="text-xs text-primary mt-1">
-                                      ✓ Itinerary Created
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => downloadJSON(respondent)}
-                                  >
-                                    <FileJson className="h-4 w-4 mr-1" />
-                                    Download
-                                  </Button>
-                                  {!respondent.computed_scores?.length && (
-                                    <Badge variant="secondary" className="text-xs">Auto-computing...</Badge>
-                                  )}
-                                  {respondent.computed_scores?.length > 0 && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => viewSoulPrint(respondent)}
-                                      >
-                                        View SoulPrint
-                                      </Button>
-                                      {Array.isArray(respondent.itineraries) && respondent.itineraries.length > 0 ? (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => viewItinerary(respondent.id)}
-                                          >
-                                            <MapPin className="h-4 w-4 mr-1" />
-                                            View Itinerary
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => generateItinerary(respondent.id, true)}
-                                            disabled={generatingItinerary === respondent.id}
-                                          >
-                                            {generatingItinerary === respondent.id
-                                              ? "Regenerating..."
-                                              : "Regenerate"}
-                                          </Button>
-                                        </>
-                                      ) : (
-                                        <Button
-                                          size="sm"
-                                          variant="secondary"
-                                          onClick={() => generateItinerary(respondent.id)}
-                                          disabled={generatingItinerary === respondent.id}
-                                        >
-                                          <MapPin className="h-4 w-4 mr-1" />
-                                          {generatingItinerary === respondent.id
-                                            ? "Generating..."
-                                            : "Generate Itinerary"}
-                                        </Button>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Itinerary Preview Card */}
-                              {itinerary && itineraryData && (
-                                <div className="border border-border rounded-lg p-3 bg-background/50">
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        {itineraryData.title || "Personalized Journey"}
-                                      </h4>
-                                      <p className="text-xs text-muted-foreground mb-2">
-                                        {itineraryData.duration || "7 days"} • {itineraryData.days?.length || 7} locations
-                                      </p>
-                                      <div className="flex flex-wrap gap-1 mb-2">
-                                        {itineraryData.days?.slice(0, 3).map((day: any, idx: number) => (
-                                          <Badge key={idx} variant="outline" className="text-xs">
-                                            {day.location}
-                                          </Badge>
-                                        ))}
-                                        {itineraryData.days?.length > 3 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            +{itineraryData.days.length - 3} more
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      {itineraryData.highlights && (
-                                        <p className="text-xs text-muted-foreground line-clamp-2">
-                                          {itineraryData.highlights}
-                                        </p>
-                                      )}
-                                    </div>
-                                    {itineraryData.estimated_cost && (
-                                      <div className="text-right">
-                                        <p className="text-xs text-muted-foreground">Est. Cost</p>
-                                        <p className="text-lg font-bold text-primary">
-                                          ${itineraryData.estimated_cost}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Payment Tracking */}
-                              <div className="border border-border rounded-lg p-3 bg-background/50">
-                                <p className="text-xs font-medium text-muted-foreground mb-2">Payment Status:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant={respondent.paid_flights ? "default" : "outline"}
-                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_flights', respondent.paid_flights)}
-                                    className="text-xs"
-                                  >
-                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_flights ? '' : 'opacity-30'}`} />
-                                    Flights {respondent.paid_flights ? 'Paid' : 'Unpaid'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={respondent.paid_hotels ? "default" : "outline"}
-                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_hotels', respondent.paid_hotels)}
-                                    className="text-xs"
-                                  >
-                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_hotels ? '' : 'opacity-30'}`} />
-                                    Hotels {respondent.paid_hotels ? 'Paid' : 'Unpaid'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={respondent.paid_activities ? "default" : "outline"}
-                                    onClick={() => togglePaymentStatus(respondent.id, 'paid_activities', respondent.paid_activities)}
-                                    className="text-xs"
-                                  >
-                                    <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_activities ? '' : 'opacity-30'}`} />
-                                    Activities {respondent.paid_activities ? 'Paid' : 'Unpaid'}
-                                  </Button>
-                                </div>
-
-                              {/* Admin Document Upload */}
-                              <AdminDocumentUpload
-                                respondentId={respondent.id}
-                                respondentName={respondent.name}
-                                userId={respondent.user_id}
-                              />
-                            </div>
-                            </div>
-                          )})
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
+              {/* GROUPS TAB */}
               <TabsContent value="groups">
                 <Card>
                   <CardHeader>
                     <CardTitle>Travel Groups</CardTitle>
-                    <CardDescription>
-                      Manage group travel arrangements and generate group itineraries
-                    </CardDescription>
+                    <CardDescription>Manage group travel arrangements and generate group itineraries</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[500px]">
                       <div className="space-y-4">
                         {groups.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-8">
-                            No travel groups created yet
-                          </p>
+                          <p className="text-muted-foreground text-center py-8">No travel groups created yet</p>
                         ) : (
                           groups.map((group) => {
                             const members = group.group_members || [];
@@ -1102,34 +1106,19 @@ const Admin = () => {
                             const hasGroupItinerary = group.group_itineraries?.length > 0;
 
                             return (
-                              <div
-                                key={group.id}
-                                className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors space-y-3"
-                              >
+                              <div key={group.id} className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors space-y-3">
                                 <div className="flex items-start justify-between gap-4">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                       <p className="font-semibold">{group.name}</p>
-                                      <Badge variant="outline">
-                                        Join Code: {group.join_code}
-                                      </Badge>
+                                      <Badge variant="outline">Join Code: {group.join_code}</Badge>
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                       Created {new Date(group.created_at).toLocaleDateString()}
                                     </p>
-                                    <p className="text-sm mt-2">
-                                      {members.length} {members.length === 1 ? 'member' : 'members'}
-                                    </p>
-                                    {allMembersComplete && (
-                                      <p className="text-xs text-green-500 mt-1">
-                                        ✓ All members completed SoulPrints
-                                      </p>
-                                    )}
-                                    {hasGroupItinerary && (
-                                      <p className="text-xs text-primary mt-1">
-                                        ✓ Group Itinerary Created
-                                      </p>
-                                    )}
+                                    <p className="text-sm mt-2">{members.length} {members.length === 1 ? 'member' : 'members'}</p>
+                                    {allMembersComplete && <p className="text-xs text-green-500 mt-1">✓ All members completed SoulPrints</p>}
+                                    {hasGroupItinerary && <p className="text-xs text-primary mt-1">✓ Group Itinerary Created</p>}
                                   </div>
                                   <div className="flex flex-wrap gap-2">
                                     {allMembersComplete && !hasGroupItinerary && (
@@ -1139,15 +1128,11 @@ const Admin = () => {
                                         disabled={generatingGroupItinerary === group.id}
                                       >
                                         <MapPin className="h-4 w-4 mr-1" />
-                                        {generatingGroupItinerary === group.id
-                                          ? "Generating..."
-                                          : "Generate Group Itinerary"}
+                                        {generatingGroupItinerary === group.id ? "Generating..." : "Generate Group Itinerary"}
                                       </Button>
                                     )}
                                     {!allMembersComplete && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Waiting for all members
-                                      </Badge>
+                                      <Badge variant="secondary" className="text-xs">Waiting for all members</Badge>
                                     )}
                                   </div>
                                 </div>
@@ -1156,20 +1141,13 @@ const Admin = () => {
                                   <p className="text-xs font-medium text-muted-foreground">Group Members:</p>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     {members.map((member: any) => (
-                                      <div
-                                        key={member.id}
-                                        className="p-2 rounded border border-border bg-card text-xs"
-                                      >
+                                      <div key={member.id} className="p-2 rounded border border-border bg-card text-xs">
                                         <p className="font-medium">{member.respondents?.name || 'Unknown'}</p>
                                         <p className="text-muted-foreground">{member.respondents?.email || 'No email'}</p>
                                         {member.respondents?.computed_scores?.length > 0 ? (
-                                          <Badge variant="outline" className="mt-1 text-xs">
-                                            ✓ Completed
-                                          </Badge>
+                                          <Badge variant="outline" className="mt-1 text-xs">✓ Completed</Badge>
                                         ) : (
-                                          <Badge variant="secondary" className="mt-1 text-xs">
-                                            Pending
-                                          </Badge>
+                                          <Badge variant="secondary" className="mt-1 text-xs">Pending</Badge>
                                         )}
                                       </div>
                                     ))}
@@ -1179,8 +1157,7 @@ const Admin = () => {
                                 {hasGroupItinerary && (
                                   <div className="pt-2 border-t">
                                     <p className="text-xs text-muted-foreground">
-                                      Group itinerary created on{' '}
-                                      {new Date(group.group_itineraries[0].created_at).toLocaleDateString()}
+                                      Group itinerary created on {new Date(group.group_itineraries[0].created_at).toLocaleDateString()}
                                     </p>
                                   </div>
                                 )}
@@ -1216,12 +1193,8 @@ const Admin = () => {
         <Dialog open={showSoulPrintModal} onOpenChange={setShowSoulPrintModal}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {selectedSoulPrint?.respondent.name}'s SoulPrint
-              </DialogTitle>
-              <DialogDescription>
-                Complete psychological and travel profile with AI-generated insights
-              </DialogDescription>
+              <DialogTitle>{selectedSoulPrint?.respondent.name}'s SoulPrint</DialogTitle>
+              <DialogDescription>Complete psychological and travel profile with AI-generated insights</DialogDescription>
             </DialogHeader>
             {selectedSoulPrint && (
               <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
@@ -1240,12 +1213,8 @@ const Admin = () => {
         <Dialog open={showItineraryModal} onOpenChange={setShowItineraryModal}>
           <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {selectedItinerary?.respondentName}'s Personalized Itinerary
-              </DialogTitle>
-              <DialogDescription>
-                Personalized psychologically-aligned journey
-              </DialogDescription>
+              <DialogTitle>{selectedItinerary?.respondentName}'s Personalized Itinerary</DialogTitle>
+              <DialogDescription>Personalized psychologically-aligned journey</DialogDescription>
             </DialogHeader>
             {selectedItinerary && (
               <Suspense fallback={<div className="p-8 text-center">Loading map...</div>}>
