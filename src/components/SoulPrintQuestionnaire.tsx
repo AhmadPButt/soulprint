@@ -7,8 +7,6 @@ import Section3 from "./questionnaire/Section3";
 import Section4 from "./questionnaire/Section4";
 import Section5 from "./questionnaire/Section5";
 import Section6 from "./questionnaire/Section6";
-import Section7 from "./questionnaire/Section7";
-import Section8 from "./questionnaire/Section8";
 import Results from "./questionnaire/Results";
 import ProgressBar from "./questionnaire/ProgressBar";
 import ProgressSummaryModal from "./questionnaire/ProgressSummaryModal";
@@ -47,24 +45,21 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
   const [showProgressModal, setShowProgressModal] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
-  // Track analytics
   const { trackCompletion } = useQuestionnaireAnalytics(
     currentSection,
-    responses.email || null
+    responses.Q43_email || null
   );
 
-  const totalSections = 8;
+  const totalSections = 6;
   const progress = ((currentSection + 1) / totalSections) * 100;
 
   const sections = [
-    { component: Section1, title: "The Land of Fire", subtitle: "Tell us why this land calls to you." },
-    { component: Section2, title: "Core Traits", subtitle: "A moment to calibrate your inner architecture." },
+    { component: Section1, title: "Your Travel Style", subtitle: "Tell us how you like to travel." },
+    { component: Section2, title: "Core Traits", subtitle: "How do you want to show up on this trip?" },
     { component: Section3, title: "Travel Behavior", subtitle: "Tell us how you move through the world." },
-    { component: Section4, title: "Elemental Resonance", subtitle: "Which terrains speak to your deeper self?" },
-    { component: Section5, title: "Inner Compass", subtitle: "What do you travel for?" },
-    { component: Section6, title: "State Assessment", subtitle: "Where are you inwardly, at this moment?" },
-    { component: Section7, title: "Narrative Identity", subtitle: "Your story matters to the journey." },
-    { component: Section8, title: "Practicalities", subtitle: "Essential details for your journey." },
+    { component: Section4, title: "Luxury & Pace", subtitle: "What does the perfect trip feel like?" },
+    { component: Section5, title: "Sensory Priorities", subtitle: "What experiences matter most to you?" },
+    { component: Section6, title: "Your Details", subtitle: "Almost there — just a few essentials." },
   ];
 
   const CurrentComponent = sections[currentSection]?.component;
@@ -233,7 +228,6 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
                   {currentSection + 1} / {totalSections}
                 </p>
                 <div className="flex items-center gap-2 justify-end">
-                  <p className="text-xs text-muted-foreground">Azerbaijan Edition</p>
                   {hasRestoredProgress && (
                     <span className="text-xs text-lavender-accent flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> Auto-saved
@@ -280,7 +274,7 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
               </motion.div>
             </div>
 
-            {/* Section Content - Glass Card */}
+            {/* Section Content */}
             <div className="glass-card p-6 md:p-12">
               {CurrentComponent && (
                 <CurrentComponent

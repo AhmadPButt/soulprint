@@ -38,28 +38,28 @@ const Section3 = ({ initialData, onNext, onBack }: Section3Props) => {
       name: "Spontaneity & Flexibility",
       emoji: "🎭",
       questions: [
-        { id: "Q24", text: "I can flow with changing plans without stress." },
-        { id: "Q25", text: "I feel energized when a day opens up unexpectedly." },
-        { id: "Q26", text: "I enjoy not knowing exactly what will happen next." },
-        { id: "Q27", text: "I get tense when structure disappears.", reverse: true },
+        { id: "Q24", text: "For this trip, I want to flow with changing plans without stress." },
+        { id: "Q25", text: "On this trip, I'd feel energized when a day opens up unexpectedly." },
+        { id: "Q26", text: "For this trip, I want to enjoy not knowing exactly what will happen next." },
+        { id: "Q27", text: "On this trip, I'll get tense when structure disappears.", reverse: true },
       ],
     },
     {
       name: "Adventure Orientation",
       emoji: "🔥",
       questions: [
-        { id: "Q28", text: "I enjoy gentle adventure — movement, discovery, the unexpected." },
-        { id: "Q29", text: "Experiences feel richer when there is some uncertainty." },
-        { id: "Q30", text: "I prefer days that are calm and predictable.", reverse: true },
+        { id: "Q28", text: "For this trip, I want gentle adventure — movement, discovery, the unexpected." },
+        { id: "Q29", text: "On this trip, experiences will feel richer when there is some uncertainty." },
+        { id: "Q30", text: "For this trip, I prefer days that are calm and predictable.", reverse: true },
       ],
     },
     {
       name: "Environmental Adaptation",
       emoji: "🌍",
       questions: [
-        { id: "Q31", text: "New landscapes rarely intimidate me." },
-        { id: "Q32", text: "I adjust easily to different climates, foods, and surroundings." },
-        { id: "Q33", text: "Physical discomfort significantly impacts my mood.", reverse: true },
+        { id: "Q31", text: "For this trip, new landscapes won't intimidate me." },
+        { id: "Q32", text: "On this trip, I'll adjust easily to different climates, foods, and surroundings." },
+        { id: "Q33", text: "For this trip, physical discomfort will significantly impact my mood.", reverse: true },
       ],
     },
   ];

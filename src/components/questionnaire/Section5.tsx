@@ -2,8 +2,24 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import SliderQuestion from "./SliderQuestion";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Section5Props {
   initialData: QuestionnaireData;
@@ -11,89 +27,160 @@ interface Section5Props {
   onBack?: () => void;
 }
 
-const Section5 = ({ initialData, onNext, onBack }: Section5Props) => {
-  const [responses, setResponses] = useState({
-    Q35: initialData.Q35 || 50,
-    Q36: initialData.Q36 || 50,
-    Q37: initialData.Q37 || 50,
-    Q38: initialData.Q38 || 50,
-    Q39: initialData.Q39 || 50,
-    Q40: initialData.Q40 || 50,
-    Q41: initialData.Q41 || 50,
-    Q42: initialData.Q42 || 50,
-  });
+interface Priority {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+}
 
-  const handleChange = (key: string, value: number) => {
-    setResponses({ ...responses, [key]: value });
+interface SortableItemProps {
+  priority: Priority;
+  index: number;
+}
+
+const SortableItem = ({ priority, index }: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: priority.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group ${isDragging ? "z-50" : ""}`}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
+          isDragging
+            ? "bg-foreground/10 border-primary shadow-xl scale-[1.02]"
+            : "bg-foreground/[0.02] border-border/50 hover:border-primary/50 hover:bg-foreground/5"
+        }`}
+      >
+        {/* Rank Number */}
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <span className="font-medium text-primary text-sm">{index + 1}</span>
+        </div>
+
+        {/* Priority Info */}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-sm text-foreground">
+            <span className="mr-2">{priority.emoji}</span>
+            {priority.name}
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">{priority.description}</p>
+        </div>
+
+        {/* Drag Handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 p-2 text-muted-foreground hover:text-foreground transition-colors cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      </motion.div>
+    </div>
+  );
+};
+
+const Section5 = ({ initialData, onNext, onBack }: Section5Props) => {
+  const initialPriorities: Priority[] = [
+    { id: "visual", emoji: "👁️", name: "Stunning landscapes and visual beauty", description: "Breathtaking scenery, dramatic views, and photogenic moments" },
+    { id: "culinary", emoji: "🍽️", name: "Exceptional food and culinary experiences", description: "Fine dining, local cuisine, food markets, and cooking classes" },
+    { id: "nature", emoji: "🌲", name: "Being surrounded by nature", description: "Forests, mountains, oceans, and wild spaces" },
+    { id: "cultural", emoji: "🏛️", name: "Cultural immersion and learning", description: "History, art, architecture, and local traditions" },
+    { id: "wellness", emoji: "🧘", name: "Spa, relaxation, and wellness", description: "Thermal baths, massages, meditation, and restoration" },
+  ];
+
+  const getInitialOrder = () => {
+    if (initialData.Q41 && Array.isArray(initialData.Q41)) {
+      const savedOrder = initialData.Q41 as string[];
+      const orderedPriorities = savedOrder
+        .map((id) => initialPriorities.find((p) => p.id === id))
+        .filter((p): p is Priority => p !== undefined);
+      if (orderedPriorities.length === 5) {
+        return orderedPriorities;
+      }
+    }
+    return initialPriorities;
+  };
+
+  const [priorities, setPriorities] = useState<Priority[]>(getInitialOrder());
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setPriorities((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const handleNext = () => {
-    onNext(responses);
+    const ranking = priorities.map((p) => p.id);
+    onNext({ Q41: ranking });
   };
-
-  const compass = [
-    {
-      name: "Transformation",
-      emoji: "🦋",
-      questions: [
-        { id: "Q35", text: "I travel hoping to return home somehow changed." },
-        { id: "Q36", text: "A successful trip shifts something inside me." },
-      ],
-    },
-    {
-      name: "Clarity",
-      emoji: "🔍",
-      questions: [
-        { id: "Q37", text: "I often travel to gain perspective on my life." },
-        { id: "Q38", text: "Distance from my routine helps me think more clearly." },
-      ],
-    },
-    {
-      name: "Aliveness",
-      emoji: "⚡",
-      questions: [
-        { id: "Q39", text: "I travel to feel fully awake and present." },
-        { id: "Q40", text: "New experiences make me feel more alive." },
-      ],
-    },
-    {
-      name: "Connection",
-      emoji: "🤝",
-      questions: [
-        { id: "Q41", text: "Human connection is a core part of why I travel." },
-        { id: "Q42", text: "Shared experiences matter more to me than solo discoveries." },
-      ],
-    },
-  ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-12"
+      className="space-y-8"
     >
-      {compass.map((dimension, dimIndex) => (
-        <div key={dimension.name} className="bg-card rounded-2xl p-8 shadow-sm border border-border">
-          <div className="flex items-center gap-3 mb-8">
-            <span className="text-4xl">{dimension.emoji}</span>
-            <h3 className="text-2xl font-heading font-semibold">{dimension.name}</h3>
-          </div>
-          <div className="space-y-8">
-            {dimension.questions.map((question, qIndex) => (
-              <SliderQuestion
-                key={question.id}
-                question={question.text}
-                value={responses[question.id as keyof typeof responses]}
-                onChange={(value) => handleChange(question.id, value)}
-                delay={dimIndex * 0.1 + qIndex * 0.05}
-              />
-            ))}
-          </div>
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-foreground">
+            Rank what matters most to you on this trip
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Drag to reorder • Rank 1 = most important
+          </p>
         </div>
-      ))}
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={priorities.map((p) => p.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {priorities.map((priority, index) => (
+                <SortableItem key={priority.id} priority={priority} index={index} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
 
       {/* Navigation */}
-      <div className="flex justify-between pt-8">
+      <div className="flex justify-between pt-6">
         {onBack && (
           <Button onClick={onBack} variant="outline" size="lg" className="gap-2">
             <ArrowLeft className="w-4 h-4" /> Back
