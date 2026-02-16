@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
@@ -379,6 +379,12 @@ export default function Dashboard() {
                 >
                   <Home className="mr-2 h-4 w-4" />
                   <span>Post-Trip</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => navigate("/trips")}>
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  <span>My Trips</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

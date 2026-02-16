@@ -11,6 +11,9 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import GeographicIntake from "./pages/GeographicIntake";
 import DestinationDetail from "./pages/DestinationDetail";
+import MyTrips from "./pages/MyTrips";
+import TripDetail from "./pages/TripDetail";
+import JoinTrip from "./pages/JoinTrip";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +32,9 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/destination/:destinationId" element={<DestinationDetail />} />
+          <Route path="/trips" element={<MyTrips />} />
+          <Route path="/trips/:tripId" element={<TripDetail />} />
+          <Route path="/join-trip/:invitationToken" element={<JoinTrip />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
