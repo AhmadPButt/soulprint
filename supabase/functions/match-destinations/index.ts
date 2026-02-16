@@ -10,6 +10,22 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function validateAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const supabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } }
+  });
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  return { userId: data.user.id };
+}
+
 // ── Helper: reverse score ──
 function reverseScore(value: number): number {
   return 100 - value;
@@ -149,6 +165,10 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authResult = await validateAuth(req);
+    if (authResult instanceof Response) return authResult;
+
     const { respondent_id } = await req.json();
     if (!respondent_id) {
       throw new Error("respondent_id is required");

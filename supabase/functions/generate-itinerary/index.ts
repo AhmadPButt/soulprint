@@ -1,9 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+async function validateAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  const token = authHeader.replace('Bearer ', '');
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+  }
+  return { userId: data.user.id };
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,6 +30,10 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authResult = await validateAuth(req);
+    if (authResult instanceof Response) return authResult;
+
     const { 
       respondent_id, force_regenerate = false, edit_suggestions,
       destination_id, destination_name, destination_country, 
@@ -25,7 +48,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Check if itinerary already exists (unless force regenerate or editing)
@@ -364,8 +386,7 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
     console.error("Error in generate-itinerary:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to generate itinerary",
-        details: error.toString()
+        error: "Failed to generate itinerary"
       }),
       {
         status: 500,
