@@ -96,6 +96,12 @@ export function DestinationsTab() {
   const [filterActive, setFilterActive] = useState<string>("active");
   const [highlightsText, setHighlightsText] = useState("");
   const [climateText, setClimateText] = useState("");
+  // Destination Info fields
+  const [destInfo, setDestInfo] = useState({
+    cultural_customs: "", language_basics: "", tipping_etiquette: "", dress_code: "",
+    local_customs: "", safety_tips: "", embassy_contact: "", currency: "", timezone: "", voltage: "",
+    emergency_numbers: "{}"
+  });
 
   const load = async () => {
     const { data, error } = await supabase
@@ -123,14 +129,34 @@ export function DestinationsTab() {
     setForm(EMPTY_DESTINATION);
     setHighlightsText("");
     setClimateText("");
+    setDestInfo({ cultural_customs: "", language_basics: "", tipping_etiquette: "", dress_code: "", local_customs: "", safety_tips: "", embassy_contact: "", currency: "", timezone: "", voltage: "", emergency_numbers: "{}" });
     setShowForm(true);
   };
 
-  const openEdit = (d: Destination) => {
+  const openEdit = async (d: Destination) => {
     setEditingId(d.id);
     setForm({ ...d });
     setHighlightsText((d.highlights || []).join(", "));
     setClimateText((d.climate_tags || []).join(", "));
+    // Load destination info
+    const { data: info } = await supabase.from("destination_info").select("*").eq("destination_id", d.id).maybeSingle();
+    if (info) {
+      setDestInfo({
+        cultural_customs: info.cultural_customs || "",
+        language_basics: info.language_basics || "",
+        tipping_etiquette: info.tipping_etiquette || "",
+        dress_code: info.dress_code || "",
+        local_customs: info.local_customs || "",
+        safety_tips: info.safety_tips || "",
+        embassy_contact: info.embassy_contact || "",
+        currency: info.currency || "",
+        timezone: info.timezone || "",
+        voltage: info.voltage || "",
+        emergency_numbers: info.emergency_numbers ? JSON.stringify(info.emergency_numbers, null, 2) : "{}",
+      });
+    } else {
+      setDestInfo({ cultural_customs: "", language_basics: "", tipping_etiquette: "", dress_code: "", local_customs: "", safety_tips: "", embassy_contact: "", currency: "", timezone: "", voltage: "", emergency_numbers: "{}" });
+    }
     setShowForm(true);
   };
 
@@ -163,17 +189,50 @@ export function DestinationsTab() {
       highlights: highlightsText.split(",").map(s => s.trim()).filter(Boolean),
       climate_tags: climateText.split(",").map(s => s.trim()).filter(Boolean),
     } as any;
-    // Remove fields not in the table
     delete payload.id;
     delete payload.created_at;
     delete payload.updated_at;
 
     let error;
+    let destId = editingId;
     if (editingId) {
       ({ error } = await supabase.from("echoprint_destinations").update(payload).eq("id", editingId));
     } else {
-      ({ error } = await supabase.from("echoprint_destinations").insert(payload));
+      const res = await supabase.from("echoprint_destinations").insert(payload).select("id").single();
+      error = res.error;
+      destId = res.data?.id || null;
     }
+
+    // Save destination info if we have a destination id and any info fields are filled
+    if (!error && destId) {
+      const hasInfo = Object.entries(destInfo).some(([k, v]) => k !== "emergency_numbers" && v.trim());
+      if (hasInfo) {
+        let emergencyJson = {};
+        try { emergencyJson = JSON.parse(destInfo.emergency_numbers || "{}"); } catch {}
+        const infoPayload = {
+          destination_id: destId,
+          cultural_customs: destInfo.cultural_customs || null,
+          language_basics: destInfo.language_basics || null,
+          tipping_etiquette: destInfo.tipping_etiquette || null,
+          dress_code: destInfo.dress_code || null,
+          local_customs: destInfo.local_customs || null,
+          safety_tips: destInfo.safety_tips || null,
+          embassy_contact: destInfo.embassy_contact || null,
+          currency: destInfo.currency || null,
+          timezone: destInfo.timezone || null,
+          voltage: destInfo.voltage || null,
+          emergency_numbers: emergencyJson,
+        };
+        // Upsert
+        const { data: existing } = await supabase.from("destination_info").select("id").eq("destination_id", destId).maybeSingle();
+        if (existing) {
+          await supabase.from("destination_info").update(infoPayload as any).eq("id", existing.id);
+        } else {
+          await supabase.from("destination_info").insert(infoPayload as any);
+        }
+      }
+    }
+
     setSaving(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: editingId ? "Updated" : "Created", description: `${form.name} saved successfully` });
@@ -362,6 +421,24 @@ export function DestinationsTab() {
                 <div className="space-y-1"><Label>Image URL</Label><Input value={form.image_url ?? ""} onChange={e => setField("image_url", e.target.value)} /></div>
                 <div className="space-y-1"><Label>Image Credit</Label><Input value={form.image_credit ?? ""} onChange={e => setField("image_credit", e.target.value)} /></div>
               </div>
+            </div>
+
+            {/* Destination Info */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Destination Information (Travel Guide)</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1"><Label>Currency</Label><Input value={destInfo.currency} onChange={e => setDestInfo(p => ({ ...p, currency: e.target.value }))} placeholder="Euro (EUR)" /></div>
+                <div className="space-y-1"><Label>Timezone</Label><Input value={destInfo.timezone} onChange={e => setDestInfo(p => ({ ...p, timezone: e.target.value }))} placeholder="CET (UTC+1)" /></div>
+                <div className="space-y-1"><Label>Voltage</Label><Input value={destInfo.voltage} onChange={e => setDestInfo(p => ({ ...p, voltage: e.target.value }))} placeholder="230V, Type C/F" /></div>
+              </div>
+              <div className="space-y-1"><Label>Cultural Customs</Label><Textarea rows={3} value={destInfo.cultural_customs} onChange={e => setDestInfo(p => ({ ...p, cultural_customs: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Language Basics</Label><Textarea rows={3} value={destInfo.language_basics} onChange={e => setDestInfo(p => ({ ...p, language_basics: e.target.value }))} placeholder="Hello - Olá&#10;Thank you - Obrigado" /></div>
+              <div className="space-y-1"><Label>Tipping Etiquette</Label><Textarea rows={2} value={destInfo.tipping_etiquette} onChange={e => setDestInfo(p => ({ ...p, tipping_etiquette: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Dress Code</Label><Textarea rows={2} value={destInfo.dress_code} onChange={e => setDestInfo(p => ({ ...p, dress_code: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Local Customs</Label><Textarea rows={2} value={destInfo.local_customs} onChange={e => setDestInfo(p => ({ ...p, local_customs: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Safety Tips</Label><Textarea rows={2} value={destInfo.safety_tips} onChange={e => setDestInfo(p => ({ ...p, safety_tips: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Embassy Contact</Label><Textarea rows={2} value={destInfo.embassy_contact} onChange={e => setDestInfo(p => ({ ...p, embassy_contact: e.target.value }))} /></div>
+              <div className="space-y-1"><Label>Emergency Numbers (JSON)</Label><Textarea rows={3} value={destInfo.emergency_numbers} onChange={e => setDestInfo(p => ({ ...p, emergency_numbers: e.target.value }))} placeholder='{"emergency": "112", "police": "112"}' className="font-mono text-xs" /></div>
             </div>
 
             {/* Metadata */}

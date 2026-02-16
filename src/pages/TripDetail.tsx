@@ -10,9 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
-  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp
+  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BookingsSection } from "@/components/trip/BookingsSection";
+import { DocumentsSection } from "@/components/trip/DocumentsSection";
+import { DestinationInfoSection } from "@/components/trip/DestinationInfoSection";
 
 interface TripMember {
   id: string;
@@ -39,6 +42,9 @@ export default function TripDetail() {
   const [generating, setGenerating] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
   const [showCalendly, setShowCalendly] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     loadTrip();
@@ -47,6 +53,7 @@ export default function TripDetail() {
   const loadTrip = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
+    setUserId(session.user.id);
 
     const { data: tripData, error } = await supabase
       .from("trips")
@@ -62,20 +69,22 @@ export default function TripDetail() {
 
     setTrip(tripData);
 
-    // Load related data
-    const { data: membersData } = await supabase
-      .from("trip_members").select("*").eq("trip_id", tripId!);
-    setMembers(membersData || []);
+    // Load related data in parallel
+    const [membersRes, bookingsRes, docsRes] = await Promise.all([
+      supabase.from("trip_members").select("*").eq("trip_id", tripId!).then(r => r),
+      supabase.from("trip_bookings").select("*").eq("trip_id", tripId!).order("booking_date").then(r => r),
+      supabase.from("trip_documents").select("*").eq("trip_id", tripId!).order("uploaded_at", { ascending: false }).then(r => r),
+    ]);
+    setMembers(membersRes.data || []);
+    setBookings(bookingsRes.data || []);
+    setDocuments(docsRes.data || []);
 
     if (tripData.destination_id) {
-      const { data: destData } = await supabase
-        .from("echoprint_destinations").select("*").eq("id", tripData.destination_id).single();
+      const { data: destData } = await supabase.from("echoprint_destinations").select("*").eq("id", tripData.destination_id).single();
       if (destData) setDestination(destData);
     }
-
     if (tripData.itinerary_id) {
-      const { data: itinData } = await supabase
-        .from("itineraries").select("*").eq("id", tripData.itinerary_id).single();
+      const { data: itinData } = await supabase.from("itineraries").select("*").eq("id", tripData.itinerary_id).single();
       if (itinData) setItinerary(itinData.itinerary_data);
     }
 
@@ -85,7 +94,6 @@ export default function TripDetail() {
   const handleInvite = async () => {
     if (!inviteEmails.trim()) return;
     setInviting(true);
-
     try {
       const emails = inviteEmails.split(",").map(e => e.trim()).filter(Boolean);
       for (const email of emails) {
@@ -96,7 +104,6 @@ export default function TripDetail() {
           invitation_status: "pending",
         });
       }
-
       toast({ title: `Invited ${emails.length} traveler(s)` });
       setInviteEmails("");
       setShowInvite(false);
@@ -111,7 +118,6 @@ export default function TripDetail() {
   const handleGenerateItinerary = async () => {
     if (!trip?.respondent_id || !destination) return;
     setGenerating(true);
-
     try {
       const { data, error } = await supabase.functions.invoke("generate-itinerary", {
         body: {
@@ -125,14 +131,10 @@ export default function TripDetail() {
           force_regenerate: true,
         },
       });
-
       if (error) throw error;
-
-      // Link itinerary to trip
       if (data?.itinerary_id) {
         await supabase.from("trips").update({ itinerary_id: data.itinerary_id }).eq("id", tripId!);
       }
-
       setItinerary(data?.itinerary);
       toast({ title: "Itinerary generated!" });
     } catch (err: any) {
@@ -163,6 +165,8 @@ export default function TripDetail() {
     completed: "bg-muted text-muted-foreground",
   };
 
+  const showUtilities = trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-8">
@@ -184,10 +188,11 @@ export default function TripDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="travelers">Travelers ({members.length})</TabsTrigger>
             <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+            {showUtilities && <TabsTrigger value="utilities" className="gap-1.5"><Wrench className="h-3.5 w-3.5" /> Utilities</TabsTrigger>}
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
 
@@ -218,32 +223,13 @@ export default function TripDetail() {
               </Card>
             )}
 
-            {/* Trip Details */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Trip Details</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Trip Details</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Type</span>
-                  <p className="font-medium capitalize">{trip.trip_type}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Budget</span>
-                  <p className="font-medium">{trip.budget_range || "Not set"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Start Date</span>
-                  <p className="font-medium">
-                    {trip.start_date ? new Date(trip.start_date).toLocaleDateString() : "Not set"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">End Date</span>
-                  <p className="font-medium">
-                    {trip.end_date ? new Date(trip.end_date).toLocaleDateString() : "Not set"}
-                  </p>
-                </div>
+                <div><span className="text-muted-foreground">Type</span><p className="font-medium capitalize">{trip.trip_type}</p></div>
+                <div><span className="text-muted-foreground">Budget</span><p className="font-medium">{trip.budget_range || "Not set"}</p></div>
+                <div><span className="text-muted-foreground">Start Date</span><p className="font-medium">{trip.start_date ? new Date(trip.start_date).toLocaleDateString() : "Not set"}</p></div>
+                <div><span className="text-muted-foreground">End Date</span><p className="font-medium">{trip.end_date ? new Date(trip.end_date).toLocaleDateString() : "Not set"}</p></div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -258,7 +244,6 @@ export default function TripDetail() {
                 </Button>
               )}
             </div>
-
             {members.map(member => (
               <Card key={member.id}>
                 <CardContent className="p-4 flex items-center justify-between">
@@ -273,9 +258,7 @@ export default function TripDetail() {
                   </div>
                   <div className="flex items-center gap-2">
                     {member.respondent_id && (
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Check className="h-3 w-3" /> SoulPrint
-                      </Badge>
+                      <Badge variant="outline" className="text-xs gap-1"><Check className="h-3 w-3" /> SoulPrint</Badge>
                     )}
                     <Badge
                       variant="outline"
@@ -289,9 +272,7 @@ export default function TripDetail() {
                     >
                       {member.invitation_status === "accepted" ? (
                         <><Check className="h-3 w-3 mr-1" /> Accepted</>
-                      ) : member.invitation_status === "declined" ? (
-                        "Declined"
-                      ) : (
+                      ) : member.invitation_status === "declined" ? "Declined" : (
                         <><Clock className="h-3 w-3 mr-1" /> Pending</>
                       )}
                     </Badge>
@@ -363,13 +344,20 @@ export default function TripDetail() {
             )}
           </TabsContent>
 
-          {/* DOCUMENTS */}
+          {/* UTILITIES */}
+          {showUtilities && (
+            <TabsContent value="utilities" className="space-y-8">
+              <BookingsSection tripId={tripId!} bookings={bookings} onReload={loadTrip} />
+              <DocumentsSection tripId={tripId!} documents={documents} userId={userId} onReload={loadTrip} />
+              {destination && (
+                <DestinationInfoSection destinationId={destination.id} destinationName={destination.name} />
+              )}
+            </TabsContent>
+          )}
+
+          {/* DOCUMENTS (legacy tab kept for quick access) */}
           <TabsContent value="documents">
-            <Card className="p-12 text-center">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
-              <p className="text-muted-foreground">Documents and bookings will appear here once your trip is confirmed.</p>
-            </Card>
+            <DocumentsSection tripId={tripId!} documents={documents} userId={userId} onReload={loadTrip} />
           </TabsContent>
         </Tabs>
       </div>
@@ -384,12 +372,7 @@ export default function TripDetail() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="emails">Email Addresses</Label>
-              <Input
-                id="emails"
-                placeholder="friend@example.com, partner@example.com"
-                value={inviteEmails}
-                onChange={e => setInviteEmails(e.target.value)}
-              />
+              <Input id="emails" placeholder="friend@example.com, partner@example.com" value={inviteEmails} onChange={e => setInviteEmails(e.target.value)} />
             </div>
             <Button onClick={handleInvite} disabled={inviting || !inviteEmails.trim()} className="w-full">
               {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
