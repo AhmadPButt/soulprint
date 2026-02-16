@@ -15,6 +15,7 @@ const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVi
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
 import { GroupDiscussionsTab } from "@/components/admin/GroupDiscussionsTab";
 import { AdminNotifications } from "@/components/admin/AdminNotifications";
+import { DestinationsTab } from "@/components/admin/DestinationsTab";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -687,15 +688,16 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="dropoffs" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-8">
-                <TabsTrigger value="dropoffs">Section Dropoffs</TabsTrigger>
-                <TabsTrigger value="time">Time per Section</TabsTrigger>
-                <TabsTrigger value="sessions">Recent Sessions</TabsTrigger>
-                <TabsTrigger value="variants">A/B Testing</TabsTrigger>
-                <TabsTrigger value="respondents">SoulPrint Submissions</TabsTrigger>
-                <TabsTrigger value="groups">Travel Groups</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-9">
+                <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
+                <TabsTrigger value="time">Time</TabsTrigger>
+                <TabsTrigger value="sessions">Sessions</TabsTrigger>
+                <TabsTrigger value="variants">A/B Tests</TabsTrigger>
+                <TabsTrigger value="respondents">Submissions</TabsTrigger>
+                <TabsTrigger value="groups">Groups</TabsTrigger>
+                <TabsTrigger value="destinations">Destinations</TabsTrigger>
                 <TabsTrigger value="discussions">Discussions</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
               <TabsContent value="dropoffs">
@@ -1189,6 +1191,10 @@ const Admin = () => {
                     </ScrollArea>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="destinations">
+                <DestinationsTab />
               </TabsContent>
 
               <TabsContent value="discussions">
