@@ -102,6 +102,8 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        // Store that we want to come back to dashboard after auth
+        sessionStorage.setItem('pending_redirect', '/dashboard');
         navigate("/auth");
         return;
       }
@@ -122,10 +124,10 @@ export default function Dashboard() {
         .eq("user_id", userId)
         .single();
 
-      if (respondentError) throw respondentError;
+      if (respondentError && respondentError.code !== 'PGRST116') throw respondentError;
       if (!respondentData) {
-        toast.error("Please complete the questionnaire first");
-        navigate("/questionnaire");
+        // No respondent yet — show empty dashboard instead of redirecting
+        setLoading(false);
         return;
       }
 
