@@ -437,7 +437,7 @@ export default function TripDetail() {
                 <>
                   <EmotionalFluctuationGraph respondentId={trip.respondent_id} tripId={tripId!} />
                   <MoodInsights respondentId={trip.respondent_id} />
-                  <TripReflection respondentId={trip.respondent_id} />
+                  <TripReflection respondentId={trip.respondent_id} tripId={tripId!} />
                 </>
               )}
             </TabsContent>

@@ -392,6 +392,7 @@ export type Database = {
       }
       destination_matches: {
         Row: {
+          actual_satisfaction: number | null
           clicked_at: string | null
           clicked_by_user: boolean | null
           context_intake_id: string | null
@@ -400,11 +401,13 @@ export type Database = {
           fit_breakdown: Json
           fit_score: number
           id: string
+          prediction_accuracy: number | null
           rank: number
           respondent_id: string
           shown_to_user: boolean | null
         }
         Insert: {
+          actual_satisfaction?: number | null
           clicked_at?: string | null
           clicked_by_user?: boolean | null
           context_intake_id?: string | null
@@ -413,11 +416,13 @@ export type Database = {
           fit_breakdown: Json
           fit_score: number
           id?: string
+          prediction_accuracy?: number | null
           rank: number
           respondent_id: string
           shown_to_user?: boolean | null
         }
         Update: {
+          actual_satisfaction?: number | null
           clicked_at?: string | null
           clicked_by_user?: boolean | null
           context_intake_id?: string | null
@@ -426,6 +431,7 @@ export type Database = {
           fit_breakdown?: Json
           fit_score?: number
           id?: string
+          prediction_accuracy?: number | null
           rank?: number
           respondent_id?: string
           shown_to_user?: boolean | null
@@ -1308,6 +1314,7 @@ export type Database = {
           photo_urls: Json | null
           respondent_id: string
           review_text: string | null
+          trip_id: string | null
           trip_summary: string | null
           updated_at: string
           would_recommend: boolean | null
@@ -1323,6 +1330,7 @@ export type Database = {
           photo_urls?: Json | null
           respondent_id: string
           review_text?: string | null
+          trip_id?: string | null
           trip_summary?: string | null
           updated_at?: string
           would_recommend?: boolean | null
@@ -1338,6 +1346,7 @@ export type Database = {
           photo_urls?: Json | null
           respondent_id?: string
           review_text?: string | null
+          trip_id?: string | null
           trip_summary?: string | null
           updated_at?: string
           would_recommend?: boolean | null
@@ -1348,6 +1357,13 @@ export type Database = {
             columns: ["respondent_id"]
             isOneToOne: false
             referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_reflections_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
