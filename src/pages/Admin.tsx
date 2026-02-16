@@ -17,6 +17,7 @@ import { GroupDiscussionsTab } from "@/components/admin/GroupDiscussionsTab";
 import { AdminNotifications } from "@/components/admin/AdminNotifications";
 import { DestinationsTab } from "@/components/admin/DestinationsTab";
 import { MatchTestPanel } from "@/components/admin/MatchTestPanel";
+import { AdminDocumentUpload } from "@/components/admin/AdminDocumentUpload";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -1060,7 +1061,14 @@ const Admin = () => {
                                     Activities {respondent.paid_activities ? 'Paid' : 'Unpaid'}
                                   </Button>
                                 </div>
-                              </div>
+
+                              {/* Admin Document Upload */}
+                              <AdminDocumentUpload
+                                respondentId={respondent.id}
+                                respondentName={respondent.name}
+                                userId={respondent.user_id}
+                              />
+                            </div>
                             </div>
                           )})
                         )}

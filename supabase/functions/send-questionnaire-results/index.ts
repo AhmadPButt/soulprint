@@ -61,6 +61,26 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Stored in database with ID:", respondent.id);
 
+    // Auto-compute SoulPrint in background
+    console.log("Auto-computing SoulPrint for respondent:", respondent.id);
+    const computePromise = fetch(`${supabaseUrl}/functions/v1/compute-soulprint`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({ respondent_id: respondent.id }),
+    }).then(async (res) => {
+      if (res.ok) {
+        console.log("SoulPrint auto-computed successfully for:", respondent.id);
+      } else {
+        const errText = await res.text();
+        console.error("SoulPrint auto-compute failed:", errText);
+      }
+    }).catch((err) => {
+      console.error("SoulPrint auto-compute error:", err);
+    });
+
     // Format the responses for email
     const formattedResponses = JSON.stringify(responses, null, 2);
 
@@ -101,6 +121,9 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    // Wait for compute to finish before responding (best-effort)
+    await computePromise;
 
     return new Response(JSON.stringify({ 
       success: true, 

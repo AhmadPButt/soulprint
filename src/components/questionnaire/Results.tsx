@@ -47,6 +47,7 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           description: "Your SoulPrint questionnaire has been sent to Erranza.",
         });
 
+        // SoulPrint is auto-computed on the backend now
         // Trigger destination matching if we got a respondent_id back
         const respondentId = data?.respondent_id;
         if (respondentId) {
@@ -67,7 +68,6 @@ const Results = ({ responses, onRestart, user }: ResultsProps) => {
           } catch (matchErr) {
             console.error('Error matching destinations:', matchErr);
             setMatchingStatus("error");
-            // Don't block navigation — matching is optional
           }
         }
         
