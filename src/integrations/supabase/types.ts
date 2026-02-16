@@ -375,6 +375,38 @@ export type Database = {
           },
         ]
       }
+      destination_favorites: {
+        Row: {
+          created_at: string | null
+          destination_id: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          destination_id: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          destination_id?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_favorites_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "echoprint_destinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destination_info: {
         Row: {
           cultural_customs: string | null
@@ -1421,10 +1453,12 @@ export type Database = {
           created_at: string | null
           created_by: string
           destination_id: string | null
+          destination_ids: string[] | null
           end_date: string | null
           fora_booking_id: string | null
           fora_itinerary_url: string | null
           id: string
+          is_multi_destination: boolean | null
           itinerary_id: string | null
           respondent_id: string | null
           start_date: string | null
@@ -1441,10 +1475,12 @@ export type Database = {
           created_at?: string | null
           created_by: string
           destination_id?: string | null
+          destination_ids?: string[] | null
           end_date?: string | null
           fora_booking_id?: string | null
           fora_itinerary_url?: string | null
           id?: string
+          is_multi_destination?: boolean | null
           itinerary_id?: string | null
           respondent_id?: string | null
           start_date?: string | null
@@ -1461,10 +1497,12 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           destination_id?: string | null
+          destination_ids?: string[] | null
           end_date?: string | null
           fora_booking_id?: string | null
           fora_itinerary_url?: string | null
           id?: string
+          is_multi_destination?: boolean | null
           itinerary_id?: string | null
           respondent_id?: string | null
           start_date?: string | null
