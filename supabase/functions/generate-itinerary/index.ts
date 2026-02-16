@@ -12,7 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { respondent_id, force_regenerate = false, edit_suggestions } = await req.json();
+    const { 
+      respondent_id, force_regenerate = false, edit_suggestions,
+      destination_id, destination_name, destination_country, 
+      destination_description, destination_highlights, duration_days
+    } = await req.json();
     
     if (!respondent_id) {
       throw new Error("respondent_id is required");
@@ -84,9 +88,17 @@ serve(async (req) => {
       existingItinerary = itineraryData?.itinerary_data;
     }
 
+    // Determine destination context
+    const destName = destination_name || 'Azerbaijan';
+    const destCountry = destination_country || 'Azerbaijan';
+    const destDesc = destination_description || '';
+    const destHighlights = destination_highlights || [];
+    const numDays = duration_days || 7;
+    const isGlobalDest = !!destination_name && destination_name !== 'Azerbaijan';
+
     // Build comprehensive prompt for itinerary generation
     let userPrompt = edit_suggestions 
-      ? `Based on the following psychological profile and the ADMIN'S EDIT SUGGESTIONS, UPDATE the existing itinerary for Azerbaijan.
+      ? `Based on the following psychological profile and the ADMIN'S EDIT SUGGESTIONS, UPDATE the existing itinerary for ${destName}.
       
 ADMIN EDIT SUGGESTIONS:
 ${edit_suggestions}
@@ -94,20 +106,27 @@ ${edit_suggestions}
 EXISTING ITINERARY (MUST KEEP ALL DAYS AND UPDATE ONLY AS REQUESTED):
 ${JSON.stringify(existingItinerary, null, 2)}
 
-CRITICAL: Return the COMPLETE itinerary with ALL 7 DAYS. Only modify the specific parts mentioned in the edit suggestions. Keep all other days, activities, and details exactly as they are in the existing itinerary.
-
-Apply these suggestions while maintaining the psychological alignment and luxury experience. Make specific changes requested while keeping the overall structure coherent.
+CRITICAL: Return the COMPLETE itinerary with ALL days. Only modify the specific parts mentioned in the edit suggestions.
 
 Original context:`
-      : `Based on the following psychological profile and travel preferences, create a detailed 7-day luxury itinerary for Azerbaijan:`;
+      : `Based on the following psychological profile and travel preferences, create a detailed ${numDays}-day personalized itinerary for ${destName}, ${destCountry}:`;
+
+    if (isGlobalDest && destDesc) {
+      userPrompt += `
+
+DESTINATION CONTEXT:
+${destDesc}
+Key features: ${destHighlights.join(', ')}
+`;
+    }
 
     userPrompt += `
 
 TRAVELER PROFILE:
 Name: ${respondent.name}
-Tribe: ${computed.tribe}
-Dominant Element: ${computed.dominant_element}
-Secondary Element: ${computed.secondary_element}
+${computed.tribe ? `Tribe: ${computed.tribe}` : ''}
+${computed.dominant_element ? `Dominant Element: ${computed.dominant_element}` : ''}
+${computed.secondary_element ? `Secondary Element: ${computed.secondary_element}` : ''}
 
 PERSONALITY TRAITS (0-100 scale):
 - Extraversion: ${computed.extraversion}
@@ -135,12 +154,6 @@ ELEMENTAL RESONANCE:
 - Urban (Modernity/Culture): ${computed.urban_score}
 - Desert (Solitude/Reflection): ${computed.desert_score}
 
-BUSINESS INSIGHTS:
-- Azerbaijan Alignment: ${computed.eai_azerbaijan}%
-- NPS Prediction: ${computed.nps_predicted}/10 (${computed.nps_tier})
-- Spend Propensity: ${computed.spi_tier}
-- Upsell Receptivity: ${computed.urs_tier}
-
 TRAVEL PREFERENCES:
 - Room Type: ${respondent.room_type || 'Not specified'}
 - Dietary: ${respondent.dietary_preferences || 'None specified'}
@@ -157,42 +170,51 @@ GROWTH EDGES:
 ${narrative.growth_edges}
 ` : ''}
 
-Generate a luxury 7-day itinerary for Azerbaijan that:
+Generate a ${numDays}-day itinerary for ${destName}, ${destCountry} that:
 1. Aligns with their elemental resonance and psychological profile
 2. Matches their adventure orientation and spontaneity levels
 3. Addresses their core motivations (${computed.top_motivation_1}, ${computed.top_motivation_2})
-4. Respects their travel preferences
-5. Includes specific locations in Azerbaijan with exact coordinates
-6. Balances their needs across the Fire/Water/Stone/Urban/Desert spectrum
+4. Respects their travel preferences and pace
+5. Balances their needs across the personality spectrum
 
 Return the itinerary in this JSON structure:
 {
-  "title": "Compelling itinerary title reflecting their tribe and motivations",
+  "title": "Compelling itinerary title reflecting their personality",
   "overview": "2-3 sentence overview of the journey's theme",
   "days": [
     {
       "day": 1,
       "title": "Day title",
       "theme": "What this day represents psychologically",
-      "locations": [
-        {
-          "name": "Location name",
-          "coordinates": [longitude, latitude],
-          "time": "Morning/Afternoon/Evening",
-          "activity": "Specific activity description",
-          "psychological_alignment": "How this connects to their profile",
-          "element": "fire/water/stone/urban/desert"
-        }
-      ],
+      "morning": {
+        "activity": "Specific activity description",
+        "why_it_fits": "How this connects to their profile",
+        "time": "9:00 AM"
+      },
+      "afternoon": {
+        "activity": "Specific activity description",
+        "why_it_fits": "How this connects to their profile",
+        "time": "2:00 PM"
+      },
+      "evening": {
+        "activity": "Specific activity description",
+        "why_it_fits": "How this connects to their profile",
+        "time": "7:00 PM"
+      },
       "accommodation": {
         "name": "Hotel/guesthouse name",
-        "coordinates": [longitude, latitude],
         "type": "luxury/boutique/traditional",
         "why": "Why this suits them"
       },
-      "meals": ["Breakfast location/style", "Lunch suggestion", "Dinner experience"]
+      "meals": ["Breakfast suggestion", "Lunch suggestion", "Dinner experience"]
     }
   ],
+  "accommodations": {
+    "recommendation": "Overall accommodation style recommendation",
+    "why": "Why this style suits the traveler"
+  },
+  "total_estimated_cost": 2800,
+  "packing_tips": ["tip1", "tip2"],
   "practical_notes": {
     "dietary_accommodations": "How dietary preferences are handled",
     "pacing": "How the itinerary matches their energy levels",
@@ -203,24 +225,11 @@ Return the itinerary in this JSON structure:
     "transformation_arc": "How this journey facilitates their desired transformation",
     "growth_opportunities": "Specific moments designed for growth",
     "comfort_balance": "How we balance challenge and comfort"
-  }
+  },
+  "notes": "Any additional notes"
 }
 
-IMPORTANT AZERBAIJAN LOCATIONS TO CONSIDER (with real coordinates):
-- Baku Old City (Icherisheher): [49.8373, 40.3656]
-- Flame Towers: [49.8366, 40.3586]
-- Gobustan Rock Art: [49.3892, 40.0989]
-- Mud Volcanoes: [49.4008, 40.0234]
-- Ateshgah Fire Temple: [50.0097, 40.4127]
-- Yanar Dag (Burning Mountain): [49.8917, 40.5019]
-- Lahij Village: [48.3919, 40.8489]
-- Sheki Khan's Palace: [47.1906, 41.2119]
-- Quba: [48.5131, 41.3614]
-- Khinaliq Village: [48.1419, 41.2017]
-- Shahdag Mountain Resort: [48.0947, 41.3169]
-- Gabala: [47.8453, 40.9811]
-
-Ensure all activities, accommodations, and experiences are real and bookable in Azerbaijan.`;
+Ensure all activities, accommodations, and experiences are real and bookable in ${destName}, ${destCountry}.`;
 
     console.log("Generating itinerary with prompt...");
 
@@ -236,7 +245,7 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
         messages: [
           {
             role: "system",
-            content: "You are an expert luxury travel designer for Erranza, specializing in psychologically-aligned travel experiences in Azerbaijan. Return only valid JSON."
+            content: `You are an expert luxury travel designer for Erranza, specializing in psychologically-aligned travel experiences worldwide. You create personalized itineraries for ${destName}, ${destCountry}. Return only valid JSON.`
           },
           {
             role: "user",
