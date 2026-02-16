@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Utensils, Hotel, Compass, Edit, Send, DollarSign } from "lucide-react";
+import { MapPin, Calendar, Utensils, Hotel, Compass, Edit, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import TravelCostPanel from './TravelCostPanel';
 
+// Define interfaces for Itinerary Data
 interface Location {
   name: string;
   coordinates: [number, number];
@@ -63,14 +64,6 @@ interface ItineraryVisualizationProps {
   onItineraryUpdate: (updatedItinerary: ItineraryData) => void;
 }
 
-const elementColors: Record<string, string> = {
-  fire: '#FF6B6B',
-  water: '#4ECDC4',
-  stone: '#95A5A6',
-  urban: '#F7DC6F',
-  desert: '#E8B87E',
-};
-
 const SortableActivity: React.FC<{ location: Location; idx: number; dayNumber: number }> = ({ location, idx, dayNumber }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `${dayNumber}-${idx}` });
 
@@ -84,13 +77,12 @@ const SortableActivity: React.FC<{ location: Location; idx: number; dayNumber: n
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold">{location.name}</h4>
-            <Badge style={{ backgroundColor: elementColors[location.element], color: 'white' }}>{location.element}</Badge>
-          </div>
+          <h4 className="font-semibold mb-1">{location.name}</h4>
           <p className="text-sm text-muted-foreground mb-2">{location.time}</p>
           <p className="text-sm mb-2">{location.activity}</p>
-          <p className="text-xs text-muted-foreground italic">✨ {location.psychological_alignment}</p>
+          {location.psychological_alignment && (
+            <p className="text-xs text-muted-foreground italic">✨ {location.psychological_alignment}</p>
+          )}
         </div>
       </div>
     </div>
@@ -111,27 +103,44 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
 
   useEffect(() => { setLocalItinerary(itinerary); }, [itinerary]);
 
+  // Compute map center from coordinates
+  const getMapCenter = (): [number, number] => {
+    const allCoords: [number, number][] = [];
+    localItinerary.days?.forEach(day => {
+      day.locations?.forEach(loc => {
+        if (loc.coordinates) allCoords.push(loc.coordinates);
+      });
+    });
+    if (allCoords.length > 0) {
+      const avgLng = allCoords.reduce((s, c) => s + c[0], 0) / allCoords.length;
+      const avgLat = allCoords.reduce((s, c) => s + c[1], 0) / allCoords.length;
+      return [avgLng, avgLat];
+    }
+    return [0, 20];
+  };
+
   useEffect(() => {
     if (!mapContainer.current) return;
     mapboxgl.accessToken = 'pk.eyJ1IjoiYWhtYWRwYnV0dCIsImEiOiJjbWhtbWRkbHYyNzZ3MmtxdHQ0a3NzcmtnIn0.mvlVt71TYheyTVVBBnumzA';
-    map.current = new mapboxgl.Map({ container: mapContainer.current, style: 'mapbox://styles/mapbox/light-v11', center: [47.5769, 40.1431], zoom: 6.5 });
+    map.current = new mapboxgl.Map({ container: mapContainer.current, style: 'mapbox://styles/mapbox/light-v11', center: getMapCenter(), zoom: 6 });
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     map.current.on('load', () => {
       const allCoordinates: [number, number][] = [];
       localItinerary.days.forEach((day, dayIndex) => {
-        day.locations.forEach((location) => {
+        day.locations?.forEach((location) => {
+          if (!location.coordinates) return;
           const el = document.createElement('div');
-          Object.assign(el.style, { backgroundColor: elementColors[location.element] || '#8884d8', width: '30px', height: '30px', borderRadius: '50%', border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '12px' });
+          Object.assign(el.style, { backgroundColor: '#8884d8', width: '30px', height: '30px', borderRadius: '50%', border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '12px' });
           el.textContent = `${dayIndex + 1}`;
-          new mapboxgl.Marker(el).setLngLat(location.coordinates).setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<div style="padding: 8px;"><h3 style="font-weight: bold; margin-bottom: 4px;">${location.name}</h3><p style="font-size: 12px; color: #666; margin-bottom: 4px;">Day ${day.day} - ${location.time}</p><p style="font-size: 12px; margin-bottom: 4px;">${location.activity}</p><p style="font-size: 11px; color: #888; font-style: italic;">${location.psychological_alignment}</p></div>`)).addTo(map.current!);
+          new mapboxgl.Marker(el).setLngLat(location.coordinates).setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<div style=\"padding: 8px;\"><h3 style=\"font-weight: bold; margin-bottom: 4px;\">${location.name}</h3><p style=\"font-size: 12px; color: #666; margin-bottom: 4px;\">Day ${day.day} - ${location.time}</p><p style=\"font-size: 12px; margin-bottom: 4px;\">${location.activity}</p></div>`)).addTo(map.current!);
           allCoordinates.push(location.coordinates);
         });
-        if (day.accommodation) {
+        if (day.accommodation?.coordinates) {
           const el = document.createElement('div');
           el.innerHTML = '🏨';
           el.style.fontSize = '24px';
           el.style.cursor = 'pointer';
-          new mapboxgl.Marker(el).setLngLat(day.accommodation.coordinates).setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<div style="padding: 8px;"><h3 style="font-weight: bold; margin-bottom: 4px;">${day.accommodation.name}</h3><p style="font-size: 12px; color: #666; margin-bottom: 4px;">${day.accommodation.type}</p><p style="font-size: 12px;">${day.accommodation.why}</p></div>`)).addTo(map.current!);
+          new mapboxgl.Marker(el).setLngLat(day.accommodation.coordinates).setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`<div style=\"padding: 8px;\"><h3 style=\"font-weight: bold; margin-bottom: 4px;\">${day.accommodation.name}</h3><p style=\"font-size: 12px; color: #666; margin-bottom: 4px;\">${day.accommodation.type}</p><p style=\"font-size: 12px;\">${day.accommodation.why}</p></div>`)).addTo(map.current!);
         }
       });
       if (allCoordinates.length > 1) {
@@ -178,16 +187,12 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
       onItineraryUpdate(updatedItinerary);
       toast({ title: "Itinerary Updated", description: "Changes saved successfully!" });
     } catch (error: any) {
-      console.error('Error saving itinerary:', error);
       toast({ title: "Error", description: "Failed to save changes", variant: "destructive" });
     }
   };
 
   const handleSubmitSuggestions = async () => {
-    if (!editSuggestions.trim()) {
-      toast({ title: "No Suggestions", description: "Please enter your edit suggestions", variant: "destructive" });
-      return;
-    }
+    if (!editSuggestions.trim()) return;
     setIsUpdating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-itinerary", { body: { respondent_id: respondentId, edit_suggestions: editSuggestions } });
@@ -198,12 +203,16 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
       setEditSuggestions('');
       toast({ title: "Itinerary Updated", description: "Your suggestions have been applied!" });
     } catch (error: any) {
-      console.error('Error updating itinerary:', error);
       toast({ title: "Error", description: error.message || "Failed to update itinerary", variant: "destructive" });
     } finally {
       setIsUpdating(false);
     }
   };
+
+  // Derive destination name from itinerary title
+  const journeyLabel = localItinerary.title
+    ? `${respondentName}'s route — ${localItinerary.title}`
+    : `${respondentName}'s personalized journey`;
 
   return (
     <div className="space-y-6">
@@ -223,18 +232,10 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" />Journey Map</CardTitle>
-          <CardDescription>Your route through Azerbaijan</CardDescription>
+          <CardDescription>{journeyLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           <div ref={mapContainer} className="w-full h-[500px] rounded-lg" />
-          <div className="mt-4 flex gap-4 flex-wrap">
-            {Object.entries(elementColors).map(([element, color]) => (
-              <div key={element} className="flex items-center gap-2">
-                <div style={{ backgroundColor: color }} className="w-4 h-4 rounded-full border-2 border-white" />
-                <span className="text-sm capitalize">{element}</span>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
@@ -261,18 +262,22 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
                     </SortableContext>
                   </DndContext>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold flex items-center gap-2"><Hotel className="h-4 w-4" />Accommodation</h3>
-                  <div className="p-4 rounded-lg border border-border bg-muted/50">
-                    <h4 className="font-semibold">{day.accommodation.name}</h4>
-                    <Badge variant="outline" className="mt-1">{day.accommodation.type}</Badge>
-                    <p className="text-sm mt-2">{day.accommodation.why}</p>
+                {day.accommodation && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold flex items-center gap-2"><Hotel className="h-4 w-4" />Accommodation</h3>
+                    <div className="p-4 rounded-lg border border-border bg-muted/50">
+                      <h4 className="font-semibold">{day.accommodation.name}</h4>
+                      <Badge variant="outline" className="mt-1">{day.accommodation.type}</Badge>
+                      <p className="text-sm mt-2">{day.accommodation.why}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold flex items-center gap-2"><Utensils className="h-4 w-4" />Dining</h3>
-                  <div className="grid grid-cols-3 gap-3">{day.meals.map((meal, idx) => (<div key={idx} className="p-3 rounded-lg bg-muted/30 text-sm">{meal}</div>))}</div>
-                </div>
+                )}
+                {day.meals && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold flex items-center gap-2"><Utensils className="h-4 w-4" />Dining</h3>
+                    <div className="grid grid-cols-3 gap-3">{day.meals.map((meal, idx) => (<div key={idx} className="p-3 rounded-lg bg-muted/30 text-sm">{meal}</div>))}</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -282,14 +287,14 @@ const ItineraryVisualization: React.FC<ItineraryVisualizationProps> = ({ itinera
         </TabsContent>
       </Tabs>
 
-      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5" />Psychological Design</CardTitle><CardDescription>How this journey supports your inner development</CardDescription></CardHeader><CardContent className="space-y-4"><div><h4 className="font-semibold mb-2">Transformation Arc</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.transformation_arc}</p></div><div><h4 className="font-semibold mb-2">Growth Opportunities</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.growth_opportunities}</p></div><div><h4 className="font-semibold mb-2">Comfort Balance</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights.comfort_balance}</p></div></CardContent></Card>
-      <Card><CardHeader><CardTitle>Practical Information</CardTitle></CardHeader><CardContent className="space-y-3"><div><h4 className="font-semibold text-sm mb-1">Dietary Accommodations</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes.dietary_accommodations}</p></div><div><h4 className="font-semibold text-sm mb-1">Pacing</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes.pacing}</p></div><div><h4 className="font-semibold text-sm mb-1">Flexibility</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes.flexibility}</p></div><div><h4 className="font-semibold text-sm mb-1">Companion Considerations</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes.companion_considerations}</p></div></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5" />Psychological Design</CardTitle></CardHeader><CardContent className="space-y-4"><div><h4 className="font-semibold mb-2">Transformation Arc</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights?.transformation_arc}</p></div><div><h4 className="font-semibold mb-2">Growth Opportunities</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights?.growth_opportunities}</p></div><div><h4 className="font-semibold mb-2">Comfort Balance</h4><p className="text-sm text-muted-foreground">{localItinerary.psychological_insights?.comfort_balance}</p></div></CardContent></Card>
+      <Card><CardHeader><CardTitle>Practical Information</CardTitle></CardHeader><CardContent className="space-y-3"><div><h4 className="font-semibold text-sm mb-1">Dietary Accommodations</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes?.dietary_accommodations}</p></div><div><h4 className="font-semibold text-sm mb-1">Pacing</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes?.pacing}</p></div><div><h4 className="font-semibold text-sm mb-1">Flexibility</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes?.flexibility}</p></div><div><h4 className="font-semibold text-sm mb-1">Companion Considerations</h4><p className="text-sm text-muted-foreground">{localItinerary.practical_notes?.companion_considerations}</p></div></CardContent></Card>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Edit Itinerary</DialogTitle><DialogDescription>Provide specific suggestions or changes you'd like to make to this itinerary. Our AI will update the itinerary while maintaining psychological alignment.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Itinerary</DialogTitle><DialogDescription>Provide suggestions to update this itinerary while maintaining psychological alignment.</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <Textarea placeholder="E.g., Add more time at the mud volcanoes, include a cooking class in Baku, reduce walking on Day 3..." value={editSuggestions} onChange={(e) => setEditSuggestions(e.target.value)} rows={8} className="resize-none" />
+            <Textarea placeholder="E.g., Add more time for cultural experiences, include a cooking class..." value={editSuggestions} onChange={(e) => setEditSuggestions(e.target.value)} rows={8} className="resize-none" />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => { setShowEditDialog(false); setEditSuggestions(''); }}>Cancel</Button>
               <Button onClick={handleSubmitSuggestions} disabled={isUpdating}><Send className="h-4 w-4 mr-2" />{isUpdating ? 'Updating...' : 'Apply Changes'}</Button>

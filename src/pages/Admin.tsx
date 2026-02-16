@@ -936,17 +936,9 @@ const Admin = () => {
                                     <FileJson className="h-4 w-4 mr-1" />
                                     Download
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => computeSoulPrint(respondent.id)}
-                                    disabled={computingId === respondent.id}
-                                  >
-                                    <Brain className="h-4 w-4 mr-1" />
-                                    {computingId === respondent.id
-                                      ? "Computing..."
-                                      : "Compute"}
-                                  </Button>
+                                  {!respondent.computed_scores?.length && (
+                                    <Badge variant="secondary" className="text-xs">Auto-computing...</Badge>
+                                  )}
                                   {respondent.computed_scores?.length > 0 && (
                                     <>
                                       <Button
@@ -1001,7 +993,7 @@ const Admin = () => {
                                     <div className="flex-1">
                                       <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                                         <MapPin className="h-4 w-4" />
-                                        {itineraryData.title || "Azerbaijan Journey"}
+                                        {itineraryData.title || "Personalized Journey"}
                                       </h4>
                                       <p className="text-xs text-muted-foreground mb-2">
                                         {itineraryData.duration || "7 days"} • {itineraryData.days?.length || 7} locations
@@ -1244,7 +1236,7 @@ const Admin = () => {
                 {selectedItinerary?.respondentName}'s Personalized Itinerary
               </DialogTitle>
               <DialogDescription>
-                7-day psychologically-aligned journey through Azerbaijan
+                Personalized psychologically-aligned journey
               </DialogDescription>
             </DialogHeader>
             {selectedItinerary && (

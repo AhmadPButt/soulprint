@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Copy, Archive, Search, MapPin, Plane, PoundSterling, Globe } from "lucide-react";
+import { Plus, Pencil, Copy, Archive, Search, MapPin, Plane, PoundSterling, Globe, CheckCircle, Upload, Image } from "lucide-react";
 
 interface Destination {
   id: string;
@@ -59,7 +59,7 @@ const TIERS = ["verified", "curated", "manual"];
 
 const tierColor = (tier: string | null) => {
   switch (tier) {
-    case "verified": return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+    case "verified": return "bg-purple-500/20 text-purple-400 border-purple-500/30";
     case "curated": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
     case "manual": return "bg-amber-500/20 text-amber-400 border-amber-500/30";
     default: return "";
@@ -327,7 +327,7 @@ export function DestinationsTab() {
                           <h3 className="font-semibold">{d.name}</h3>
                           <span className="text-sm text-muted-foreground">{d.country}</span>
                           <Badge variant="outline">{d.region}</Badge>
-                          <Badge className={tierColor(d.tier)}>{d.tier}</Badge>
+                          {d.tier === "verified" ? <CheckCircle className="h-4 w-4 text-purple-400" /> : <Badge className={tierColor(d.tier)}>{d.tier}</Badge>}
                           {!d.is_active && <Badge variant="secondary">Archived</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{d.short_description}</p>
@@ -417,9 +417,20 @@ export function DestinationsTab() {
               <div className="space-y-1"><Label>Short Description</Label><Input value={form.short_description ?? ""} onChange={e => setField("short_description", e.target.value)} placeholder="One sentence for card displays" /></div>
               <div className="space-y-1"><Label>Full Description</Label><Textarea rows={4} value={form.description ?? ""} onChange={e => setField("description", e.target.value)} /></div>
               <div className="space-y-1"><Label>Highlights (comma-separated)</Label><Input value={highlightsText} onChange={e => setHighlightsText(e.target.value)} placeholder="Pristine beaches, Wine tasting, Hiking" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1"><Label>Image URL</Label><Input value={form.image_url ?? ""} onChange={e => setField("image_url", e.target.value)} /></div>
-                <div className="space-y-1"><Label>Image Credit</Label><Input value={form.image_credit ?? ""} onChange={e => setField("image_credit", e.target.value)} /></div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1"><Label>Image URL</Label><Input value={form.image_url ?? ""} onChange={e => setField("image_url", e.target.value)} placeholder="https://example.com/image.jpg" /></div>
+                  <div className="space-y-1"><Label>Image Credit</Label><Input value={form.image_credit ?? ""} onChange={e => setField("image_credit", e.target.value)} /></div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  <Image className="h-3 w-3 inline mr-1" />
+                  Recommended: 1200×800px minimum, 16:9 aspect ratio, JPEG/WebP format, max 2MB. High-resolution landscape photos work best for destination cards and itinerary headers.
+                </p>
+                {form.image_url && (
+                  <div className="border rounded-lg overflow-hidden max-h-40">
+                    <img src={form.image_url} alt="Preview" className="w-full h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                )}
               </div>
             </div>
 
