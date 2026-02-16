@@ -57,7 +57,7 @@ const TermsDialog = ({ open, onAccept, onCancel }: TermsDialogProps) => {
                 <ul className="text-sm space-y-2 mb-4">
                   <li>"Application" or "SoulPrint" means the Erranza SoulPrint psychological assessment tool, including all associated software, content, and services.</li>
                   <li>"Company", "we", "us", or "our" means ERRANZA LTD, a company registered in England and Wales (Company Number: 16505564).</li>
-                  <li>"Expedition" means any travel experience organised by Erranza, including but not limited to the Azerbaijan expedition programme.</li>
+                  <li>"Expedition" means any travel experience organised by Erranza, including all curated travel programmes and bespoke journeys.</li>
                   <li>"SoulPrint Profile" means the psychological profile, scores, insights, and narratives generated from your questionnaire responses.</li>
                   <li>"User", "you", or "your" means any individual who accesses or uses the Application.</li>
                 </ul>
@@ -171,7 +171,7 @@ const TermsDialog = ({ open, onAccept, onCancel }: TermsDialogProps) => {
 
                 <h3 className="text-base font-semibold mt-6 mb-3">1. Introduction</h3>
                 <p className="text-sm mb-2">Erranza Ltd ("Erranza", "we", "us", or "our") is committed to protecting your privacy and ensuring the security of your personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our SoulPrint psychological assessment application ("SoulPrint" or the "Application").</p>
-                <p className="text-sm mb-2">SoulPrint is a proprietary psychological profiling tool designed to create personalised travel experiences for our Azerbaijan expedition programmes. By completing the SoulPrint questionnaire, you help us understand your personality traits, travel preferences, and emotional needs so we can craft a journey tailored specifically to you.</p>
+                <p className="text-sm mb-2">SoulPrint is a proprietary psychological profiling tool designed to create personalised travel experiences across our curated global destinations. By completing the SoulPrint questionnaire, you help us understand your personality traits, travel preferences, and emotional needs so we can craft a journey tailored specifically to you.</p>
                 <p className="text-sm mb-4">This Privacy Policy is designed to comply with the UK General Data Protection Regulation (UK GDPR), the EU General Data Protection Regulation (EU GDPR), and other applicable data protection laws.</p>
 
                 <h3 className="text-base font-semibold mt-6 mb-3">2. Data Controller</h3>
@@ -208,7 +208,7 @@ const TermsDialog = ({ open, onAccept, onCancel }: TermsDialogProps) => {
                 <h4 className="text-sm font-semibold mt-4 mb-2">3.3 Narrative Data</h4>
                 <p className="text-sm mb-2">Free-text responses you provide describing:</p>
                 <ul className="text-sm space-y-1 mb-4">
-                  <li>• Your reasons for choosing Azerbaijan</li>
+                  <li>• Your reasons for choosing your destination</li>
                   <li>• What you hope to gain from the journey</li>
                 </ul>
 
@@ -249,7 +249,7 @@ const TermsDialog = ({ open, onAccept, onCancel }: TermsDialogProps) => {
                 <h4 className="text-sm font-semibold mt-4 mb-2">6.1 Primary Purposes</h4>
                 <ul className="text-sm space-y-1 mb-4">
                   <li>• Creating your personalised SoulPrint Profile</li>
-                  <li>• Designing bespoke Azerbaijan expedition experiences tailored to your personality and preferences</li>
+                  <li>• Designing bespoke travel experiences tailored to your personality and preferences</li>
                   <li>• Matching you with compatible travel companions and group dynamics</li>
                   <li>• Providing recommendations for activities, locations, and experiences</li>
                 </ul>

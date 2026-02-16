@@ -38,7 +38,7 @@ const TravelCostPanel: React.FC<TravelCostPanelProps> = ({ itinerary }) => {
         body: {
           type: 'hotels',
           params: {
-            location: 'Baku, Azerbaijan',
+            location: itinerary?.overview?.destination || 'London, UK',
             check_in_date: format(checkInDate, 'yyyy-MM-dd'),
             check_out_date: format(checkOutDate, 'yyyy-MM-dd'),
             adults: 1,
@@ -123,7 +123,7 @@ const TravelCostPanel: React.FC<TravelCostPanelProps> = ({ itinerary }) => {
             <Hotel className="h-5 w-5" />
             Hotel Options
           </CardTitle>
-          <CardDescription>Live hotel prices in Baku</CardDescription>
+          <CardDescription>Live hotel prices for your destination</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 mb-4">

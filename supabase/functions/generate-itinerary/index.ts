@@ -138,12 +138,11 @@ serve(async (req) => {
     }
 
     // Determine destination context
-    const destName = destination_name || 'Azerbaijan';
-    const destCountry = destination_country || 'Azerbaijan';
+    const destName = destination_name || 'your matched destination';
+    const destCountry = destination_country || '';
     const destDesc = destination_description || '';
     const destHighlights = destination_highlights || [];
     const numDays = duration_days || 7;
-    const isGlobalDest = !!destination_name && destination_name !== 'Azerbaijan';
 
     // Build comprehensive prompt for itinerary generation
     let userPrompt = edit_suggestions 
@@ -160,7 +159,7 @@ CRITICAL: Return the COMPLETE itinerary with ALL days. Only modify the specific 
 Original context:`
       : `Based on the following psychological profile and travel preferences, create a detailed ${numDays}-day personalized itinerary for ${destName}, ${destCountry}:`;
 
-    if (isGlobalDest && destDesc) {
+    if (destDesc) {
       userPrompt += `
 
 DESTINATION CONTEXT:
