@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { secret_key } = await req.json();
+    const { secret_key, admin_name, admin_email } = await req.json();
 
     if (!secret_key) {
       return new Response(JSON.stringify({ error: "Secret key is required" }), { status: 400, headers: corsHeaders });
@@ -65,6 +65,13 @@ Deno.serve(async (req) => {
     if (insertError) {
       console.error("Error inserting admin role:", insertError);
       return new Response(JSON.stringify({ error: "Failed to register admin" }), { status: 500, headers: corsHeaders });
+    }
+
+    // Update user metadata with admin name/email if provided
+    if (admin_name || admin_email) {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: { admin_name: admin_name || "", admin_email: admin_email || "" }
+      });
     }
 
     return new Response(JSON.stringify({ message: "Admin role granted successfully" }), { headers: corsHeaders });

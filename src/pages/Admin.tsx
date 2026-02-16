@@ -77,6 +77,8 @@ const Admin = () => {
   const [expandedTraveler, setExpandedTraveler] = useState<string | null>(null);
   const [secretKey, setSecretKey] = useState("");
   const [registering, setRegistering] = useState(false);
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
 
   // Check if current user has admin role
   useEffect(() => {
@@ -571,18 +573,22 @@ const Admin = () => {
   }
 
 
+
+
   const handleAdminRegister = async () => {
-    if (!secretKey.trim()) return;
+    if (!secretKey.trim() || !adminName.trim() || !adminEmail.trim()) return;
     setRegistering(true);
     try {
       const { data, error } = await supabase.functions.invoke("register-admin", {
-        body: { secret_key: secretKey },
+        body: { secret_key: secretKey, admin_name: adminName, admin_email: adminEmail },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast({ title: "Success!", description: data.message || "Admin role granted." });
       setIsAuthenticated(true);
       setSecretKey("");
+      setAdminName("");
+      setAdminEmail("");
     } catch (err: any) {
       toast({ title: "Access Denied", description: err.message || "Invalid secret key", variant: "destructive" });
     } finally {
@@ -596,9 +602,28 @@ const Admin = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Admin Access</CardTitle>
-            <CardDescription>Sign in and enter the admin secret key to gain access.</CardDescription>
+            <CardDescription>Enter your details and admin secret key to gain access.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-name">Your Name</Label>
+              <Input
+                id="admin-name"
+                placeholder="Enter your full name"
+                value={adminName}
+                onChange={(e) => setAdminName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-email">Your Email</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                placeholder="Enter your email address"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="secret-key">Admin Secret Key</Label>
               <Input
@@ -613,7 +638,7 @@ const Admin = () => {
                 This key is provided to authorized administrators only.
               </p>
             </div>
-            <Button onClick={handleAdminRegister} className="w-full" disabled={registering || !secretKey.trim()}>
+            <Button onClick={handleAdminRegister} className="w-full" disabled={registering || !secretKey.trim() || !adminName.trim() || !adminEmail.trim()}>
               {registering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
               Register as Admin
             </Button>
@@ -646,9 +671,12 @@ const Admin = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-heading font-bold mb-2">SoulPrint Analytics Dashboard</h1>
-              <p className="text-muted-foreground">Monitor completion and dropoff rates</p>
+            <div className="flex items-center gap-3">
+              <Fingerprint className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-heading font-bold mb-1">Erranza Panel</h1>
+                <p className="text-muted-foreground">Admin management &amp; analytics</p>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => exportToCSV()}>
@@ -666,6 +694,40 @@ const Admin = () => {
             </div>
           </div>
         </div>
+
+        {/* Admin Trip Phase Navigation */}
+        <Card className="mb-8">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Trip Phase Preview (Admin)</h3>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => navigate("/trips")}>
+                <MapPin className="h-4 w-4 mr-2" />
+                Pre-Trip (My Trips)
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => {
+                // Navigate to first available trip for in-trip view
+                if (respondents.length > 0) {
+                  supabase.from("trips").select("id").limit(1).then(({ data }) => {
+                    if (data?.[0]) navigate(`/trips/${data[0].id}`);
+                    else toast({ title: "No trips found", description: "Create a trip first to preview in-trip features.", variant: "destructive" });
+                  });
+                }
+              }}>
+                <Clock className="h-4 w-4 mr-2" />
+                In-Trip View
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => {
+                supabase.from("trips").select("id").limit(1).then(({ data }) => {
+                  if (data?.[0]) navigate(`/trips/${data[0].id}`);
+                  else toast({ title: "No trips found", description: "Create a trip first to preview post-trip features.", variant: "destructive" });
+                });
+              }}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Post-Trip View
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {analytics && (
           <>
@@ -719,7 +781,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-13">
+              <TabsList className="flex flex-wrap gap-1 h-auto p-1">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>

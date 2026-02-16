@@ -7,6 +7,7 @@ import { Shield, Loader2 } from "lucide-react";
 interface AdminUser {
   user_id: string;
   email: string;
+  name: string;
   created_at: string;
 }
 
@@ -27,18 +28,18 @@ export function AdminsTab() {
 
       if (error) throw error;
 
-      // Get emails from respondents table for each admin user
       const adminUsers: AdminUser[] = [];
       for (const role of roles || []) {
         const { data: respondent } = await supabase
           .from("respondents")
-          .select("email, created_at")
+          .select("email, name, created_at")
           .eq("user_id", role.user_id)
           .maybeSingle();
 
         adminUsers.push({
           user_id: role.user_id,
           email: respondent?.email || "Unknown",
+          name: respondent?.name || "Admin",
           created_at: respondent?.created_at || new Date().toISOString(),
         });
       }
@@ -81,10 +82,8 @@ export function AdminsTab() {
                   <Shield className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">{admin.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ID: {admin.user_id.substring(0, 8)}...
-                  </p>
+                  <p className="font-medium text-sm">{admin.name}</p>
+                  <p className="text-xs text-muted-foreground">{admin.email}</p>
                 </div>
               </div>
               <Badge className="bg-primary/20 text-primary">Admin</Badge>
