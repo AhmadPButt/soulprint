@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
-  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench, Heart, Trash2, AlertTriangle
+  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench, Heart, Trash2, AlertTriangle,
+  Download, RefreshCw, XCircle, PoundSterling
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +24,7 @@ import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuatio
 import { MoodInsights } from "@/components/trip/MoodInsights";
 import { TripReflection } from "@/components/trip/TripReflection";
 import { AIChatWidget } from "@/components/trip/AIChatWidget";
+import jsPDF from "jspdf";
 
 interface TripMember {
   id: string;
@@ -222,6 +224,79 @@ export default function TripDetail() {
     }
   };
 
+  const handleExportPDF = () => {
+    if (!itinerary) return;
+    const doc = new jsPDF();
+    let y = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+
+    const addText = (text: string, size: number, bold = false) => {
+      doc.setFontSize(size);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      const lines = doc.splitTextToSize(text, maxWidth);
+      for (const line of lines) {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(line, margin, y);
+        y += size * 0.5;
+      }
+      y += 4;
+    };
+
+    addText(itinerary.title || trip.trip_name, 18, true);
+    if (destination) addText(`${destination.name}, ${destination.country}`, 12);
+    if (itinerary.overview) { y += 2; addText(itinerary.overview, 10); }
+    y += 4;
+
+    itinerary.days?.forEach((day: any) => {
+      addText(`Day ${day.day}: ${day.title || day.theme || ""}`, 14, true);
+      for (const slot of ["morning", "afternoon", "evening"]) {
+        const s = day[slot];
+        if (!s) continue;
+        const cost = s.estimated_cost_gbp ? ` (£${s.estimated_cost_gbp})` : "";
+        addText(`${slot.charAt(0).toUpperCase() + slot.slice(1)} — ${s.time || ""}${cost}`, 10, true);
+        addText(s.activity, 10);
+        if (s.why_it_fits) addText(`  → ${s.why_it_fits}`, 9);
+      }
+      if (day.accommodation) {
+        const accCost = day.accommodation.estimated_cost_gbp ? ` (£${day.accommodation.estimated_cost_gbp}/night)` : "";
+        addText(`Accommodation: ${day.accommodation.name}${accCost}`, 10, true);
+      }
+      if (day.daily_total_gbp) addText(`Day total: £${day.daily_total_gbp}`, 10, true);
+      y += 6;
+    });
+
+    if (itinerary.total_estimated_cost) {
+      addText(`Total Estimated Cost: £${itinerary.total_estimated_cost}`, 14, true);
+    }
+
+    doc.save(`${trip.trip_name.replace(/\s+/g, "_")}_itinerary.pdf`);
+    toast({ title: "PDF downloaded" });
+  };
+
+  const handleResendInvitation = async (memberId: string, email: string) => {
+    try {
+      await supabase.functions.invoke("send-trip-invitation", {
+        body: { trip_id: tripId, email, trip_name: trip.trip_name },
+      });
+      toast({ title: `Invitation resent to ${email}` });
+    } catch (err: any) {
+      toast({ title: "Failed to resend", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleCancelInvitation = async (memberId: string) => {
+    try {
+      const { error } = await supabase.from("trip_members").delete().eq("id", memberId);
+      if (error) throw error;
+      setMembers(members.filter(m => m.id !== memberId));
+      toast({ title: "Invitation cancelled" });
+    } catch (err: any) {
+      toast({ title: "Failed to cancel", description: err.message, variant: "destructive" });
+    }
+  };
+
   const nextStatuses = statusFlow[trip.status] || [];
 
   return (
@@ -378,6 +453,29 @@ export default function TripDetail() {
                         <><Clock className="h-3 w-3 mr-1" /> Pending</>
                       )}
                     </Badge>
+                    {/* Resend / Cancel for pending invitations */}
+                    {member.invitation_status === "pending" && trip.created_by === userId && (
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Resend invitation"
+                          onClick={() => handleResendInvitation(member.id, member.email)}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="Cancel invitation"
+                          onClick={() => handleCancelInvitation(member.id)}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -389,8 +487,18 @@ export default function TripDetail() {
             {itinerary ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>{itinerary.title || "Your Itinerary"}</CardTitle>
-                  {itinerary.overview && <CardDescription>{itinerary.overview}</CardDescription>}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>{itinerary.title || "Your Itinerary"}</CardTitle>
+                      {itinerary.overview && <CardDescription>{itinerary.overview}</CardDescription>}
+                    </div>
+                    {itinerary.total_estimated_cost && (
+                      <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1">
+                        <PoundSterling className="h-3.5 w-3.5" />
+                        {itinerary.total_estimated_cost.toLocaleString()} total
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {itinerary.days?.map((day: any) => (
@@ -399,11 +507,16 @@ export default function TripDetail() {
                         onClick={() => toggleDay(day.day)}
                         className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
                       >
-                        <div>
+                        <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-primary">Day {day.day}</span>
-                          <span className="text-sm text-foreground ml-2">{day.title || day.theme || ""}</span>
+                          <span className="text-sm text-foreground">{day.title || day.theme || ""}</span>
                         </div>
-                        {expandedDays[day.day] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <div className="flex items-center gap-2">
+                          {day.daily_total_gbp && (
+                            <span className="text-xs text-muted-foreground">£{day.daily_total_gbp}</span>
+                          )}
+                          {expandedDays[day.day] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </div>
                       </button>
                       {expandedDays[day.day] && (
                         <div className="px-4 pb-4 space-y-3 border-t border-border/30">
@@ -412,7 +525,12 @@ export default function TripDetail() {
                             if (!s) return null;
                             return (
                               <div key={slot} className="pl-4 border-l-2 border-primary/20 py-2">
-                                <p className="text-xs text-muted-foreground uppercase">{slot} — {s.time || ""}</p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-muted-foreground uppercase">{slot} — {s.time || ""}</p>
+                                  {s.estimated_cost_gbp && (
+                                    <span className="text-xs font-medium text-muted-foreground">£{s.estimated_cost_gbp}</span>
+                                  )}
+                                </div>
                                 <p className="font-medium text-sm">{s.activity}</p>
                                 {s.why_it_fits && <p className="text-xs text-primary/70 mt-1 italic">{s.why_it_fits}</p>}
                               </div>
@@ -425,6 +543,9 @@ export default function TripDetail() {
                   <div className="flex gap-3 pt-4">
                     <Button onClick={() => setShowCalendly(true)} className="flex-1">
                       <Phone className="h-4 w-4 mr-2" /> Book Now
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPDF}>
+                      <Download className="h-4 w-4 mr-2" /> PDF
                     </Button>
                     <Button variant="outline" onClick={handleGenerateItinerary} disabled={generating}>
                       {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
