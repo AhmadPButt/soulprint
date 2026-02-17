@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
-  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench, Heart
+  Mail, Check, Clock, Sparkles, Phone, FileText, ChevronDown, ChevronUp, Wrench, Heart, Trash2, AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { BookingsSection } from "@/components/trip/BookingsSection";
 import { DocumentsSection } from "@/components/trip/DocumentsSection";
 import { DestinationInfoSection } from "@/components/trip/DestinationInfoSection";
@@ -181,6 +183,47 @@ export default function TripDetail() {
   const showUtilities = isAdmin || trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
   const showMoodTab = isAdmin || trip.status === "in_progress" || trip.status === "completed";
 
+  const statusFlow: Record<string, string[]> = {
+    planning: ["booked"],
+    booked: ["in_progress", "planning"],
+    in_progress: ["completed", "booked"],
+    completed: [],
+  };
+
+  const statusLabels: Record<string, string> = {
+    planning: "Planning",
+    booked: "Booked",
+    in_progress: "In Progress",
+    completed: "Completed",
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("trips")
+        .update({ status: newStatus })
+        .eq("id", tripId!);
+      if (error) throw error;
+      setTrip({ ...trip, status: newStatus });
+      toast({ title: `Trip status updated to ${statusLabels[newStatus]}` });
+    } catch (err: any) {
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTrip = async () => {
+    try {
+      const { error } = await supabase.from("trips").delete().eq("id", tripId!);
+      if (error) throw error;
+      toast({ title: "Trip deleted" });
+      navigate("/trips");
+    } catch (err: any) {
+      toast({ title: "Failed to delete trip", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const nextStatuses = statusFlow[trip.status] || [];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-8">
@@ -190,14 +233,58 @@ export default function TripDetail() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
               <Badge className={statusColors[trip.status] || ""}>{trip.status.replace("_", " ")}</Badge>
+              
+              {/* Status Transition */}
+              {nextStatuses.length > 0 && trip.created_by === userId && (
+                <Select onValueChange={handleStatusChange}>
+                  <SelectTrigger className="w-auto h-8 text-xs gap-1.5">
+                    <SelectValue placeholder="Change status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {nextStatuses.map(s => (
+                      <SelectItem key={s} value={s}>
+                        Move to {statusLabels[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             {destination && (
               <p className="text-muted-foreground">{destination.name}, {destination.country}</p>
             )}
           </div>
+          
+          {/* Delete Trip */}
+          {trip.created_by === userId && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Delete Trip
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete "{trip.trip_name}" and all associated bookings, documents, and member invitations. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteTrip} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Trip
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {/* Tabs */}

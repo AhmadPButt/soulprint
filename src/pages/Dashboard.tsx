@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, Lock, GitCompare, Heart } from "lucide-react";
+import { Loader2, LogOut, Users, Copy, Plane, Compass, Home, UserCircle, Fingerprint, BadgeCheck, MapPin, Sparkles, Briefcase, GitCompare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
@@ -36,9 +36,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { NavLink } from "@/components/NavLink";
 
 interface RespondentData {
   id: string;
@@ -85,6 +83,16 @@ interface GroupMember {
   };
 }
 
+interface ActiveTrip {
+  id: string;
+  trip_name: string;
+  status: string;
+  destination_id: string | null;
+  respondent_id: string | null;
+  itinerary_id: string | null;
+  destination?: { id: string; name: string; country: string } | null;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -102,9 +110,20 @@ export default function Dashboard() {
   const [joinCode, setJoinCode] = useState("");
   const [destinationMatches, setDestinationMatches] = useState<any[]>([]);
   const [currentView, setCurrentView] = useState<string>("pre-trip");
+  const [userId, setUserId] = useState<string>("");
+
+  // Active trips for in-trip / post-trip views
+  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const [completedTrip, setCompletedTrip] = useState<ActiveTrip | null>(null);
+  const [tripBookings, setTripBookings] = useState<any[]>([]);
+  const [tripDocuments, setTripDocuments] = useState<any[]>([]);
 
   // Admin mode: ?admin=true query param unlocks all sections
   const isAdminMode = searchParams.get("admin") === "true";
+
+  // Determine access based on actual trip status or admin mode
+  const canAccessInTrip = isAdminMode || !!activeTrip;
+  const canAccessPostTrip = isAdminMode || !!completedTrip;
 
   useEffect(() => {
     checkAuth();
@@ -120,6 +139,7 @@ export default function Dashboard() {
         return;
       }
 
+      setUserId(session.user.id);
       await loadUserData(session.user.id);
     } catch (error) {
       console.error("Auth check error:", error);
@@ -127,12 +147,12 @@ export default function Dashboard() {
     }
   };
 
-  const loadUserData = async (userId: string) => {
+  const loadUserData = async (uid: string) => {
     try {
       const { data: respondentData, error: respondentError } = await supabase
         .from("respondents")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", uid)
         .single();
 
       if (respondentError && respondentError.code !== 'PGRST116') throw respondentError;
@@ -143,74 +163,67 @@ export default function Dashboard() {
 
       setRespondent(respondentData);
 
-      const { data: computedData } = await supabase
-        .from("computed_scores")
-        .select("*")
-        .eq("respondent_id", respondentData.id)
-        .single();
+      // Load all data in parallel
+      const [computedRes, narrativeRes, itineraryRes, memberRes, matchesRes, tripsRes] = await Promise.all([
+        supabase.from("computed_scores").select("*").eq("respondent_id", respondentData.id).single(),
+        supabase.from("narrative_insights").select("*").eq("respondent_id", respondentData.id).single(),
+        supabase.from("itineraries").select("*").eq("respondent_id", respondentData.id).single(),
+        supabase.from("group_members").select("group_id").eq("respondent_id", respondentData.id).single(),
+        supabase.from("destination_matches").select(`*, destination:echoprint_destinations(*)`).eq("respondent_id", respondentData.id).order("rank", { ascending: true }).limit(3),
+        supabase.from("trips").select("*, destination:echoprint_destinations(id, name, country)").eq("created_by", uid).order("updated_at", { ascending: false }),
+      ]);
 
-      setComputed(computedData);
+      setComputed(computedRes.data);
+      setNarrative(narrativeRes.data);
+      setItinerary(itineraryRes.data);
+      setDestinationMatches(matchesRes.data || []);
 
-      const { data: narrativeData } = await supabase
-        .from("narrative_insights")
-        .select("*")
-        .eq("respondent_id", respondentData.id)
-        .single();
-
-      setNarrative(narrativeData);
-
-      const { data: itineraryData } = await supabase
-        .from("itineraries")
-        .select("*")
-        .eq("respondent_id", respondentData.id)
-        .single();
-
-      setItinerary(itineraryData);
-
-      const { data: memberData } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("respondent_id", respondentData.id)
-        .single();
-
-      if (memberData) {
-        const { data: groupData } = await supabase
-          .from("groups")
-          .select("*")
-          .eq("id", memberData.group_id)
-          .single();
-
-        setGroup(groupData);
-
-        const { data: membersData } = await supabase
-          .from("group_members")
-          .select(`id, respondent_id, respondents (name, email)`)
-          .eq("group_id", memberData.group_id);
-
-        setGroupMembers(membersData || []);
-
-        const { data: groupItinData } = await supabase
-          .from("group_itineraries")
-          .select("*")
-          .eq("group_id", memberData.group_id)
-          .single();
-
-        setGroupItinerary(groupItinData);
+      // Find active (in_progress) and completed trips
+      const allTrips = tripsRes.data || [];
+      const inProgressTrip = allTrips.find((t: any) => t.status === "in_progress");
+      const completedTrips = allTrips.find((t: any) => t.status === "completed");
+      
+      if (inProgressTrip) {
+        setActiveTrip(inProgressTrip);
+        // Load trip utilities data
+        const [bookingsRes, docsRes] = await Promise.all([
+          supabase.from("trip_bookings").select("*").eq("trip_id", inProgressTrip.id).order("booking_date"),
+          supabase.from("trip_documents").select("*").eq("trip_id", inProgressTrip.id).order("uploaded_at", { ascending: false }),
+        ]);
+        setTripBookings(bookingsRes.data || []);
+        setTripDocuments(docsRes.data || []);
+      }
+      if (completedTrips) {
+        setCompletedTrip(completedTrips);
       }
 
-      const { data: matchesData } = await supabase
-        .from("destination_matches")
-        .select(`*, destination:echoprint_destinations(*)`)
-        .eq("respondent_id", respondentData.id)
-        .order("rank", { ascending: true })
-        .limit(3);
-
-      setDestinationMatches(matchesData || []);
+      // Load group data
+      if (memberRes.data) {
+        const [groupRes, membersRes, groupItinRes] = await Promise.all([
+          supabase.from("groups").select("*").eq("id", memberRes.data.group_id).single(),
+          supabase.from("group_members").select(`id, respondent_id, respondents (name, email)`).eq("group_id", memberRes.data.group_id),
+          supabase.from("group_itineraries").select("*").eq("group_id", memberRes.data.group_id).single(),
+        ]);
+        setGroup(groupRes.data);
+        setGroupMembers(membersRes.data || []);
+        setGroupItinerary(groupItinRes.data);
+      }
     } catch (error) {
       console.error("Error loading user data:", error);
       toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reloadTripData = async () => {
+    if (activeTrip) {
+      const [bookingsRes, docsRes] = await Promise.all([
+        supabase.from("trip_bookings").select("*").eq("trip_id", activeTrip.id).order("booking_date"),
+        supabase.from("trip_documents").select("*").eq("trip_id", activeTrip.id).order("uploaded_at", { ascending: false }),
+      ]);
+      setTripBookings(bookingsRes.data || []);
+      setTripDocuments(docsRes.data || []);
     }
   };
 
@@ -251,9 +264,7 @@ export default function Dashboard() {
       setCreateGroupOpen(false);
       toast.success("Group created! Share the join code with your travel companions.");
       
-      if (respondent.id) {
-        await loadUserData((await supabase.auth.getSession()).data.session!.user.id);
-      }
+      if (userId) await loadUserData(userId);
     } catch (error) {
       console.error("Error creating group:", error);
       toast.error("Failed to create group");
@@ -298,9 +309,7 @@ export default function Dashboard() {
       setJoinGroupOpen(false);
       toast.success("Successfully joined the group!");
       
-      if (respondent.id) {
-        await loadUserData((await supabase.auth.getSession()).data.session!.user.id);
-      }
+      if (userId) await loadUserData(userId);
     } catch (error) {
       console.error("Error joining group:", error);
       toast.error("Failed to join group. Please check the code and try again.");
@@ -325,9 +334,7 @@ export default function Dashboard() {
   const showGroupSection = respondent?.raw_responses?.travel_companion === "friends" || 
                           respondent?.raw_responses?.travel_companion === "group";
 
-  // In-trip and post-trip are locked unless admin mode
-  const canAccessInTrip = isAdminMode;
-  const canAccessPostTrip = isAdminMode;
+  const currentTripForView = currentView === "in-trip" ? activeTrip : completedTrip;
 
   const DashboardSidebar = () => (
     <Sidebar className="border-r">
@@ -358,6 +365,9 @@ export default function Dashboard() {
                 >
                   <Compass className="mr-2 h-4 w-4" />
                   <span>In-Trip {!canAccessInTrip && "🔒"}</span>
+                  {activeTrip && !isAdminMode && (
+                    <Badge className="ml-auto text-[10px] px-1 py-0 bg-amber-500/20 text-amber-400 border-amber-500/30">Live</Badge>
+                  )}
                   {isAdminMode && <Badge className="ml-auto text-[10px] px-1 py-0 bg-primary/20 text-primary border-primary/30">Admin</Badge>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -382,6 +392,29 @@ export default function Dashboard() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Show active trip info in sidebar */}
+        {activeTrip && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Active Trip</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-3 py-2 space-y-1">
+                <p className="text-sm font-medium truncate">{activeTrip.trip_name}</p>
+                {activeTrip.destination && (
+                  <p className="text-xs text-muted-foreground">{activeTrip.destination.name}, {activeTrip.destination.country}</p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2 text-xs"
+                  onClick={() => navigate(`/trips/${activeTrip.id}`)}
+                >
+                  View Trip Details
+                </Button>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isAdminMode && (
           <SidebarGroup>
@@ -623,7 +656,21 @@ export default function Dashboard() {
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">In-Trip Experience</h2>
                   <p className="text-muted-foreground">Track your journey, log moods, and access trip utilities</p>
-                  {isAdminMode && <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode</Badge>}
+                  {activeTrip && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                        {activeTrip.trip_name}
+                      </Badge>
+                      {activeTrip.destination && (
+                        <span className="text-sm text-muted-foreground">
+                          {activeTrip.destination.name}, {activeTrip.destination.country}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isAdminMode && !activeTrip && (
+                    <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode — No active trip</Badge>
+                  )}
                 </div>
 
                 <Tabs defaultValue="mood" className="space-y-4">
@@ -634,15 +681,32 @@ export default function Dashboard() {
                   </TabsList>
 
                   <TabsContent value="mood" className="space-y-6">
-                    <MoodLogger respondentId={respondent.id} />
+                    <MoodLogger
+                      respondentId={respondent.id}
+                      tripId={activeTrip?.id}
+                      destinationName={activeTrip?.destination?.name}
+                    />
                     <EmotionalFluctuationGraph respondentId={respondent.id} />
                     <MoodInsights respondentId={respondent.id} />
                   </TabsContent>
 
                   <TabsContent value="utilities" className="space-y-6">
-                    <DocumentsSection tripId="" documents={[]} userId="" onReload={() => {}} />
-                    <DestinationInfoSection destinationId="" destinationName="" />
-                    <BookingsSection tripId="" bookings={[]} onReload={() => {}} />
+                    {activeTrip ? (
+                      <>
+                        <BookingsSection tripId={activeTrip.id} bookings={tripBookings} onReload={reloadTripData} />
+                        <DocumentsSection tripId={activeTrip.id} documents={tripDocuments} userId={userId} onReload={reloadTripData} />
+                        {activeTrip.destination && (
+                          <DestinationInfoSection destinationId={activeTrip.destination.id} destinationName={activeTrip.destination.name} />
+                        )}
+                      </>
+                    ) : (
+                      <Card className="p-8 text-center">
+                        <p className="text-muted-foreground">No active trip. Start a trip from the My Trips page to access utilities.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => navigate("/trips")}>
+                          <Briefcase className="h-4 w-4 mr-2" /> Go to My Trips
+                        </Button>
+                      </Card>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="discussion" className="space-y-6">
@@ -658,10 +722,27 @@ export default function Dashboard() {
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">Post-Trip Reflection</h2>
                   <p className="text-muted-foreground">Reflect on your journey and share your experience</p>
-                  {isAdminMode && <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode</Badge>}
+                  {completedTrip && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge className="bg-muted text-muted-foreground border-border">
+                        {completedTrip.trip_name}
+                      </Badge>
+                      {completedTrip.destination && (
+                        <span className="text-sm text-muted-foreground">
+                          {completedTrip.destination.name}, {completedTrip.destination.country}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isAdminMode && !completedTrip && (
+                    <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode — No completed trip</Badge>
+                  )}
                 </div>
 
-                <TripReflection respondentId={respondent.id} />
+                <TripReflection
+                  respondentId={respondent.id}
+                  tripId={completedTrip?.id}
+                />
               </div>
             )}
           </main>
