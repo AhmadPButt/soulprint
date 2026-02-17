@@ -624,25 +624,38 @@ const Q5Timeline = ({ data, updateData }: QProps) => (
     </div>
     <AnimatePresence>
       {data.timeline === "specific_dates" && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Start date</label>
-            <Input
-              type="date"
-              value={data.travel_dates?.start || ""}
-              onChange={(e) => updateData({ travel_dates: { ...data.travel_dates, start: e.target.value } as any })}
-              className="h-12"
-            />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">Start date</label>
+              <Input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                value={data.travel_dates?.start || ""}
+                onChange={(e) => {
+                  const start = e.target.value;
+                  const end = data.travel_dates?.end || "";
+                  // Clear end date if it's before the new start
+                  const validEnd = end && end < start ? "" : end;
+                  updateData({ travel_dates: { start, end: validEnd } as any });
+                }}
+                className="h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">End date</label>
+              <Input
+                type="date"
+                min={data.travel_dates?.start || new Date().toISOString().split("T")[0]}
+                value={data.travel_dates?.end || ""}
+                onChange={(e) => updateData({ travel_dates: { ...data.travel_dates, end: e.target.value } as any })}
+                className="h-12"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">End date</label>
-            <Input
-              type="date"
-              value={data.travel_dates?.end || ""}
-              onChange={(e) => updateData({ travel_dates: { ...data.travel_dates, end: e.target.value } as any })}
-              className="h-12"
-            />
-          </div>
+          {data.travel_dates?.start && data.travel_dates?.end && data.travel_dates.end < data.travel_dates.start && (
+            <p className="text-sm text-destructive">End date must be after start date</p>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

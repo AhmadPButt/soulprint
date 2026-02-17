@@ -1125,6 +1125,33 @@ export type Database = {
           },
         ]
       }
+      questionnaire_progress: {
+        Row: {
+          created_at: string
+          current_section: number
+          id: string
+          responses: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_section?: number
+          id?: string
+          responses?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_section?: number
+          id?: string
+          responses?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       questionnaire_variants: {
         Row: {
           created_at: string

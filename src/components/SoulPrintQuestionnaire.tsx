@@ -13,6 +13,7 @@ import ProgressSummaryModal from "./questionnaire/ProgressSummaryModal";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuestionnaireAnalytics } from "@/hooks/useQuestionnaireAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, RotateCcw, List } from "lucide-react";
 import {
   AlertDialog,
@@ -64,46 +65,80 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
 
   const CurrentComponent = sections[currentSection]?.component;
 
-  // Load saved progress on mount
+  // Load saved progress on mount — try server first, fall back to localStorage
   useEffect(() => {
-    const savedProgress = localStorage.getItem(STORAGE_KEY);
-    if (savedProgress && !hasRestoredProgress) {
+    if (hasRestoredProgress) return;
+    const loadProgress = async () => {
       try {
-        const { section, data, timestamp } = JSON.parse(savedProgress);
-        const hoursSinceLastSave = (Date.now() - timestamp) / (1000 * 60 * 60);
-        
-        // Only restore if saved within last 7 days
-        if (hoursSinceLastSave < 168) {
-          setCurrentSection(section);
-          setResponses(data);
+        // Try server-side progress first
+        const { data: serverProgress } = await supabase
+          .from("questionnaire_progress")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (serverProgress) {
+          setCurrentSection(serverProgress.current_section);
+          setResponses(serverProgress.responses as QuestionnaireData);
           setHasRestoredProgress(true);
-          
           toast({
             title: "Progress Restored",
-            description: `Continuing from Section ${section + 1}`,
+            description: `Continuing from Section ${serverProgress.current_section + 1}`,
             duration: 4000,
           });
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+
+        // Fall back to localStorage
+        const savedProgress = localStorage.getItem(STORAGE_KEY);
+        if (savedProgress) {
+          const { section, data, timestamp } = JSON.parse(savedProgress);
+          const hoursSinceLastSave = (Date.now() - timestamp) / (1000 * 60 * 60);
+          if (hoursSinceLastSave < 168) {
+            setCurrentSection(section);
+            setResponses(data);
+            setHasRestoredProgress(true);
+            toast({
+              title: "Progress Restored",
+              description: `Continuing from Section ${section + 1}`,
+              duration: 4000,
+            });
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+          }
         }
       } catch (error) {
         console.error("Failed to restore progress:", error);
-        localStorage.removeItem(STORAGE_KEY);
       }
-    }
-  }, [hasRestoredProgress, toast]);
+    };
+    loadProgress();
+  }, [hasRestoredProgress, toast, user.id]);
 
-  // Save progress to localStorage whenever responses or section changes
+  // Save progress to both localStorage and server
   useEffect(() => {
-    if (hasRestoredProgress || currentSection > 0 || Object.keys(responses).length > 0) {
-      const progressData = {
-        section: currentSection,
-        data: responses,
-        timestamp: Date.now(),
-      };
+    if (currentSection > 0 || Object.keys(responses).length > 0) {
+      // localStorage (instant)
+      const progressData = { section: currentSection, data: responses, timestamp: Date.now() };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
+
+      // Server-side (async, debounced by React batching)
+      const saveToServer = async () => {
+        try {
+          await supabase
+            .from("questionnaire_progress")
+            .upsert({
+              user_id: user.id,
+              current_section: currentSection,
+              responses: responses,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "user_id" });
+        } catch (err) {
+          console.error("Failed to save progress to server:", err);
+        }
+      };
+      saveToServer();
     }
-  }, [currentSection, responses, hasRestoredProgress]);
+  }, [currentSection, responses, user.id]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -139,6 +174,7 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
       setShowResults(true);
       // Clear saved progress when completing
       localStorage.removeItem(STORAGE_KEY);
+      supabase.from("questionnaire_progress").delete().eq("user_id", user.id).then(() => {});
     }
   };
 
@@ -156,6 +192,7 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
     setShowResults(false);
     setHasRestoredProgress(false);
     localStorage.removeItem(STORAGE_KEY);
+    supabase.from("questionnaire_progress").delete().eq("user_id", user.id).then(() => {});
     mainContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
