@@ -235,25 +235,30 @@ Return the itinerary in this JSON structure:
       "title": "Day title",
       "theme": "What this day represents psychologically",
       "morning": {
-        "activity": "Specific activity description",
+      "activity": "Specific activity description",
         "why_it_fits": "How this connects to their profile",
-        "time": "9:00 AM"
+        "time": "9:00 AM",
+        "estimated_cost_gbp": 50
       },
       "afternoon": {
         "activity": "Specific activity description",
         "why_it_fits": "How this connects to their profile",
-        "time": "2:00 PM"
+        "time": "2:00 PM",
+        "estimated_cost_gbp": 80
       },
       "evening": {
         "activity": "Specific activity description",
         "why_it_fits": "How this connects to their profile",
-        "time": "7:00 PM"
+        "time": "7:00 PM",
+        "estimated_cost_gbp": 120
       },
       "accommodation": {
         "name": "Hotel/guesthouse name",
         "type": "luxury/boutique/traditional",
-        "why": "Why this suits them"
+        "why": "Why this suits them",
+        "estimated_cost_gbp": 250
       },
+      "daily_total_gbp": 500,
       "meals": ["Breakfast suggestion", "Lunch suggestion", "Dinner experience"]
     }
   ],
