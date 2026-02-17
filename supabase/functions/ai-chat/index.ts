@@ -21,12 +21,21 @@ serve(async (req) => {
       );
     }
 
+    // Input length validation
+    const MAX_MESSAGE_LENGTH = 2000;
+    if (typeof user_message !== 'string' || user_message.length > MAX_MESSAGE_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Message must be a string under ${MAX_MESSAGE_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get auth user from request
+    // Get auth user from request and validate
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
     if (authHeader) {
@@ -36,6 +45,35 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       ).auth.getUser(token);
       userId = user?.id ?? null;
+    }
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user has access to this trip
+    const { data: tripAccess } = await supabaseClient
+      .from('trips')
+      .select('id')
+      .eq('id', trip_id)
+      .or(`created_by.eq.${userId}`)
+      .maybeSingle();
+
+    const { data: memberAccess } = await supabaseClient
+      .from('trip_members')
+      .select('id')
+      .eq('trip_id', trip_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!tripAccess && !memberAccess) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied to this trip' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Resolve or create conversation

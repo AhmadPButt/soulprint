@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { MAPBOX_ACCESS_TOKEN } from '@/lib/mapbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -74,7 +75,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
   useEffect(() => {
     if (!mapContainer.current || !itinerary.days) return;
 
-    mapboxgl.accessToken = 'pk.eyJ1IjoiYWhtYWRwYnV0dCIsImEiOiJjbWhtbWRkbHYyNzZ3MmtxdHQ0a3NzcmtnIn0.mvlVt71TYheyTVVBBnumzA';
+    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
