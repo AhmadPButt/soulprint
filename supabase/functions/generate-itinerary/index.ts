@@ -44,9 +44,32 @@ serve(async (req) => {
       throw new Error("respondent_id is required");
     }
 
+    // Input length validation
+    if (edit_suggestions && (typeof edit_suggestions !== 'string' || edit_suggestions.length > 2000)) {
+      return new Response(
+        JSON.stringify({ error: 'edit_suggestions must be under 2000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Import Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Verify ownership: respondent must belong to authenticated user
+    const { data: respondent } = await supabaseClient
+      .from('respondents')
+      .select('user_id')
+      .eq('id', respondent_id)
+      .single();
+
+    if (!respondent || respondent.user_id !== authResult.userId) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 

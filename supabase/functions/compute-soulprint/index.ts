@@ -248,6 +248,21 @@ serve(async (req) => {
 
     if (fetchError) throw fetchError;
 
+    // Verify ownership: respondent must belong to authenticated user (or user is admin)
+    if (respondent.user_id !== authResult.userId) {
+      // Check if user is admin
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: authResult.userId,
+        _role: 'admin'
+      });
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { status: 403, headers: { ...corsHeaders } }
+        );
+      }
+    }
+
     const raw = respondent.raw_responses;
     
     // Calculate all scores

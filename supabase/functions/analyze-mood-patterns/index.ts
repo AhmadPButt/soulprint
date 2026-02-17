@@ -48,6 +48,20 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Verify ownership: respondent must belong to authenticated user
+    const { data: respondentCheck } = await supabaseClient
+      .from('respondents')
+      .select('user_id')
+      .eq('id', respondent_id)
+      .single();
+
+    if (!respondentCheck || respondentCheck.user_id !== authResult.userId) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Fetch mood logs for the respondent
     const { data: moodLogs, error: logsError } = await supabaseClient
       .from('mood_logs')
