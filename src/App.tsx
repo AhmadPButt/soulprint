@@ -17,6 +17,7 @@ import MyTrips from "./pages/MyTrips";
 import TripDetail from "./pages/TripDetail";
 import JoinTrip from "./pages/JoinTrip";
 import CompareDestinations from "./pages/CompareDestinations";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/trips/:tripId" element={<TripDetail />} />
             <Route path="/join-trip/:invitationToken" element={<JoinTrip />} />
             <Route path="/compare" element={<CompareDestinations />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
