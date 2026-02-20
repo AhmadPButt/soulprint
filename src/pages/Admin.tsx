@@ -800,10 +800,7 @@ const Admin = () => {
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
                 <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
-                <TabsTrigger value="prompts" className="gap-1"><Brain className="h-3.5 w-3.5" /> Prompts</TabsTrigger>
-                <TabsTrigger value="questionnaire">Questionnaire</TabsTrigger>
                 <TabsTrigger value="admins" className="gap-1"><Shield className="h-3.5 w-3.5" /> Admins</TabsTrigger>
-                <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
 
               {/* TRAVELERS TAB */}
@@ -1176,27 +1173,33 @@ const Admin = () => {
               </TabsContent>
 
               <TabsContent value="algorithm">
-                <AlgorithmPerformanceTab />
+                <Tabs defaultValue="performance" className="space-y-4">
+                  <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+                    <TabsTrigger value="performance">Performance</TabsTrigger>
+                    <TabsTrigger value="prompts">System Prompts</TabsTrigger>
+                    <TabsTrigger value="questionnaire">Questionnaire</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="performance">
+                    <AlgorithmPerformanceTab />
+                  </TabsContent>
+                  <TabsContent value="prompts">
+                    <SystemPromptsTab />
+                  </TabsContent>
+                  <TabsContent value="questionnaire">
+                    <QuestionnaireEditorTab />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               <TabsContent value="analytics">
                 <BehavioralAnalyticsTab />
               </TabsContent>
 
-              <TabsContent value="prompts">
-                <SystemPromptsTab />
-              </TabsContent>
-
-              <TabsContent value="questionnaire">
-                <QuestionnaireEditorTab />
-              </TabsContent>
-
               <TabsContent value="admins">
-                <AdminsTab />
-              </TabsContent>
-
-              <TabsContent value="notifications">
-                <AdminNotifications />
+                <div className="space-y-6">
+                  <AdminNotifications />
+                  <AdminsTab />
+                </div>
               </TabsContent>
             </Tabs>
           </>

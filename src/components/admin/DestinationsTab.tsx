@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AIDestinationGenerator } from "@/components/admin/AIDestinationGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,6 +263,9 @@ export function DestinationsTab() {
 
   return (
     <div className="space-y-6">
+      {/* AI Generator */}
+      <AIDestinationGenerator onSaved={load} />
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{totalActive}</p><p className="text-xs text-muted-foreground">Active Destinations</p></CardContent></Card>
