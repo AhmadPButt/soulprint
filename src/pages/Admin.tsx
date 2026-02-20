@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon, BarChart3, Shield, Loader2 } from "lucide-react";
+import { ArrowLeft, Users, TrendingDown, Clock, CheckCircle, Download, Mail, FlaskConical, FileJson, Brain, MapPin, User, Globe, Phone, Utensils, BedDouble, Fingerprint, HeadphonesIcon, BarChart3, Shield, Loader2, LogOut } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -706,9 +706,16 @@ const Admin = () => {
                   </Button>
                 </>
               )}
-              <Button variant="outline" onClick={() => navigate("/")}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate("/auth");
+                }}
+                className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
               </Button>
             </div>
           </div>
