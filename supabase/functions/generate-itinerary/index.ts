@@ -405,20 +405,34 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
         }
         itineraryId = saveResult.data.id;
       } else {
-        // Legacy fallback: upsert by respondent_id
-        const { data: upsertData, error: upsertError } = await supabaseClient
+        // Legacy fallback: check if a null-trip_id itinerary exists for this respondent, update or insert
+        const { data: existingLegacy } = await supabaseClient
           .from('itineraries')
-          .upsert(
-            { respondent_id, itinerary_data: parsedItinerary },
-            { onConflict: 'respondent_id' }
-          )
-          .select()
-          .single();
-        if (upsertError) {
-          console.error('Error saving itinerary:', upsertError);
-          throw upsertError;
+          .select('id')
+          .eq('respondent_id', respondent_id)
+          .is('trip_id', null)
+          .maybeSingle();
+
+        let legacyResult;
+        if (existingLegacy) {
+          legacyResult = await supabaseClient
+            .from('itineraries')
+            .update({ itinerary_data: parsedItinerary })
+            .eq('id', existingLegacy.id)
+            .select()
+            .single();
+        } else {
+          legacyResult = await supabaseClient
+            .from('itineraries')
+            .insert({ respondent_id, itinerary_data: parsedItinerary })
+            .select()
+            .single();
         }
-        itineraryId = upsertData.id;
+        if (legacyResult.error) {
+          console.error('Error saving itinerary:', legacyResult.error);
+          throw legacyResult.error;
+        }
+        itineraryId = legacyResult.data.id;
       }
       console.log('Itinerary saved to database, id:', itineraryId);
     }

@@ -737,11 +737,9 @@ export default function TripDetail() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Trip Members</h3>
-              {trip.trip_type !== "solo" && (
-                <Button size="sm" onClick={() => setShowInvite(true)} className="gap-2">
-                  <UserPlus className="h-4 w-4" /> Invite
-                </Button>
-              )}
+              <Button size="sm" onClick={() => setShowInvite(true)} className="gap-2">
+                <UserPlus className="h-4 w-4" /> Invite
+              </Button>
             </div>
             {members.length === 0 ? (
               <Card>
