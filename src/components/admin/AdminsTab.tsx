@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Loader2, UserPlus, Eye, EyeOff, CheckCircle2, Key, Crown } from "lucide-react";
+import { Shield, Loader2, UserPlus, Eye, EyeOff, CheckCircle2, Key, Crown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 // Master admin email — shown with Crown badge
 const MASTER_ADMIN_EMAIL = "ahmad@erranza.ai";
@@ -26,10 +27,12 @@ export function AdminsTab() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [form, setForm] = useState({ secretKey: "", name: "", email: "", role: "admin" });
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
 
   useEffect(() => {
     loadAdmins();
@@ -38,7 +41,10 @@ export function AdminsTab() {
 
   const checkCurrentUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) setCurrentUserId(session.user.id);
+    if (session?.user) {
+      setCurrentUserId(session.user.id);
+      setCurrentUserEmail(session.user.email || "");
+    }
   };
 
   const loadAdmins = async () => {
@@ -103,6 +109,25 @@ export function AdminsTab() {
     return <Badge className="bg-sky-100 text-sky-700 border-sky-200">Moderator</Badge>;
   };
 
+  const isMasterAdmin = currentUserEmail === MASTER_ADMIN_EMAIL;
+
+  const handleRemove = async (targetUserId: string, role: string, name: string) => {
+    setRemoving(targetUserId);
+    try {
+      const { data, error } = await supabase.functions.invoke("remove-admin", {
+        body: { target_user_id: targetUserId, role },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `${name}'s ${role} role removed`, description: "Access has been revoked." });
+      await loadAdmins();
+    } catch (err: any) {
+      toast({ title: "Failed to remove role", description: err.message, variant: "destructive" });
+    } finally {
+      setRemoving(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -136,6 +161,7 @@ export function AdminsTab() {
           ) : (
             admins.map((admin) => {
               const isMaster = admin.email === MASTER_ADMIN_EMAIL;
+              const canRemove = isMasterAdmin && !isMaster;
               return (
                 <div
                   key={admin.user_id}
@@ -160,6 +186,40 @@ export function AdminsTab() {
                       <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary/5">You</Badge>
                     )}
                     {getRoleBadge(admin)}
+                    {canRemove && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            disabled={removing === admin.user_id}
+                          >
+                            {removing === admin.user_id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Trash2 className="h-4 w-4" />
+                            }
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove {admin.role === "admin" ? "Admin" : "Moderator"}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will revoke <strong>{admin.name}</strong>'s {admin.role} access to the Erranza Panel. They will no longer be able to log in as {admin.role === "admin" ? "an admin" : "a moderator"}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleRemove(admin.user_id, admin.role, admin.name)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Remove Access
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               );
@@ -167,6 +227,7 @@ export function AdminsTab() {
           )}
         </CardContent>
       </Card>
+
 
       {/* Register Form */}
       {showForm && (
