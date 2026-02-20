@@ -73,21 +73,35 @@ export function BehavioralAnalyticsTab() {
         .select("*")
         .order("timestamp", { ascending: false });
 
+      // Process events in ASCENDING order so later events overwrite earlier correctly
+      const sortedEvents = [...(qaEvents || [])].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
       // Build funnel sessions
       const sessions = new Set<string>();
       const completedSessions = new Set<string>();
-      qaEvents?.forEach(e => {
+      sortedEvents.forEach(e => {
         sessions.add(e.session_id);
         if (e.event_type === "completed") completedSessions.add(e.session_id);
       });
 
       // Compute analytics data
-      const starts = qaEvents?.filter(e => e.event_type === "started").length || 0;
-      const completions = qaEvents?.filter(e => e.event_type === "completed").length || 0;
+      const starts = sortedEvents.filter(e => e.event_type === "started").length || 0;
+      const completions = sortedEvents.filter(e => e.event_type === "completed").length || 0;
       const completionRate = starts > 0 ? (completions / starts) * 100 : 0;
 
-      // Section dropoffs
-      const abandonments = qaEvents?.filter(e => e.event_type === "abandoned") || [];
+      // Section dropoffs — only count truly abandoned sessions (never completed)
+      const sessionsFinalStatus = new Map<string, string>();
+      sortedEvents.forEach(e => {
+        if (e.event_type === "completed") sessionsFinalStatus.set(e.session_id, "completed");
+        else if (e.event_type === "abandoned" && sessionsFinalStatus.get(e.session_id) !== "completed") {
+          sessionsFinalStatus.set(e.session_id, "abandoned");
+        }
+      });
+      const abandonments = sortedEvents.filter(
+        e => e.event_type === "abandoned" && sessionsFinalStatus.get(e.session_id) === "abandoned"
+      );
       const dropoffCounts = new Map<number, number>();
       abandonments.forEach(e => {
         if (e.section_number) {
@@ -99,7 +113,7 @@ export function BehavioralAnalyticsTab() {
         .sort((a, b) => a.section - b.section);
 
       // Average time per section
-      const sectionCompletions = qaEvents?.filter(e => e.event_type === "section_completed") || [];
+      const sectionCompletions = sortedEvents.filter(e => e.event_type === "section_completed") || [];
       const timeBySectionMap = new Map<number, number[]>();
       sectionCompletions.forEach(e => {
         if (e.section_number && e.time_spent_seconds) {
@@ -114,30 +128,34 @@ export function BehavioralAnalyticsTab() {
         }))
         .sort((a, b) => a.section - b.section);
 
-      // Recent sessions
+      // Recent sessions — process in ascending order so final state is correct
       const sessionMap = new Map<string, any>();
-      (qaEvents || []).forEach(event => {
+      sortedEvents.forEach(event => {
         if (!sessionMap.has(event.session_id)) {
           sessionMap.set(event.session_id, {
             session_id: event.session_id,
             email: event.email,
             started_at: event.timestamp,
             last_section: 0,
-            status: "started",
+            status: "in_progress",
           });
         }
         const session = sessionMap.get(event.session_id);
         if (event.event_type === "section_completed" && event.section_number) {
           session.last_section = Math.max(session.last_section, event.section_number);
         }
+        // Only set completed/abandoned if not already completed
         if (event.event_type === "completed") {
           session.status = "completed";
-          session.last_section = 8;
-        } else if (event.event_type === "abandoned") {
+          session.last_section = 6;
+        } else if (event.event_type === "abandoned" && session.status !== "completed") {
           session.status = "abandoned";
         }
       });
-      const recentSessions = Array.from(sessionMap.values()).slice(0, 50);
+      // Sort by most recent started_at DESC for display
+      const recentSessions = Array.from(sessionMap.values())
+        .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+        .slice(0, 50);
 
       setAnalyticsData({ totalStarts: starts, totalCompletions: completions, completionRate, sectionDropoffs, averageTimePerSection, recentSessions });
 
