@@ -111,7 +111,7 @@ export default function MyTrips() {
 
         {/* Filter Tabs */}
         <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-          <TabsList className="bg-secondary/50 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1 rounded-xl h-auto">
             <TabsTrigger value="all" className="rounded-lg">All ({trips.length})</TabsTrigger>
             <TabsTrigger value="planning" className="rounded-lg">Planning</TabsTrigger>
             <TabsTrigger value="booked" className="rounded-lg">Booked</TabsTrigger>

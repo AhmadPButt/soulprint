@@ -229,10 +229,10 @@ export function ItineraryDiscussionForum({
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full">
-              <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-              <TabsTrigger value="days" className="flex-1">By Day</TabsTrigger>
-              <TabsTrigger value="activities" className="flex-1">By Activity</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="days">By Day</TabsTrigger>
+              <TabsTrigger value="activities">By Activity</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4">

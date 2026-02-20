@@ -1174,7 +1174,7 @@ const Admin = () => {
 
               <TabsContent value="algorithm">
                 <Tabs defaultValue="performance" className="space-y-4">
-                  <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+                  <TabsList className="grid w-full grid-cols-3 h-auto p-1">
                     <TabsTrigger value="performance">Performance</TabsTrigger>
                     <TabsTrigger value="prompts">System Prompts</TabsTrigger>
                     <TabsTrigger value="questionnaire">Questionnaire</TabsTrigger>
