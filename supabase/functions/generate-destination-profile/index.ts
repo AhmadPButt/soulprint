@@ -21,35 +21,54 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const systemPrompt = `You are an expert travel analyst for a luxury travel company called Erranza. 
-Your job is to generate accurate destination scoring profiles used for psychological travel matching.
+Your job is to generate accurate destination scoring profiles AND detailed travel guide information used for psychological travel matching and traveler preparation.
 
 Respond ONLY with a valid JSON object — no markdown, no explanation.`;
 
-    const userPrompt = `Generate a complete destination profile for: "${destination_name}"
+    const userPrompt = `Generate a complete destination profile AND travel guide for: "${destination_name}"
 
 Return a JSON object with EXACTLY these fields:
+
 {
   "name": "Destination Name",
   "country": "Country Name",
   "region": "One of: Europe, Asia, Americas, Africa, Oceania, Middle East",
   "short_description": "One compelling sentence (max 20 words)",
   "description": "Two to three sentences describing the destination for travelers (max 60 words)",
-  "restorative_score": <0-100, how much it helps people decompress and restore>,
-  "achievement_score": <0-100, how much it appeals to goal-oriented and achievement-driven travelers>,
-  "cultural_score": <0-100, depth of cultural, historical, and heritage experiences>,
-  "social_vibe_score": <0-100, social energy, nightlife, group activities, meeting people>,
-  "visual_score": <0-100, stunning scenery, photography, visual beauty>,
-  "culinary_score": <0-100, food quality, diversity, culinary experiences>,
-  "nature_score": <0-100, wildlife, hiking, outdoors, natural landscapes>,
-  "cultural_sensory_score": <0-100, sensory richness: markets, sounds, smells, textures>,
-  "wellness_score": <0-100, spas, retreats, yoga, wellbeing facilities>,
-  "luxury_style_score": <0-100, luxury accommodation, fine dining, exclusive experiences>,
+  "restorative_score": <0-100>,
+  "achievement_score": <0-100>,
+  "cultural_score": <0-100>,
+  "social_vibe_score": <0-100>,
+  "visual_score": <0-100>,
+  "culinary_score": <0-100>,
+  "nature_score": <0-100>,
+  "cultural_sensory_score": <0-100>,
+  "wellness_score": <0-100>,
+  "luxury_style_score": <0-100>,
   "avg_cost_per_day_gbp": <realistic average daily cost in GBP including accommodation>,
   "flight_time_from_uk_hours": <approximate direct flight time from London in hours as decimal>,
   "best_time_to_visit": "Month range e.g. Apr–Oct",
   "climate_tags": ["array", "of", "2-4", "climate", "descriptors"],
   "highlights": ["array", "of", "3-5", "key", "highlights"],
-  "tier": "curated"
+  "tier": "curated",
+  "travel_guide": {
+    "currency": "Currency name and code e.g. Euro (EUR)",
+    "timezone": "Timezone e.g. CET (UTC+1)",
+    "voltage": "Voltage and plug type e.g. 230V, Type C/F",
+    "cultural_customs": "2-3 sentences about important cultural customs, etiquette, and social norms visitors should know",
+    "language_basics": "Key phrases: Hello – [local word], Thank you – [local word], Please – [local word], Yes/No – [local words], plus note about English prevalence",
+    "tipping_etiquette": "2-3 sentences about tipping norms for restaurants, taxis, hotels, and guides",
+    "dress_code": "2-3 sentences about appropriate dress, especially for religious sites, beaches, and urban areas",
+    "local_customs": "2-3 sentences about local laws, important dos and don'ts, and cultural taboos",
+    "safety_tips": "2-3 sentences about general safety, areas to be aware of, and health considerations",
+    "embassy_contact": "UK Embassy contact information including address and phone number if available",
+    "emergency_numbers": {
+      "police": "local police number",
+      "ambulance": "local ambulance number",
+      "fire": "local fire number",
+      "general_emergency": "general emergency number if different"
+    }
+  }
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

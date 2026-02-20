@@ -8,8 +8,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Loader2, CheckCircle, RefreshCw } from "lucide-react";
+
+interface TravelGuide {
+  currency: string;
+  timezone: string;
+  voltage: string;
+  cultural_customs: string;
+  language_basics: string;
+  tipping_etiquette: string;
+  dress_code: string;
+  local_customs: string;
+  safety_tips: string;
+  embassy_contact: string;
+  emergency_numbers: Record<string, string>;
+}
 
 interface GeneratedProfile {
   name: string;
@@ -33,6 +48,7 @@ interface GeneratedProfile {
   climate_tags: string[];
   highlights: string[];
   tier: string;
+  travel_guide?: TravelGuide;
 }
 
 const REGIONS = ["Europe", "Asia", "Americas", "Africa", "Oceania", "Middle East"];
@@ -54,6 +70,11 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<GeneratedProfile | null>(null);
 
+  const updateGuide = (key: keyof TravelGuide, value: string) => {
+    if (!profile) return;
+    setProfile({ ...profile, travel_guide: { ...(profile.travel_guide || {} as TravelGuide), [key]: value } });
+  };
+
   const generate = async () => {
     if (!destinationName.trim()) {
       toast({ title: "Enter a destination name", variant: "destructive" });
@@ -61,9 +82,6 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
     }
     setGenerating(true);
     try {
-      const LOVABLE_API_KEY = (await supabase.functions.invoke("ai-chat", { body: { _getKey: true } })).data?.key;
-      
-      // Call AI directly via edge function
       const { data, error } = await supabase.functions.invoke("generate-destination-profile", {
         body: { destination_name: destinationName.trim() },
       });
@@ -85,7 +103,8 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
     if (!profile) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("echoprint_destinations").insert({
+      // 1. Save destination
+      const { data: destData, error: destError } = await supabase.from("echoprint_destinations").insert({
         name: profile.name,
         country: profile.country,
         region: profile.region,
@@ -106,11 +125,32 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
         best_time_to_visit: profile.best_time_to_visit,
         climate_tags: profile.climate_tags,
         highlights: profile.highlights,
-        tier: profile.tier || "manual",
+        tier: profile.tier || "curated",
         is_active: true,
-      } as any);
+      } as any).select("id").single();
 
-      if (error) throw error;
+      if (destError) throw destError;
+
+      // 2. Save travel guide info if we have it
+      if (profile.travel_guide && destData?.id) {
+        const g = profile.travel_guide;
+        const { error: infoError } = await supabase.from("destination_info").insert({
+          destination_id: destData.id,
+          currency: g.currency,
+          timezone: g.timezone,
+          voltage: g.voltage,
+          cultural_customs: g.cultural_customs,
+          language_basics: g.language_basics,
+          tipping_etiquette: g.tipping_etiquette,
+          dress_code: g.dress_code,
+          local_customs: g.local_customs,
+          safety_tips: g.safety_tips,
+          embassy_contact: g.embassy_contact,
+          emergency_numbers: g.emergency_numbers,
+        } as any);
+        if (infoError) console.warn("Travel guide save error:", infoError.message);
+      }
+
       toast({ title: "Destination saved!", description: `${profile.name} has been added to the database.` });
       setProfile(null);
       setDestinationName("");
@@ -127,6 +167,8 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
     setProfile({ ...profile, [key]: value });
   };
 
+  const guide = profile?.travel_guide;
+
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
@@ -135,21 +177,19 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
           AI Destination Profile Generator
         </CardTitle>
         <CardDescription>
-          Enter a destination name and let AI generate a complete scoring profile. You can curate and adjust all values before saving.
+          Enter a destination name and let AI generate a complete scoring profile plus travel guide. Review and curate all values before saving.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Input Section */}
+        {/* Input */}
         <div className="flex gap-2">
-          <div className="flex-1">
-            <Input
-              placeholder="e.g. Kyoto, Japan or Patagonia, Argentina"
-              value={destinationName}
-              onChange={e => setDestinationName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !generating && generate()}
-              disabled={generating}
-            />
-          </div>
+          <Input
+            placeholder="e.g. Kyoto, Japan or Patagonia, Argentina"
+            value={destinationName}
+            onChange={e => setDestinationName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !generating && generate()}
+            disabled={generating}
+          />
           <Button onClick={generate} disabled={generating || !destinationName.trim()}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
             {generating ? "Generating..." : "Generate"}
@@ -158,94 +198,162 @@ export function AIDestinationGenerator({ onSaved }: { onSaved: () => void }) {
 
         {/* Generated Profile Editor */}
         {profile && (
-          <div className="space-y-6 pt-2 border-t border-border">
+          <div className="space-y-4 pt-2 border-t border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-500" />
                 <span className="text-sm font-medium text-emerald-600">Profile generated — review and curate below</span>
               </div>
               <Button variant="ghost" size="sm" onClick={generate} disabled={generating}>
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Regenerate
+                <RefreshCw className="h-3 w-3 mr-1" /> Regenerate
               </Button>
             </div>
 
-            {/* Basic Info */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Name</Label>
-                <Input value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Country</Label>
-                <Input value={profile.country} onChange={e => setProfile({ ...profile, country: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Region</Label>
-                <Select value={profile.region} onValueChange={v => setProfile({ ...profile, region: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Best Time to Visit</Label>
-                <Input value={profile.best_time_to_visit} onChange={e => setProfile({ ...profile, best_time_to_visit: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Avg Cost/Day (£)</Label>
-                <Input type="number" value={profile.avg_cost_per_day_gbp} onChange={e => setProfile({ ...profile, avg_cost_per_day_gbp: Number(e.target.value) })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Flight Time from UK (hrs)</Label>
-                <Input type="number" step="0.5" value={profile.flight_time_from_uk_hours} onChange={e => setProfile({ ...profile, flight_time_from_uk_hours: Number(e.target.value) })} />
-              </div>
-            </div>
+            <Tabs defaultValue="basics" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basics">Basics & Scores</TabsTrigger>
+                <TabsTrigger value="guide">Travel Guide</TabsTrigger>
+                <TabsTrigger value="emergency">Emergency Info</TabsTrigger>
+              </TabsList>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Short Description</Label>
-                <Textarea rows={2} value={profile.short_description} onChange={e => setProfile({ ...profile, short_description: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Full Description</Label>
-                <Textarea rows={2} value={profile.description} onChange={e => setProfile({ ...profile, description: e.target.value })} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Climate Tags (comma-separated)</Label>
-                <Input value={profile.climate_tags.join(", ")} onChange={e => setProfile({ ...profile, climate_tags: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })} />
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {profile.climate_tags.map(t => <Badge key={t} variant="outline" className="text-xs">{t}</Badge>)}
+              {/* BASICS & SCORES */}
+              <TabsContent value="basics" className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Name</Label>
+                    <Input value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Country</Label>
+                    <Input value={profile.country} onChange={e => setProfile({ ...profile, country: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Region</Label>
+                    <Select value={profile.region} onValueChange={v => setProfile({ ...profile, region: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Best Time to Visit</Label>
+                    <Input value={profile.best_time_to_visit} onChange={e => setProfile({ ...profile, best_time_to_visit: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Avg Cost/Day (£)</Label>
+                    <Input type="number" value={profile.avg_cost_per_day_gbp} onChange={e => setProfile({ ...profile, avg_cost_per_day_gbp: Number(e.target.value) })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Flight Time from UK (hrs)</Label>
+                    <Input type="number" step="0.5" value={profile.flight_time_from_uk_hours} onChange={e => setProfile({ ...profile, flight_time_from_uk_hours: Number(e.target.value) })} />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Highlights (comma-separated)</Label>
-                <Input value={profile.highlights.join(", ")} onChange={e => setProfile({ ...profile, highlights: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })} />
-              </div>
-            </div>
 
-            {/* Scores */}
-            <div className="space-y-3">
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Matching Scores (0–100)</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Short Description</Label>
+                    <Textarea rows={2} value={profile.short_description} onChange={e => setProfile({ ...profile, short_description: e.target.value })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Full Description</Label>
+                    <Textarea rows={2} value={profile.description} onChange={e => setProfile({ ...profile, description: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Climate Tags (comma-separated)</Label>
+                    <Input value={profile.climate_tags.join(", ")} onChange={e => setProfile({ ...profile, climate_tags: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })} />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {profile.climate_tags.map(t => <Badge key={t} variant="outline" className="text-xs">{t}</Badge>)}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Highlights (comma-separated)</Label>
+                    <Input value={profile.highlights.join(", ")} onChange={e => setProfile({ ...profile, highlights: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })} />
+                  </div>
+                </div>
+
                 <div className="space-y-3">
-                  <ScoreRow label="Restorative" value={profile.restorative_score} onChange={v => updateScore("restorative_score", v)} />
-                  <ScoreRow label="Achievement" value={profile.achievement_score} onChange={v => updateScore("achievement_score", v)} />
-                  <ScoreRow label="Cultural" value={profile.cultural_score} onChange={v => updateScore("cultural_score", v)} />
-                  <ScoreRow label="Social Vibe" value={profile.social_vibe_score} onChange={v => updateScore("social_vibe_score", v)} />
-                  <ScoreRow label="Visual" value={profile.visual_score} onChange={v => updateScore("visual_score", v)} />
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Matching Scores (0–100)</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-3">
+                      <ScoreRow label="Restorative" value={profile.restorative_score} onChange={v => updateScore("restorative_score", v)} />
+                      <ScoreRow label="Achievement" value={profile.achievement_score} onChange={v => updateScore("achievement_score", v)} />
+                      <ScoreRow label="Cultural" value={profile.cultural_score} onChange={v => updateScore("cultural_score", v)} />
+                      <ScoreRow label="Social Vibe" value={profile.social_vibe_score} onChange={v => updateScore("social_vibe_score", v)} />
+                      <ScoreRow label="Visual" value={profile.visual_score} onChange={v => updateScore("visual_score", v)} />
+                    </div>
+                    <div className="space-y-3">
+                      <ScoreRow label="Culinary" value={profile.culinary_score} onChange={v => updateScore("culinary_score", v)} />
+                      <ScoreRow label="Nature" value={profile.nature_score} onChange={v => updateScore("nature_score", v)} />
+                      <ScoreRow label="Cultural Sensory" value={profile.cultural_sensory_score} onChange={v => updateScore("cultural_sensory_score", v)} />
+                      <ScoreRow label="Wellness" value={profile.wellness_score} onChange={v => updateScore("wellness_score", v)} />
+                      <ScoreRow label="Luxury Style" value={profile.luxury_style_score} onChange={v => updateScore("luxury_style_score", v)} />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <ScoreRow label="Culinary" value={profile.culinary_score} onChange={v => updateScore("culinary_score", v)} />
-                  <ScoreRow label="Nature" value={profile.nature_score} onChange={v => updateScore("nature_score", v)} />
-                  <ScoreRow label="Cultural Sensory" value={profile.cultural_sensory_score} onChange={v => updateScore("cultural_sensory_score", v)} />
-                  <ScoreRow label="Wellness" value={profile.wellness_score} onChange={v => updateScore("wellness_score", v)} />
-                  <ScoreRow label="Luxury Style" value={profile.luxury_style_score} onChange={v => updateScore("luxury_style_score", v)} />
+              </TabsContent>
+
+              {/* TRAVEL GUIDE */}
+              <TabsContent value="guide" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Currency</Label>
+                    <Input value={guide?.currency || ""} onChange={e => updateGuide("currency", e.target.value)} placeholder="e.g. Euro (EUR)" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Timezone</Label>
+                    <Input value={guide?.timezone || ""} onChange={e => updateGuide("timezone", e.target.value)} placeholder="e.g. CET (UTC+1)" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Voltage</Label>
+                    <Input value={guide?.voltage || ""} onChange={e => updateGuide("voltage", e.target.value)} placeholder="e.g. 230V, Type C/F" />
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                {[
+                  { key: "cultural_customs" as const, label: "Cultural Customs" },
+                  { key: "language_basics" as const, label: "Language Basics" },
+                  { key: "tipping_etiquette" as const, label: "Tipping Etiquette" },
+                  { key: "dress_code" as const, label: "Dress Code" },
+                  { key: "local_customs" as const, label: "Local Customs" },
+                  { key: "safety_tips" as const, label: "Safety Tips" },
+                  { key: "embassy_contact" as const, label: "Embassy Contact" },
+                ].map(({ key, label }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-xs">{label}</Label>
+                    <Textarea rows={3} value={guide?.[key] || ""} onChange={e => updateGuide(key, e.target.value)} />
+                  </div>
+                ))}
+              </TabsContent>
+
+              {/* EMERGENCY INFO */}
+              <TabsContent value="emergency" className="space-y-4">
+                <p className="text-xs text-muted-foreground">Emergency contact numbers for this destination.</p>
+                {["police", "ambulance", "fire", "general_emergency"].map(key => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-xs capitalize">{key.replace("_", " ")}</Label>
+                    <Input
+                      value={(guide?.emergency_numbers?.[key] as string) || ""}
+                      onChange={e => {
+                        if (!profile) return;
+                        setProfile({
+                          ...profile,
+                          travel_guide: {
+                            ...(profile.travel_guide || {} as TravelGuide),
+                            emergency_numbers: {
+                              ...(profile.travel_guide?.emergency_numbers || {}),
+                              [key]: e.target.value,
+                            },
+                          },
+                        });
+                      }}
+                      placeholder={`e.g. ${key === "police" ? "999" : key === "ambulance" ? "112" : "—"}`}
+                    />
+                  </div>
+                ))}
+              </TabsContent>
+            </Tabs>
 
             {/* Save */}
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
