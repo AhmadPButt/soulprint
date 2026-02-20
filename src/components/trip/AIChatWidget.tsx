@@ -9,6 +9,8 @@ import ReactMarkdown from "react-markdown";
 interface AIChatWidgetProps {
   tripId: string;
   destinationName?: string;
+  externalOpen?: boolean;
+  onClose?: () => void;
 }
 
 interface ChatMessage {
@@ -18,9 +20,16 @@ interface ChatMessage {
   created_at?: string;
 }
 
-export function AIChatWidget({ tripId, destinationName }: AIChatWidgetProps) {
+export function AIChatWidget({ tripId, destinationName, externalOpen, onClose }: AIChatWidgetProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Sync external open state
+  useEffect(() => {
+    if (externalOpen !== undefined && externalOpen !== isOpen) {
+      setIsOpen(externalOpen);
+    }
+  }, [externalOpen]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -142,7 +151,9 @@ export function AIChatWidget({ tripId, destinationName }: AIChatWidgetProps) {
     }
   };
 
+  // When externalOpen prop controls visibility, don't render the default floating button
   if (!isOpen) {
+    if (externalOpen !== undefined) return null; // controlled externally
     return (
       <button
         id="ai-chat-open-btn"
@@ -177,7 +188,7 @@ export function AIChatWidget({ tripId, destinationName }: AIChatWidgetProps) {
             </button>
           )}
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() => { setIsOpen(false); onClose?.(); }}
             className="p-1.5 rounded-lg hover:bg-primary-foreground/20 transition-colors"
           >
             <X className="h-4 w-4" />
