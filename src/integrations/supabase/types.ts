@@ -735,6 +735,7 @@ export type Database = {
           id: string
           itinerary_data: Json
           respondent_id: string
+          trip_id: string | null
           updated_at: string
         }
         Insert: {
@@ -742,6 +743,7 @@ export type Database = {
           id?: string
           itinerary_data: Json
           respondent_id: string
+          trip_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -749,6 +751,7 @@ export type Database = {
           id?: string
           itinerary_data?: Json
           respondent_id?: string
+          trip_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -757,6 +760,13 @@ export type Database = {
             columns: ["respondent_id"]
             isOneToOne: true
             referencedRelation: "respondents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itineraries_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
