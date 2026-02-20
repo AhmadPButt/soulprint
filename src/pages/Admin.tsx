@@ -793,7 +793,7 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+              <TabsList className="grid w-full grid-cols-7 h-auto p-1">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
                 <TabsTrigger value="groups">Groups</TabsTrigger>
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
