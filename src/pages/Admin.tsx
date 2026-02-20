@@ -69,6 +69,7 @@ const Admin = () => {
   const [showSoulPrintModal, setShowSoulPrintModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [computingId, setComputingId] = useState<string | null>(null);
@@ -83,7 +84,7 @@ const Admin = () => {
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
 
-  // Check if current user has admin role
+  // Check if current user has admin or moderator role
   useEffect(() => {
     const checkAdminRole = async () => {
       try {
@@ -92,13 +93,19 @@ const Admin = () => {
           setAuthChecking(false);
           return;
         }
-        // Use RPC to check admin role (has_role is security definer)
-        const { data, error } = await supabase.rpc('has_role', {
-          _user_id: session.user.id,
-          _role: 'admin'
-        });
-        if (!error && data === true) {
+        // Check admin first
+        const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+        if (isAdmin === true) {
           setIsAuthenticated(true);
+          setIsModerator(false);
+          setAuthChecking(false);
+          return;
+        }
+        // Check moderator
+        const { data: isMod } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'moderator' });
+        if (isMod === true) {
+          setIsAuthenticated(true);
+          setIsModerator(true);
         }
       } catch (err) {
         console.error('Error checking admin role:', err);
@@ -677,19 +684,28 @@ const Admin = () => {
             <div className="flex items-center gap-3">
               <Fingerprint className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-3xl font-heading font-bold mb-1">Erranza Panel</h1>
-                <p className="text-muted-foreground">Admin management &amp; analytics</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-heading font-bold mb-1">Erranza Panel</h1>
+                  {isModerator && (
+                    <Badge className="bg-sky-100 text-sky-700 border-sky-200 mb-1">Moderator View</Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground">{isModerator ? "Moderator access — Travelers, Support & Destinations" : "Admin management & analytics"}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => exportToCSV()}>
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-              <Button variant="outline" onClick={sendWeeklyReport} disabled={sendingEmail}>
-                <Mail className="mr-2 h-4 w-4" />
-                {sendingEmail ? "Sending..." : "Send Report"}
-              </Button>
+              {!isModerator && (
+                <>
+                  <Button variant="outline" onClick={() => exportToCSV()}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </Button>
+                  <Button variant="outline" onClick={sendWeeklyReport} disabled={sendingEmail}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    {sendingEmail ? "Sending..." : "Send Report"}
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={() => navigate("/")}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Home
@@ -793,14 +809,14 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="travelers" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+              <TabsList className={`grid w-full h-auto p-1 ${isModerator ? "grid-cols-3" : "grid-cols-7"}`}>
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
-                <TabsTrigger value="groups">Groups</TabsTrigger>
+                {!isModerator && <TabsTrigger value="groups">Groups</TabsTrigger>}
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
-                <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
-                <TabsTrigger value="admins" className="gap-1"><Shield className="h-3.5 w-3.5" /> Admins</TabsTrigger>
+                {!isModerator && <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>}
+                {!isModerator && <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>}
+                {!isModerator && <TabsTrigger value="admins" className="gap-1"><Shield className="h-3.5 w-3.5" /> Admins</TabsTrigger>}
               </TabsList>
 
               {/* TRAVELERS TAB */}
