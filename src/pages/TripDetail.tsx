@@ -176,10 +176,10 @@ export default function TripDetail() {
   if (!trip) return null;
 
   const statusColors: Record<string, string> = {
-    planning: "bg-primary/20 text-primary",
-    booked: "bg-emerald-500/20 text-emerald-400",
-    in_progress: "bg-amber-500/20 text-amber-400",
-    completed: "bg-muted text-muted-foreground",
+    planning: "bg-amber-50 text-amber-700 border-amber-200",
+    booked: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    in_progress: "bg-brand-lavender-haze text-primary border-primary/20",
+    completed: "bg-secondary text-secondary-foreground border-border",
   };
 
   const showUtilities = isAdmin || trip.status === "booked" || trip.status === "in_progress" || trip.status === "planning";
@@ -303,74 +303,74 @@ export default function TripDetail() {
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/trips")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold">{trip.trip_name}</h1>
-              <Badge className={statusColors[trip.status] || ""}>{trip.status.replace("_", " ")}</Badge>
-              
-              {/* Status Transition */}
-              {nextStatuses.length > 0 && trip.created_by === userId && (
-                <Select onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-auto h-8 text-xs gap-1.5">
-                    <SelectValue placeholder="Change status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nextStatuses.map(s => (
-                      <SelectItem key={s} value={s}>
-                        Move to {statusLabels[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/trips")} className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold text-foreground">{trip.trip_name}</h1>
+                <Badge className={`text-xs font-medium ${statusColors[trip.status] || ""}`}>{trip.status.replace("_", " ")}</Badge>
+                
+                {nextStatuses.length > 0 && trip.created_by === userId && (
+                  <Select onValueChange={handleStatusChange}>
+                    <SelectTrigger className="w-auto h-8 text-xs gap-1.5 border-border">
+                      <SelectValue placeholder="Change status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nextStatuses.map(s => (
+                        <SelectItem key={s} value={s}>Move to {statusLabels[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {destination && (
+                <p className="text-muted-foreground text-sm mt-0.5 flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />{destination.name}, {destination.country}
+                </p>
               )}
             </div>
-            {destination && (
-              <p className="text-muted-foreground">{destination.name}, {destination.country}</p>
+            
+            {trip.created_by === userId && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive rounded-full">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      Delete Trip
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{trip.trip_name}" and all associated bookings, documents, and member invitations. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteTrip} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete Trip
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
-          
-          {/* Delete Trip */}
-          {trip.created_by === userId && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                    Delete Trip
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete "{trip.trip_name}" and all associated bookings, documents, and member invitations. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteTrip} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete Trip
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview">
-          <TabsList className="mb-6 flex-wrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="travelers">Travelers ({members.length})</TabsTrigger>
-            <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
-            {showUtilities && <TabsTrigger value="utilities" className="gap-1.5"><Wrench className="h-3.5 w-3.5" /> Utilities</TabsTrigger>}
-            {showMoodTab && <TabsTrigger value="mood" className="gap-1.5"><Heart className="h-3.5 w-3.5" /> Mood & Reflection</TabsTrigger>}
-            <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsList className="mb-6 flex-wrap bg-secondary/50 p-1 rounded-xl">
+            <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
+            <TabsTrigger value="travelers" className="rounded-lg">Travelers ({members.length})</TabsTrigger>
+            <TabsTrigger value="itinerary" className="rounded-lg">Itinerary</TabsTrigger>
+            {showUtilities && <TabsTrigger value="utilities" className="gap-1.5 rounded-lg"><Wrench className="h-3.5 w-3.5" /> Utilities</TabsTrigger>}
+            {showMoodTab && <TabsTrigger value="mood" className="gap-1.5 rounded-lg"><Heart className="h-3.5 w-3.5" /> Mood</TabsTrigger>}
+            <TabsTrigger value="documents" className="rounded-lg">Documents</TabsTrigger>
           </TabsList>
 
           {/* OVERVIEW */}
@@ -485,85 +485,127 @@ export default function TripDetail() {
           {/* ITINERARY */}
           <TabsContent value="itinerary" className="space-y-4">
             {itinerary ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{itinerary.title || "Your Itinerary"}</CardTitle>
-                      {itinerary.overview && <CardDescription>{itinerary.overview}</CardDescription>}
+              <div className="space-y-4">
+                {/* Itinerary Header */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  <div className="bg-gradient-to-br from-brand-lavender-haze via-accent/50 to-background px-6 py-6">
+                    <p className="text-xs font-semibold tracking-widest uppercase text-primary/60 mb-1">Itinerary</p>
+                    <div className="flex items-start justify-between gap-4">
+                      <h2 className="text-xl font-bold text-foreground">{itinerary.title || "Your Itinerary"}</h2>
+                      {itinerary.total_estimated_cost && (
+                        <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1 shrink-0 bg-card">
+                          <PoundSterling className="h-3.5 w-3.5" />
+                          {itinerary.total_estimated_cost.toLocaleString()} total
+                        </Badge>
+                      )}
                     </div>
-                    {itinerary.total_estimated_cost && (
-                      <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1">
-                        <PoundSterling className="h-3.5 w-3.5" />
-                        {itinerary.total_estimated_cost.toLocaleString()} total
-                      </Badge>
+                    {itinerary.overview && (
+                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{itinerary.overview}</p>
                     )}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {itinerary.days?.map((day: any) => (
-                    <div key={day.day} className="border border-border/50 rounded-lg overflow-hidden">
+                </div>
+
+                {/* Days */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  {itinerary.days?.map((day: any, idx: number) => (
+                    <div key={day.day} className={idx > 0 ? "border-t border-border" : ""}>
                       <button
                         onClick={() => toggleDay(day.day)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
+                        className="w-full flex items-center justify-between px-6 py-4 hover:bg-secondary/40 transition-colors text-left"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-primary">Day {day.day}</span>
-                          <span className="text-sm text-foreground">{day.title || day.theme || ""}</span>
+                        <div className="flex items-center gap-4">
+                          <div className="w-9 h-9 rounded-full bg-brand-lavender-haze flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-primary">{day.day}</span>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground">{day.title || day.theme || `Day ${day.day}`}</span>
+                            {day.theme && day.title && (
+                              <p className="text-xs text-muted-foreground mt-0.5 italic">{day.theme}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           {day.daily_total_gbp && (
-                            <span className="text-xs text-muted-foreground">£{day.daily_total_gbp}</span>
+                            <span className="text-xs font-medium text-muted-foreground">£{day.daily_total_gbp}</span>
                           )}
-                          {expandedDays[day.day] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          {expandedDays[day.day]
+                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                         </div>
                       </button>
+
                       {expandedDays[day.day] && (
-                        <div className="px-4 pb-4 space-y-3 border-t border-border/30">
+                        <div className="px-6 pb-5 pt-1 border-t border-border/60 space-y-3">
                           {["morning", "afternoon", "evening"].map(slot => {
                             const s = day[slot];
                             if (!s) return null;
                             return (
-                              <div key={slot} className="pl-4 border-l-2 border-primary/20 py-2">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs text-muted-foreground uppercase">{slot} — {s.time || ""}</p>
-                                  {s.estimated_cost_gbp && (
-                                    <span className="text-xs font-medium text-muted-foreground">£{s.estimated_cost_gbp}</span>
+                              <div key={slot} className="flex gap-3 p-3.5 rounded-xl border border-border bg-background">
+                                <div className="flex-shrink-0">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary/60 bg-brand-lavender-haze px-2 py-0.5 rounded-full">
+                                    {slot}
+                                  </span>
+                                </div>
+                                <div className="flex-1 pt-0.5">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="font-semibold text-sm text-foreground">{s.activity}</p>
+                                    {s.estimated_cost_gbp && (
+                                      <span className="text-xs text-muted-foreground shrink-0">£{s.estimated_cost_gbp}</span>
+                                    )}
+                                  </div>
+                                  {s.time && <p className="text-xs text-muted-foreground mt-0.5">{s.time}</p>}
+                                  {s.why_it_fits && (
+                                    <p className="text-xs text-primary/70 mt-1.5 italic flex items-start gap-1">
+                                      <Sparkles className="h-3 w-3 shrink-0 mt-0.5" />{s.why_it_fits}
+                                    </p>
                                   )}
                                 </div>
-                                <p className="font-medium text-sm">{s.activity}</p>
-                                {s.why_it_fits && <p className="text-xs text-primary/70 mt-1 italic">{s.why_it_fits}</p>}
                               </div>
                             );
                           })}
+                          {day.accommodation && (
+                            <div className="flex gap-3 p-3.5 rounded-xl border border-border bg-background">
+                              <span className="text-base shrink-0">🏨</span>
+                              <div>
+                                <p className="font-semibold text-sm">{day.accommodation.name}</p>
+                                {day.accommodation.estimated_cost_gbp && (
+                                  <p className="text-xs text-muted-foreground">£{day.accommodation.estimated_cost_gbp}/night</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   ))}
-                  <div className="flex gap-3 pt-4">
-                    <Button onClick={() => setShowCalendly(true)} className="flex-1">
-                      <Phone className="h-4 w-4 mr-2" /> Book Now
-                    </Button>
-                    <Button variant="outline" onClick={handleExportPDF}>
-                      <Download className="h-4 w-4 mr-2" /> PDF
-                    </Button>
-                    <Button variant="outline" onClick={handleGenerateItinerary} disabled={generating}>
-                      {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                      Regenerate
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <Button onClick={() => setShowCalendly(true)} className="flex-1">
+                    <Phone className="h-4 w-4 mr-2" /> Book Now
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDF}>
+                    <Download className="h-4 w-4 mr-2" /> PDF
+                  </Button>
+                  <Button variant="outline" onClick={handleGenerateItinerary} disabled={generating}>
+                    {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    Regenerate
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <Card className="p-12 text-center">
-                <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+              <div className="rounded-2xl border border-border bg-card p-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-brand-lavender-haze flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="h-7 w-7 text-primary/60" />
+                </div>
                 <h3 className="text-lg font-semibold mb-2">No itinerary yet</h3>
-                <p className="text-muted-foreground mb-4">Generate a personalized itinerary for this trip.</p>
+                <p className="text-muted-foreground text-sm mb-4 max-w-sm mx-auto">Generate a personalized itinerary crafted around your SoulPrint and destination.</p>
                 <Button onClick={handleGenerateItinerary} disabled={generating || !trip.respondent_id}>
                   {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
                   Generate Itinerary
                 </Button>
-              </Card>
+              </div>
             )}
           </TabsContent>
 

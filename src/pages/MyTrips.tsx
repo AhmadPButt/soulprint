@@ -25,10 +25,10 @@ interface Trip {
 }
 
 const statusColors: Record<string, string> = {
-  planning: "bg-primary/20 text-primary border-primary/30",
-  booked: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  in_progress: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  completed: "bg-muted text-muted-foreground border-border",
+  planning: "bg-amber-50 text-amber-700 border-amber-200",
+  booked: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  in_progress: "bg-brand-lavender-haze text-primary border-primary/20",
+  completed: "bg-secondary text-secondary-foreground border-border",
 };
 
 export default function MyTrips() {
@@ -87,27 +87,27 @@ export default function MyTrips() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="rounded-full">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">My Trips</h1>
-              <p className="text-muted-foreground">Manage your travel plans</p>
+              <h1 className="text-3xl font-bold text-foreground">My Trips</h1>
+              <p className="text-sm text-muted-foreground">Manage your travel plans and itineraries</p>
             </div>
           </div>
-          <Button onClick={() => navigate("/intake")} className="gap-2">
+          <Button onClick={() => navigate("/intake")} className="gap-2 shadow-sm">
             <Plus className="h-4 w-4" /> New Trip
           </Button>
         </div>
 
         {/* Filter Tabs */}
         <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-          <TabsList>
-            <TabsTrigger value="all">All ({trips.length})</TabsTrigger>
-            <TabsTrigger value="planning">Planning</TabsTrigger>
-            <TabsTrigger value="booked">Booked</TabsTrigger>
-            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsList className="bg-secondary/50 p-1 rounded-xl">
+            <TabsTrigger value="all" className="rounded-lg">All ({trips.length})</TabsTrigger>
+            <TabsTrigger value="planning" className="rounded-lg">Planning</TabsTrigger>
+            <TabsTrigger value="booked" className="rounded-lg">Booked</TabsTrigger>
+            <TabsTrigger value="in_progress" className="rounded-lg">In Progress</TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-lg">Completed</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -117,16 +117,20 @@ export default function MyTrips() {
             {filtered.map(trip => (
               <Card
                 key={trip.id}
-                className="cursor-pointer hover:border-primary/40 transition-colors overflow-hidden"
+                className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 overflow-hidden group"
                 onClick={() => navigate(`/trips/${trip.id}`)}
               >
                 <div className="flex h-full">
                   {/* Thumbnail */}
-                  <div className="w-32 min-h-[140px] bg-muted flex-shrink-0">
+                  <div className="w-36 min-h-[150px] bg-secondary flex-shrink-0 overflow-hidden">
                     {trip.destination?.image_url ? (
-                      <img src={trip.destination.image_url} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={trip.destination.image_url}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                      <div className="w-full h-full flex items-center justify-center bg-brand-lavender-haze">
                         <MapPin className="h-6 w-6 text-primary/40" />
                       </div>
                     )}
@@ -134,23 +138,24 @@ export default function MyTrips() {
 
                   <CardContent className="p-4 flex flex-col justify-between flex-1">
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-lg leading-tight">{trip.trip_name}</h3>
-                        <Badge variant="outline" className={`text-xs shrink-0 ${statusColors[trip.status] || ""}`}>
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <h3 className="font-semibold text-base leading-tight text-foreground">{trip.trip_name}</h3>
+                        <Badge variant="outline" className={`text-xs shrink-0 font-medium ${statusColors[trip.status] || ""}`}>
                           {trip.status.replace("_", " ")}
                         </Badge>
                       </div>
                       {trip.destination && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
                           {trip.destination.name}, {trip.destination.country}
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                       {trip.start_date && (
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(trip.start_date).toLocaleDateString()}
+                          {new Date(trip.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
                       {trip.member_count > 1 && (
@@ -163,16 +168,31 @@ export default function MyTrips() {
                 </div>
               </Card>
             ))}
+
+            {/* Create new trip card */}
+            <Card
+              className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 border-dashed"
+              onClick={() => navigate("/intake")}
+            >
+              <div className="flex h-full min-h-[150px] items-center justify-center flex-col gap-2 p-6 text-muted-foreground">
+                <div className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-medium">Create new trip</p>
+              </div>
+            </Card>
           </div>
         ) : (
-          <Card className="p-12 text-center">
-            <MapPin className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No trips yet</h3>
-            <p className="text-muted-foreground mb-4">
+          <div className="rounded-2xl border border-border bg-card p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-brand-lavender-haze flex items-center justify-center mx-auto mb-4">
+              <MapPin className="h-7 w-7 text-primary/60" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-foreground">No trips yet</h3>
+            <p className="text-muted-foreground text-sm mb-4 max-w-xs mx-auto">
               Start by completing your SoulPrint and discovering your perfect destinations.
             </p>
             <Button onClick={() => navigate("/intake")}>Start Planning</Button>
-          </Card>
+          </div>
         )}
       </div>
     </div>

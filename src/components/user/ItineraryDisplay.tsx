@@ -1,11 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_ACCESS_TOKEN } from '@/lib/mapbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Utensils, Hotel, Compass } from "lucide-react";
+import { MapPin, Utensils, Hotel, Compass, Clock, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Location {
   name: string;
@@ -55,8 +53,8 @@ interface ItineraryDisplayProps {
 const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinationName }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const [activeDay, setActiveDay] = useState<number>(1);
 
-  // Compute center from itinerary coordinates, fallback to first location
   const getMapCenter = (): [number, number] => {
     const allCoords: [number, number][] = [];
     itinerary.days?.forEach(day => {
@@ -69,7 +67,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
       const avgLat = allCoords.reduce((s, c) => s + c[1], 0) / allCoords.length;
       return [avgLng, avgLat];
     }
-    return [0, 20]; // World center fallback
+    return [0, 20];
   };
 
   useEffect(() => {
@@ -94,19 +92,20 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
           if (!location.coordinates) return;
           const el = document.createElement('div');
           Object.assign(el.style, {
-            backgroundColor: '#8884d8',
-            width: '30px',
-            height: '30px',
+            backgroundColor: 'hsl(255, 47%, 62%)',
+            width: '28px',
+            height: '28px',
             borderRadius: '50%',
-            border: '3px solid white',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            border: '2.5px solid white',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 'bold',
-            fontSize: '12px'
+            fontWeight: '700',
+            fontSize: '11px',
+            fontFamily: 'system-ui, sans-serif'
           });
           el.textContent = `${dayIndex + 1}`;
 
@@ -114,10 +113,10 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
             .setLngLat(location.coordinates)
             .setPopup(
               new mapboxgl.Popup({ offset: 25 }).setHTML(`
-                <div style="padding: 8px;">
-                  <h3 style="font-weight: bold; margin-bottom: 4px;">${location.name}</h3>
-                  <p style="font-size: 12px; color: #666; margin-bottom: 4px;">Day ${day.day} - ${location.time}</p>
-                  <p style="font-size: 12px; margin-bottom: 4px;">${location.activity}</p>
+                <div style="padding:10px;font-family:system-ui,sans-serif;">
+                  <p style="font-weight:700;margin-bottom:3px;font-size:13px;">${location.name}</p>
+                  <p style="font-size:11px;color:#888;margin-bottom:3px;">Day ${day.day} · ${location.time}</p>
+                  <p style="font-size:12px;">${location.activity}</p>
                 </div>
               `)
             )
@@ -129,17 +128,16 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
         if (day.accommodation?.coordinates) {
           const el = document.createElement('div');
           el.innerHTML = '🏨';
-          el.style.fontSize = '24px';
+          el.style.fontSize = '20px';
           el.style.cursor = 'pointer';
 
           new mapboxgl.Marker(el)
             .setLngLat(day.accommodation.coordinates)
             .setPopup(
               new mapboxgl.Popup({ offset: 25 }).setHTML(`
-                <div style="padding: 8px;">
-                  <h3 style="font-weight: bold; margin-bottom: 4px;">${day.accommodation.name}</h3>
-                  <p style="font-size: 12px; color: #666; margin-bottom: 4px;">${day.accommodation.type}</p>
-                  <p style="font-size: 12px;">${day.accommodation.why}</p>
+                <div style="padding:10px;font-family:system-ui,sans-serif;">
+                  <p style="font-weight:700;margin-bottom:3px;font-size:13px;">${day.accommodation.name}</p>
+                  <p style="font-size:11px;color:#888;">${day.accommodation.type}</p>
                 </div>
               `)
             )
@@ -155,142 +153,200 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, destinat
         map.current!.addLayer({
           id: 'route', type: 'line', source: 'route',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#8884d8', 'line-width': 3, 'line-opacity': 0.7, 'line-dasharray': [2, 2] }
+          paint: { 'line-color': 'hsl(255, 47%, 62%)', 'line-width': 2.5, 'line-opacity': 0.6, 'line-dasharray': [2, 2] }
         });
       }
 
       if (allCoordinates.length > 0) {
         const bounds = allCoordinates.reduce(
-          (bounds, coord) => bounds.extend(coord),
+          (b, coord) => b.extend(coord),
           new mapboxgl.LngLatBounds(allCoordinates[0], allCoordinates[0])
         );
-        map.current!.fitBounds(bounds, { padding: 50 });
+        map.current!.fitBounds(bounds, { padding: 60 });
       }
     });
 
     return () => { map.current?.remove(); };
   }, [itinerary]);
 
-  const mapTitle = destinationName
-    ? `Your route through ${destinationName}`
-    : `Your personalized journey`;
+  const activeDay_ = itinerary.days?.find(d => d.day === activeDay);
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10">
-        <CardHeader>
-          <CardTitle className="text-3xl">{itinerary.title}</CardTitle>
-          <CardDescription className="text-lg">Your Personalized Journey</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-foreground whitespace-pre-wrap">{itinerary.overview}</p>
-        </CardContent>
-      </Card>
+    <div className="space-y-0">
+      {/* Hero Header */}
+      <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-6">
+        <div className="bg-gradient-to-br from-brand-lavender-haze via-accent to-background px-8 py-10">
+          <p className="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-2">Your Itinerary</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{itinerary.title}</h1>
+          {destinationName && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" />
+              <span className="text-sm">{destinationName}</span>
+            </div>
+          )}
+        </div>
+        {itinerary.overview && (
+          <div className="px-8 py-6 border-t border-border">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{itinerary.overview}</p>
+          </div>
+        )}
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Journey Map
-          </CardTitle>
-          <CardDescription>{mapTitle}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div ref={mapContainer} className="w-full h-[500px] rounded-lg" />
-        </CardContent>
-      </Card>
+      {/* Map */}
+      <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-6">
+        <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold text-sm">Journey Map</h2>
+          {destinationName && <span className="text-xs text-muted-foreground ml-1">· {destinationName}</span>}
+        </div>
+        <div ref={mapContainer} className="w-full h-[380px]" />
+      </div>
 
-      <Tabs defaultValue="1">
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${itinerary.days?.length || 1}, 1fr)` }}>
-          {itinerary.days?.map((day) => (
-            <TabsTrigger key={day.day} value={day.day.toString()}>
-              Day {day.day}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Day Navigation + Content */}
+      {itinerary.days?.length > 0 && (
+        <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-6">
+          {/* Day tabs */}
+          <div className="border-b border-border px-6 py-0 flex gap-1 overflow-x-auto">
+            {itinerary.days.map((day) => (
+              <button
+                key={day.day}
+                onClick={() => setActiveDay(day.day)}
+                className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                  activeDay === day.day
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Day {day.day}
+              </button>
+            ))}
+          </div>
 
-        {itinerary.days?.map((day) => (
-          <TabsContent key={day.day} value={day.day.toString()}>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">{day.title}</CardTitle>
-                    <CardDescription className="mt-2">{day.theme}</CardDescription>
+          {/* Active day content */}
+          {activeDay_ && (
+            <div className="p-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">{activeDay_.title}</h2>
+                {activeDay_.theme && (
+                  <p className="text-sm text-muted-foreground mt-1 italic">{activeDay_.theme}</p>
+                )}
+              </div>
+
+              {/* Activities */}
+              {activeDay_.locations?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" /> Activities
                   </div>
-                  <Badge variant="outline" className="text-lg">Day {day.day}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Calendar className="h-4 w-4" /> Activities
-                  </h3>
-                  {day.locations?.map((location, idx) => (
-                    <div key={idx} className="p-4 rounded-lg border border-border bg-card space-y-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold mb-1">{location.name}</h4>
-                        <p className="text-sm text-muted-foreground mb-2">{location.time}</p>
-                        <p className="text-sm mb-2">{location.activity}</p>
+                  {activeDay_.locations.map((location, idx) => (
+                    <div key={idx} className="flex gap-4 p-4 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-lavender-haze flex items-center justify-center">
+                        <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h4 className="font-semibold text-foreground">{location.name}</h4>
+                          {location.time && (
+                            <span className="text-xs text-muted-foreground shrink-0 mt-0.5">{location.time}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{location.activity}</p>
                         {location.psychological_alignment && (
-                          <p className="text-xs text-muted-foreground italic">✨ {location.psychological_alignment}</p>
+                          <div className="mt-2 px-3 py-1.5 rounded-lg bg-brand-lavender-haze/50 flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3 text-primary/60 shrink-0" />
+                            <p className="text-xs text-primary/80 italic">{location.psychological_alignment}</p>
+                          </div>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
+              )}
 
-                {day.accommodation && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold flex items-center gap-2"><Hotel className="h-4 w-4" /> Accommodation</h3>
-                    <div className="p-4 rounded-lg border border-border bg-muted/50">
-                      <h4 className="font-semibold">{day.accommodation.name}</h4>
-                      <Badge variant="outline" className="mt-1">{day.accommodation.type}</Badge>
-                      <p className="text-sm mt-2">{day.accommodation.why}</p>
+              {/* Accommodation */}
+              {activeDay_.accommodation && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    <Hotel className="h-3.5 w-3.5" /> Stay
+                  </div>
+                  <div className="p-4 rounded-xl border border-border bg-background flex gap-3 items-start">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-warm-stone flex items-center justify-center text-base">🏨</div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-foreground">{activeDay_.accommodation.name}</h4>
+                        <Badge variant="outline" className="text-xs">{activeDay_.accommodation.type}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{activeDay_.accommodation.why}</p>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {day.meals && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold flex items-center gap-2"><Utensils className="h-4 w-4" /> Dining</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      {day.meals.map((meal, idx) => (
-                        <div key={idx} className="p-3 rounded-lg bg-muted/30 text-sm">{meal}</div>
-                      ))}
-                    </div>
+              {/* Meals */}
+              {activeDay_.meals?.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    <Utensils className="h-3.5 w-3.5" /> Dining
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
-
-      {itinerary.psychological_insights && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5" /> Psychological Design</CardTitle>
-            <CardDescription>How this journey supports your inner development</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div><h4 className="font-semibold mb-2">Transformation Arc</h4><p className="text-sm text-muted-foreground">{itinerary.psychological_insights.transformation_arc}</p></div>
-            <div><h4 className="font-semibold mb-2">Growth Opportunities</h4><p className="text-sm text-muted-foreground">{itinerary.psychological_insights.growth_opportunities}</p></div>
-            <div><h4 className="font-semibold mb-2">Comfort Balance</h4><p className="text-sm text-muted-foreground">{itinerary.psychological_insights.comfort_balance}</p></div>
-          </CardContent>
-        </Card>
+                  <div className="grid grid-cols-3 gap-3">
+                    {["Breakfast", "Lunch", "Dinner"].map((label, idx) => (
+                      activeDay_.meals[idx] && (
+                        <div key={idx} className="p-3 rounded-xl border border-border bg-background text-center">
+                          <p className="text-xs text-muted-foreground mb-1 font-medium">{label}</p>
+                          <p className="text-sm font-medium text-foreground">{activeDay_.meals[idx]}</p>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
+      {/* Psychological Design */}
+      {itinerary.psychological_insights && (
+        <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-6">
+          <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+            <Compass className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold text-sm">Psychological Design</h2>
+          </div>
+          <div className="p-6 space-y-5">
+            {[
+              { label: "Transformation Arc", value: itinerary.psychological_insights.transformation_arc },
+              { label: "Growth Opportunities", value: itinerary.psychological_insights.growth_opportunities },
+              { label: "Comfort Balance", value: itinerary.psychological_insights.comfort_balance },
+            ].map(({ label, value }) => value && (
+              <div key={label}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
+                <p className="text-sm text-foreground leading-relaxed">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Practical Notes */}
       {itinerary.practical_notes && (
-        <Card>
-          <CardHeader><CardTitle>Practical Information</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div><h4 className="font-semibold text-sm mb-1">Dietary Accommodations</h4><p className="text-sm text-muted-foreground">{itinerary.practical_notes.dietary_accommodations}</p></div>
-            <div><h4 className="font-semibold text-sm mb-1">Pacing</h4><p className="text-sm text-muted-foreground">{itinerary.practical_notes.pacing}</p></div>
-            <div><h4 className="font-semibold text-sm mb-1">Flexibility</h4><p className="text-sm text-muted-foreground">{itinerary.practical_notes.flexibility}</p></div>
-            <div><h4 className="font-semibold text-sm mb-1">Companion Considerations</h4><p className="text-sm text-muted-foreground">{itinerary.practical_notes.companion_considerations}</p></div>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="font-semibold text-sm">Practical Information</h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {[
+              { label: "Dietary Accommodations", value: itinerary.practical_notes.dietary_accommodations },
+              { label: "Pacing", value: itinerary.practical_notes.pacing },
+              { label: "Flexibility", value: itinerary.practical_notes.flexibility },
+              { label: "Companion Considerations", value: itinerary.practical_notes.companion_considerations },
+            ].map(({ label, value }) => value && (
+              <div key={label}>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+                <p className="text-sm text-foreground leading-relaxed">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
