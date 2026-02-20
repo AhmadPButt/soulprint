@@ -518,40 +518,153 @@ export default function TripDetail() {
     switch (activeSection) {
       case "overview":
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
+            {/* Hero destination card */}
             {destination && (
-              <Card className="overflow-hidden">
+              <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm">
                 {destination.image_url && (
-                  <img src={destination.image_url} alt={destination.name} className="w-full h-52 object-cover" />
+                  <div className="relative h-56 overflow-hidden">
+                    <img src={destination.image_url} alt={destination.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h2 className="text-2xl font-bold text-white leading-tight">{destination.name}</h2>
+                      <p className="text-white/70 text-sm flex items-center gap-1.5 mt-1">
+                        <MapPin className="h-3.5 w-3.5" />{destination.country}
+                      </p>
+                    </div>
+                  </div>
                 )}
-                <CardContent className="p-6 space-y-4">
-                  <h2 className="text-xl font-semibold">{destination.name}, {destination.country}</h2>
+                {!destination.image_url && (
+                  <div className="bg-gradient-to-br from-brand-lavender-haze via-accent to-background p-6">
+                    <h2 className="text-2xl font-bold text-foreground">{destination.name}</h2>
+                    <p className="text-muted-foreground text-sm flex items-center gap-1.5 mt-1">
+                      <MapPin className="h-3.5 w-3.5" />{destination.country}
+                    </p>
+                  </div>
+                )}
+                <div className="p-5 space-y-4">
                   <p className="text-muted-foreground text-sm leading-relaxed">{destination.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {destination.highlights?.map((h: string, i: number) => (
-                      <Badge key={i} variant="outline">{h}</Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-3 pt-2 flex-wrap">
-                    <Button variant="outline" onClick={() => navigate(`/destination/${destination.id}`)}>
-                      <MapPin className="h-4 w-4 mr-2" /> View Full Details
+                  {destination.highlights?.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {destination.highlights.map((h: string, i: number) => (
+                        <span key={i} className="px-3 py-1 rounded-full bg-accent text-xs font-medium text-primary border border-primary/10">{h}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-3 pt-1 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/destination/${destination.id}`)}>
+                      <MapPin className="h-3.5 w-3.5 mr-1.5" /> View Full Details
                     </Button>
-                    <Button variant="outline" onClick={() => setShowCalendly(true)}>
-                      <Phone className="h-4 w-4 mr-2" /> Book Consultation
+                    <Button size="sm" onClick={() => setShowCalendly(true)}>
+                      <Phone className="h-3.5 w-3.5 mr-1.5" /> Book Consultation
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Trip Details</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Type</span><p className="font-medium capitalize">{trip.trip_type}</p></div>
-                <div><span className="text-muted-foreground">Budget</span><p className="font-medium">{trip.budget_range || "Not set"}</p></div>
-                <div><span className="text-muted-foreground">Start Date</span><p className="font-medium">{trip.start_date ? new Date(trip.start_date).toLocaleDateString() : "Not set"}</p></div>
-                <div><span className="text-muted-foreground">End Date</span><p className="font-medium">{trip.end_date ? new Date(trip.end_date).toLocaleDateString() : "Not set"}</p></div>
-              </CardContent>
-            </Card>
+
+            {/* Trip type + budget + dates */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Trip Type */}
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Trip Type</p>
+                {(() => {
+                  const typeConfig: Record<string, { emoji: string; color: string; label: string }> = {
+                    solo:       { emoji: "🧘", color: "bg-sky-100 text-sky-700 border-sky-200",       label: "Solo" },
+                    romantic:   { emoji: "💑", color: "bg-rose-100 text-rose-700 border-rose-200",    label: "Romantic" },
+                    family:     { emoji: "👨‍👩‍👧", color: "bg-amber-100 text-amber-700 border-amber-200", label: "Family" },
+                    friends:    { emoji: "🎉", color: "bg-violet-100 text-violet-700 border-violet-200", label: "Friends" },
+                    group:      { emoji: "👥", color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Group" },
+                    adventure:  { emoji: "🏔️", color: "bg-orange-100 text-orange-700 border-orange-200", label: "Adventure" },
+                    wellness:   { emoji: "🌿", color: "bg-teal-100 text-teal-700 border-teal-200",    label: "Wellness" },
+                    business:   { emoji: "💼", color: "bg-slate-100 text-slate-700 border-slate-200", label: "Business" },
+                  };
+                  const cfg = typeConfig[trip.trip_type?.toLowerCase()] || { emoji: "✈️", color: "bg-accent text-primary border-primary/20", label: trip.trip_type || "Trip" };
+                  return (
+                    <div className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-sm font-semibold ${cfg.color}`}>
+                      <span className="text-xl leading-none">{cfg.emoji}</span>
+                      {cfg.label}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Budget range */}
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Budget Range</p>
+                {trip.budget_range ? (() => {
+                  const budgetLevels = [
+                    { key: "budget",   label: "Budget",   range: "Under £1k",  fill: 1 },
+                    { key: "1k_2k",    label: "£1k–2k",   range: "£1,000–2,000", fill: 2 },
+                    { key: "2k_3k",    label: "£2k–3k",   range: "£2,000–3,000", fill: 3 },
+                    { key: "3k_5k",    label: "£3k–5k",   range: "£3,000–5,000", fill: 4 },
+                    { key: "5k_10k",   label: "£5k–10k",  range: "£5,000–10,000", fill: 5 },
+                    { key: "10k_plus", label: "£10k+",    range: "£10,000+",    fill: 6 },
+                  ];
+                  const total = budgetLevels.length;
+                  const match = budgetLevels.find(b => trip.budget_range?.toLowerCase().includes(b.key.toLowerCase()) || trip.budget_range?.toLowerCase().includes(b.label.toLowerCase().replace("£","")));
+                  const level = match?.fill ?? 3;
+                  const label = match?.label ?? trip.budget_range;
+                  const range = match?.range ?? trip.budget_range;
+                  return (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-1.5">
+                        {Array.from({ length: total }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-2.5 flex-1 rounded-full transition-all ${i < level ? "bg-primary" : "bg-secondary"}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-base font-bold text-foreground">{label}</span>
+                        <span className="text-xs text-muted-foreground">{range}</span>
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <span className="text-sm text-muted-foreground italic">Not set</span>
+                )}
+              </div>
+
+              {/* Travel dates */}
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-3 shadow-sm sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Travel Dates</p>
+                {trip.start_date || trip.end_date ? (() => {
+                  const start = trip.start_date ? new Date(trip.start_date) : null;
+                  const end = trip.end_date ? new Date(trip.end_date) : null;
+                  const nights = start && end ? Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {/* Start */}
+                        <div className="flex-1 rounded-xl bg-accent/60 border border-primary/10 p-3 text-center">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Departure</p>
+                          <p className="text-sm font-bold text-foreground">{start ? fmt(start) : "TBC"}</p>
+                        </div>
+                        {/* Line */}
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <div className="h-px w-8 bg-primary/30" />
+                          {nights !== null && (
+                            <span className="text-[10px] font-semibold text-primary bg-accent px-2 py-0.5 rounded-full">{nights}n</span>
+                          )}
+                          <div className="h-px w-8 bg-primary/30" />
+                        </div>
+                        {/* End */}
+                        <div className="flex-1 rounded-xl bg-primary/8 border border-primary/20 p-3 text-center">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Return</p>
+                          <p className="text-sm font-bold text-foreground">{end ? fmt(end) : "TBC"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <span className="text-sm text-muted-foreground italic">Dates not set yet</span>
+                )}
+              </div>
+            </div>
           </div>
         );
 
