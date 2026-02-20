@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { AdminsTab } from "@/components/admin/AdminsTab";
+import { TripStatusControl } from "@/components/admin/TripStatusControl";
 
 const SoulPrintVisualization = lazy(() => import("@/components/admin/SoulPrintVisualization"));
 const ItineraryVisualization = lazy(() => import("@/components/admin/ItineraryVisualization"));
@@ -1017,6 +1018,11 @@ const Admin = () => {
                                           )}
                                         </div>
                                       </div>
+                                    )}
+
+                                    {/* Trip Status Control */}
+                                    {respondent.user_id && (
+                                      <TripStatusControl userId={respondent.user_id} respondentName={respondent.name} />
                                     )}
 
                                     {/* Payment Tracking */}

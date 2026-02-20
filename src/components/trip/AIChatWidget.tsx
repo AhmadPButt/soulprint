@@ -145,6 +145,7 @@ export function AIChatWidget({ tripId, destinationName }: AIChatWidgetProps) {
   if (!isOpen) {
     return (
       <button
+        id="ai-chat-open-btn"
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105"
       >

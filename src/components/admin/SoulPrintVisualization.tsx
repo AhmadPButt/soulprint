@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer,
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, Cell,
+  PieChart, Pie, Legend
+} from "recharts";
 import { Download, Fingerprint } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,41 +20,41 @@ interface SoulPrintVisualizationProps {
   onRegenerateComplete?: () => void;
 }
 
+const COLORS = ["hsl(255,47%,62%)", "hsl(40,30%,65%)", "hsl(200,60%,55%)", "hsl(140,50%,55%)", "hsl(20,70%,55%)"];
+
 const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerateComplete }: SoulPrintVisualizationProps) => {
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
 
-  // Big Five data
+  // Big Five data for radar
   const bigFiveData = [
-    { trait: "Extraversion", value: parseFloat(computed.extraversion) },
-    { trait: "Openness", value: parseFloat(computed.openness) },
-    { trait: "Conscientiousness", value: parseFloat(computed.conscientiousness) },
-    { trait: "Agreeableness", value: parseFloat(computed.agreeableness) },
-    { trait: "Emotional Stability", value: parseFloat(computed.emotional_stability) }
+    { trait: "Extraversion", value: parseFloat(computed.extraversion) || 0 },
+    { trait: "Openness", value: parseFloat(computed.openness) || 0 },
+    { trait: "Conscientiousness", value: parseFloat(computed.conscientiousness) || 0 },
+    { trait: "Agreeableness", value: parseFloat(computed.agreeableness) || 0 },
+    { trait: "Emotional Stability", value: parseFloat(computed.emotional_stability) || 0 }
   ];
 
-  // Travel Behavior data
-  const travelData = [
-    { name: "Spontaneity", value: parseFloat(computed.spontaneity_flexibility) },
-    { name: "Adventure", value: parseFloat(computed.adventure_orientation) },
-    { name: "Adaptation", value: parseFloat(computed.environmental_adaptation) }
+  // Travel Behavior — bubble/scatter: spontaneity vs adventure
+  const travelBubbleData = [
+    { x: parseFloat(computed.spontaneity_flexibility) || 0, y: parseFloat(computed.adventure_orientation) || 0, z: 400, label: "You" },
   ];
 
-  // Inner Compass data
+  // Inner Compass — pie chart of 4 motivations
   const innerCompassData = [
-    { motivation: "Transformation", value: parseFloat(computed.transformation) },
-    { motivation: "Clarity", value: parseFloat(computed.clarity) },
-    { motivation: "Aliveness", value: parseFloat(computed.aliveness) },
-    { motivation: "Connection", value: parseFloat(computed.connection) }
+    { name: "Transformation", value: parseFloat(computed.transformation) || 0 },
+    { name: "Clarity", value: parseFloat(computed.clarity) || 0 },
+    { name: "Aliveness", value: parseFloat(computed.aliveness) || 0 },
+    { name: "Connection", value: parseFloat(computed.connection) || 0 }
   ];
 
-  // Tensions data
+  // Tensions — radar chart (more appropriate than bars)
   const tensionsData = [
-    { name: "Social", value: parseFloat(computed.t_social) },
-    { name: "Flow", value: parseFloat(computed.t_flow) },
-    { name: "Risk", value: parseFloat(computed.t_risk) },
-    { name: "Elements", value: parseFloat(computed.t_elements) },
-    { name: "Tempo", value: parseFloat(computed.t_tempo) }
+    { axis: "Social", value: parseFloat(computed.t_social) || 0 },
+    { axis: "Flow", value: parseFloat(computed.t_flow) || 0 },
+    { axis: "Risk", value: parseFloat(computed.t_risk) || 0 },
+    { axis: "Elements", value: parseFloat(computed.t_elements) || 0 },
+    { axis: "Tempo", value: parseFloat(computed.t_tempo) || 0 },
   ];
 
   const exportSoulPrint = async () => {
@@ -60,168 +63,49 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let yPosition = 20;
+      let y = 20;
 
-      // Header
-      pdf.setFontSize(24);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Your SoulPrint', pageWidth / 2, yPosition, { align: 'center' });
-      
-      yPosition += 10;
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text('Erranza Travel Personality Profile', pageWidth / 2, yPosition, { align: 'center' });
-      
-      yPosition += 15;
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(15, yPosition, pageWidth - 15, yPosition);
-      
-      yPosition += 10;
+      pdf.setFontSize(24); pdf.setFont('helvetica', 'bold');
+      pdf.text('Your SoulPrint', pageWidth / 2, y, { align: 'center' }); y += 10;
+      pdf.setFontSize(12); pdf.setFont('helvetica', 'normal');
+      pdf.text('Erranza Travel Personality Profile', pageWidth / 2, y, { align: 'center' }); y += 15;
+      pdf.setDrawColor(200, 200, 200); pdf.line(15, y, pageWidth - 15, y); y += 10;
 
-      // Profile Overview
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Profile Overview', 15, yPosition);
-      yPosition += 10;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`Tribe: ${computed.tribe}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Tribe Confidence: ${computed.tribe_confidence}`, 15, yPosition);
-      yPosition += 10;
-
-      // Big Five Personality
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Big Five Personality Traits', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      bigFiveData.forEach(trait => {
-        pdf.text(`${trait.trait}: ${trait.value.toFixed(1)}`, 15, yPosition);
-        yPosition += 6;
-      });
-      yPosition += 5;
-
-      // Travel Behavior
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Travel Behavior', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      travelData.forEach(item => {
-        pdf.text(`${item.name}: ${item.value.toFixed(1)}`, 15, yPosition);
-        yPosition += 6;
-      });
-      pdf.text(`Travel Freedom Index: ${computed.travel_freedom_index}`, 15, yPosition);
-      yPosition += 10;
-
-      // Inner Compass
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Inner Compass & Motivations', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      innerCompassData.forEach(item => {
-        pdf.text(`${item.motivation}: ${item.value.toFixed(1)}`, 15, yPosition);
-        yPosition += 6;
-      });
-      pdf.text(`Primary Motivation: ${computed.top_motivation_1}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Secondary Motivation: ${computed.top_motivation_2}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Life Phase: ${computed.life_phase}`, 15, yPosition);
-      yPosition += 6;
-      pdf.text(`Seeking: ${computed.shift_desired}`, 15, yPosition);
-      yPosition += 10;
-
-      // Tensions
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Tensions & Growth Areas', 15, yPosition);
-      yPosition += 8;
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      tensionsData.forEach(tension => {
-        pdf.text(`${tension.name}: ${tension.value.toFixed(1)}`, 15, yPosition);
-        yPosition += 6;
-      });
-
-      if (yPosition > pageHeight - 50 && narrative) {
-        pdf.addPage();
-        yPosition = 20;
-      }
-
-      // Narrative Insights
       if (narrative) {
-        yPosition += 10;
-        pdf.setFontSize(16);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Your SoulPrint Narrative', 15, yPosition);
-        yPosition += 10;
-
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'italic');
-        pdf.text(narrative.headline || '', 15, yPosition);
-        yPosition += 8;
-
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+        pdf.text(narrative.headline || '', 15, y); y += 8;
+        pdf.setFontSize(11); pdf.setFont('helvetica', 'italic');
+        pdf.text(narrative.tagline || '', 15, y); y += 10;
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
         const summaryLines = pdf.splitTextToSize(narrative.soulprint_summary || '', pageWidth - 30);
         summaryLines.forEach((line: string) => {
-          if (yPosition > pageHeight - 20) {
-            pdf.addPage();
-            yPosition = 20;
-          }
-          pdf.text(line, 15, yPosition);
-          yPosition += 5;
+          if (y > pageHeight - 20) { pdf.addPage(); y = 20; }
+          pdf.text(line, 15, y); y += 5;
         });
-
-        if (narrative.traveler_archetype) {
-          yPosition += 5;
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Traveler Archetype:', 15, yPosition);
-          yPosition += 6;
-          pdf.setFont('helvetica', 'normal');
-          const archetypeLines = pdf.splitTextToSize(narrative.traveler_archetype, pageWidth - 30);
-          archetypeLines.forEach((line: string) => {
-            if (yPosition > pageHeight - 20) {
-              pdf.addPage();
-              yPosition = 20;
-            }
-            pdf.text(line, 15, yPosition);
-            yPosition += 5;
-          });
-        }
+        y += 8;
       }
 
-      // Footer
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      pdf.text('Personality Profile', 15, y); y += 8;
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
+      bigFiveData.forEach(t => { pdf.text(`${t.trait}: ${t.value.toFixed(1)}`, 15, y); y += 6; });
+      y += 5;
+
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      pdf.text('Inner Compass', 15, y); y += 8;
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
+      innerCompassData.forEach(m => { pdf.text(`${m.name}: ${m.value.toFixed(1)}`, 15, y); y += 6; });
+      y += 5;
+
       const timestamp = new Date().toLocaleString();
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
+      pdf.setFontSize(8); pdf.setTextColor(150, 150, 150);
       pdf.text(`Generated: ${timestamp}`, 15, pageHeight - 10);
       pdf.text('Erranza © 2026 - Your Travel Personality', pageWidth / 2, pageHeight - 10, { align: 'center' });
-
       pdf.save(`soulprint-${respondentId?.substring(0, 8) || 'profile'}.pdf`);
 
-      toast({
-        title: "SoulPrint Exported",
-        description: "Your SoulPrint PDF has been downloaded",
-      });
+      toast({ title: "SoulPrint Exported", description: "Your SoulPrint PDF has been downloaded" });
     } catch (error: any) {
-      console.error("Error exporting PDF:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export SoulPrint",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to export SoulPrint", variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -229,100 +113,64 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
 
   return (
     <div className="space-y-6">
-      {/* Action Bar - Export SoulPrint only */}
+      {/* Export */}
       {respondentId && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4 justify-end">
-              <Button onClick={exportSoulPrint} disabled={exporting} className="gap-2">
-                <Fingerprint className="h-4 w-4" />
-                {exporting ? "Exporting..." : "Export SoulPrint"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-end">
+          <Button onClick={exportSoulPrint} disabled={exporting} variant="outline" className="gap-2">
+            <Fingerprint className="h-4 w-4" />
+            {exporting ? "Exporting..." : "Export SoulPrint"}
+          </Button>
+        </div>
       )}
 
-      {/* Headline */}
+      {/* Narrative Card */}
       {narrative && (
         <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10">
           <CardHeader>
-            <CardTitle className="text-3xl">{narrative.headline}</CardTitle>
-            <CardDescription className="text-lg italic">{narrative.tagline}</CardDescription>
+            <CardTitle className="text-2xl">{narrative.headline}</CardTitle>
+            <CardDescription className="text-base italic">{narrative.tagline}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-foreground whitespace-pre-wrap">{narrative.soulprint_summary}</p>
+            <p className="text-foreground leading-relaxed">{narrative.soulprint_summary}</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Key Metrics - Tribe only, removed Azerbaijan, NPS, Risk Flag */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Tribe</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{computed.tribe}</div>
-            <Badge variant={computed.tribe_confidence === "High" ? "default" : "secondary"}>
-              {computed.tribe_confidence} Confidence
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Primary Motivation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{computed.top_motivation_1}</div>
-            <p className="text-xs text-muted-foreground mt-1">Life Phase: {computed.life_phase}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Travel Freedom</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{computed.travel_freedom_index}</div>
-            <Progress value={parseFloat(computed.travel_freedom_index)} className="mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs - Removed Elements and Business */}
+      {/* Tabs */}
       <Tabs defaultValue="personality" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="personality">Personality</TabsTrigger>
-          <TabsTrigger value="travel">Travel</TabsTrigger>
+          <TabsTrigger value="travel">Travel Behavior</TabsTrigger>
           <TabsTrigger value="compass">Inner Compass</TabsTrigger>
         </TabsList>
 
+        {/* PERSONALITY — radar */}
         <TabsContent value="personality">
           <Card>
             <CardHeader>
-              <CardTitle>Big Five Personality Traits</CardTitle>
-              <CardDescription>Core personality dimensions (0-100 scale)</CardDescription>
+              <CardTitle>Personality Dimensions</CardTitle>
+              <CardDescription>Your Big Five psychological profile (0–100 scale)</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
+            <CardContent className="space-y-4">
+              <ResponsiveContainer width="100%" height={320}>
                 <RadarChart data={bigFiveData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="trait" />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Score" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
-                  <Legend />
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis dataKey="trait" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Radar name="You" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
-              <div className="mt-4 space-y-2">
-                {bigFiveData.map((trait) => (
-                  <div key={trait.trait}>
+              {/* Dimension bars */}
+              <div className="space-y-3">
+                {bigFiveData.map(({ trait, value }) => (
+                  <div key={trait}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>{trait.trait}</span>
-                      <span className="font-medium">{trait.value.toFixed(1)}</span>
+                      <span className="text-muted-foreground">{trait}</span>
+                      <span className="font-semibold">{value.toFixed(0)}</span>
                     </div>
-                    <Progress value={trait.value} className="h-2" />
+                    <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${value}%` }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -330,80 +178,120 @@ const SoulPrintVisualization = ({ computed, narrative, respondentId, onRegenerat
           </Card>
         </TabsContent>
 
+        {/* TRAVEL BEHAVIOR — positioned scatter + tension radar */}
         <TabsContent value="travel">
-          <Card>
-            <CardHeader>
-              <CardTitle>Travel Behavior</CardTitle>
-              <CardDescription>How you approach travel experiences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={travelData}>
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="mt-4">
-                <p className="text-sm font-medium mb-2">Travel Freedom Index</p>
-                <div className="flex items-center gap-2">
-                  <Progress value={parseFloat(computed.travel_freedom_index)} className="flex-1" />
-                  <span className="text-sm font-bold">{computed.travel_freedom_index}</span>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Spontaneity vs Adventure</CardTitle>
+                <CardDescription>Where you sit on the spontaneity and adventure spectrum</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Simple positioned indicator */}
+                <div className="relative">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Spontaneity", value: parseFloat(computed.spontaneity_flexibility) || 0, left: "Structured", right: "Spontaneous" },
+                      { label: "Adventure", value: parseFloat(computed.adventure_orientation) || 0, left: "Comfort-Seeking", right: "Adventure-Hungry" },
+                      { label: "Adaptation", value: parseFloat(computed.environmental_adaptation) || 0, left: "Routine", right: "Adaptable" },
+                    ].map(({ label, value, left, right }) => (
+                      <div key={label} className="col-span-2">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>{left}</span>
+                          <span className="font-medium text-foreground">{label}</span>
+                          <span>{right}</span>
+                        </div>
+                        <div className="relative h-3 rounded-full bg-muted/40">
+                          <div
+                            className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-accent to-primary transition-all"
+                            style={{ width: `${value}%` }}
+                          />
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary border-2 border-card shadow-md transition-all"
+                            style={{ left: `calc(${value}% - 8px)` }}
+                          />
+                        </div>
+                        <div className="text-right text-xs font-semibold text-primary mt-0.5">{value.toFixed(0)}/100</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              {/* Tensions */}
-              <div className="mt-6">
-                <p className="text-sm font-medium mb-3">Tensions & Growth Areas</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={tensionsData}>
-                    <XAxis dataKey="name" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="hsl(var(--destructive))" />
-                  </BarChart>
+              </CardContent>
+            </Card>
+
+            {/* Tensions — radar */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Growth & Tension Areas</CardTitle>
+                <CardDescription>Internal friction points that signal your growth edges — higher scores indicate more stretch potential</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={tensionsData}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="axis" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Radar name="Tension" dataKey="value" stroke="hsl(var(--accent-foreground))" fill="hsl(var(--accent))" fillOpacity={0.3} strokeWidth={2} />
+                  </RadarChart>
                 </ResponsiveContainer>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Higher values indicate more internal friction and potential growth edges
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  {tensionsData.map(({ axis, value }) => {
+                    const level = value >= 60 ? "High stretch" : value >= 30 ? "Moderate" : "Aligned";
+                    const color = value >= 60 ? "text-amber-600" : value >= 30 ? "text-primary" : "text-emerald-600";
+                    return (
+                      <div key={axis} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                        <span className="text-sm text-muted-foreground">{axis}</span>
+                        <span className={`text-xs font-semibold ${color}`}>{level}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
+        {/* INNER COMPASS — pie */}
         <TabsContent value="compass">
           <Card>
             <CardHeader>
               <CardTitle>Inner Compass</CardTitle>
-              <CardDescription>What drives you in life and travel</CardDescription>
+              <CardDescription>The emotional and purposeful drives that shape your travel choices</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={innerCompassData}>
-                  <XAxis dataKey="motivation" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--accent))" />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="mt-4 space-y-4">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={innerCompassData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={4}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value.toFixed(0)}`}
+                      labelLine={false}
+                    >
+                      {innerCompassData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(val: any) => val.toFixed(1)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Life phase & seeking */}
+              <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
                 <div>
-                  <p className="text-sm text-muted-foreground">Primary Motivation</p>
-                  <p className="text-xl font-bold">{computed.top_motivation_1}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Life Phase</p>
+                  <Badge variant="outline" className="text-sm px-3 py-1">{computed.life_phase || '—'}</Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Secondary Motivation</p>
-                  <p className="text-xl font-bold">{computed.top_motivation_2}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Life Phase</p>
-                    <Badge>{computed.life_phase}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Seeking</p>
-                    <Badge>{computed.shift_desired}</Badge>
-                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">Seeking</p>
+                  <Badge variant="outline" className="text-sm px-3 py-1">{computed.shift_desired || '—'}</Badge>
                 </div>
               </div>
             </CardContent>
