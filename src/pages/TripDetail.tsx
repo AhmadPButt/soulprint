@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
   Mail, Check, Clock, Sparkles, Phone, FileText, Wrench, Heart, Trash2, AlertTriangle,
@@ -65,6 +66,7 @@ export default function TripDetail() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [groupType, setGroupType] = useState<string>("couple");
   const [generating, setGenerating] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Record<string, any>>({});
   const [showCalendly, setShowCalendly] = useState(false);
@@ -122,11 +124,42 @@ export default function TripDetail() {
     setInviting(true);
     try {
       const emails = inviteEmails.split(",").map(e => e.trim()).filter(Boolean);
+      const { data: { user } } = await supabase.auth.getUser();
+      const inviterName = user?.email?.split("@")[0] || "Your travel companion";
+
       for (const email of emails) {
-        await supabase.from("trip_members").insert({ trip_id: tripId!, email, role: "member", invitation_status: "pending" });
+        // Insert member
+        const { data: newMember, error: insertErr } = await supabase
+          .from("trip_members")
+          .insert({ trip_id: tripId!, email, role: "member", invitation_status: "pending" })
+          .select()
+          .single();
+
+        if (insertErr) throw insertErr;
+
+        // Also update trip type to reflect group if it was solo
+        if (trip.trip_type === "solo" && groupType) {
+          await supabase.from("trips").update({ trip_type: groupType }).eq("id", tripId!);
+        }
+
+        // Send invitation email via edge function
+        const { error: emailErr } = await supabase.functions.invoke("send-trip-invitation", {
+          body: {
+            trip_id: tripId!,
+            member_id: newMember.id,
+            invitation_token: newMember.invitation_token,
+            inviter_name: inviterName,
+          },
+        });
+
+        if (emailErr) {
+          console.warn("Email send failed:", emailErr);
+        }
       }
-      toast({ title: `Invited ${emails.length} traveler(s)` });
+
+      toast({ title: `Invitation sent to ${emails.length} traveler(s)`, description: "They'll receive an email with a link to join." });
       setInviteEmails("");
+      setGroupType("couple");
       setShowInvite(false);
       loadTrip();
     } catch (err: any) {
@@ -905,12 +938,42 @@ export default function TripDetail() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invite to {trip.trip_name}</DialogTitle>
-            <DialogDescription>Enter email addresses separated by commas.</DialogDescription>
+            <DialogDescription>Add fellow travelers and set your group type.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Group type */}
+            <div className="space-y-2">
+              <Label>Travel Group Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "couple",   emoji: "💑", label: "Couple" },
+                  { value: "friends",  emoji: "🎉", label: "Friends" },
+                  { value: "family",   emoji: "👨‍👩‍👧", label: "Family" },
+                  { value: "business", emoji: "💼", label: "Business" },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setGroupType(opt.value)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      groupType === opt.value
+                        ? "border-primary bg-accent text-primary"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
+                    <span className="text-lg">{opt.emoji}</span> {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <Label htmlFor="emails">Email Addresses</Label>
-              <Input id="emails" placeholder="friend@example.com, partner@example.com" value={inviteEmails} onChange={e => setInviteEmails(e.target.value)} />
+              <Input
+                id="emails"
+                placeholder="friend@example.com, partner@example.com"
+                value={inviteEmails}
+                onChange={e => setInviteEmails(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Separate multiple emails with commas.</p>
             </div>
             <Button onClick={handleInvite} disabled={inviting || !inviteEmails.trim()} className="w-full">
               {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
