@@ -25,6 +25,8 @@ import { AdminDocumentUpload } from "@/components/admin/AdminDocumentUpload";
 import { AdminSupportTab } from "@/components/admin/AdminSupportTab";
 import { AlgorithmPerformanceTab } from "@/components/admin/AlgorithmPerformanceTab";
 import { BehavioralAnalyticsTab } from "@/components/admin/BehavioralAnalyticsTab";
+import { SystemPromptsTab } from "@/components/admin/SystemPromptsTab";
+import { QuestionnaireEditorTab } from "@/components/admin/QuestionnaireEditorTab";
 
 interface AnalyticsData {
   totalStarts: number;
@@ -793,14 +795,13 @@ const Admin = () => {
             <Tabs defaultValue="travelers" className="space-y-4">
               <TabsList className="flex flex-wrap gap-1 h-auto p-1">
                 <TabsTrigger value="travelers">Travelers</TabsTrigger>
-                <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
-                <TabsTrigger value="time">Time</TabsTrigger>
-                <TabsTrigger value="sessions">Sessions</TabsTrigger>
                 <TabsTrigger value="groups">Groups</TabsTrigger>
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
                 <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
+                <TabsTrigger value="prompts" className="gap-1"><Brain className="h-3.5 w-3.5" /> Prompts</TabsTrigger>
+                <TabsTrigger value="questionnaire">Questionnaire</TabsTrigger>
                 <TabsTrigger value="admins" className="gap-1"><Shield className="h-3.5 w-3.5" /> Admins</TabsTrigger>
                 <TabsTrigger value="notifications">Alerts</TabsTrigger>
               </TabsList>
@@ -1077,102 +1078,6 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
-              {/* DROPOFFS TAB */}
-              <TabsContent value="dropoffs">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Dropoff by Section</CardTitle>
-                    <CardDescription>Number of users who abandoned at each section</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {analytics.sectionDropoffs.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">No dropoffs recorded yet</p>
-                      ) : (
-                        analytics.sectionDropoffs.map((item) => (
-                          <div key={item.section} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">Section {item.section}</span>
-                              <span className="text-sm text-muted-foreground">{item.count} dropoffs</span>
-                            </div>
-                            <Progress value={(item.count / analytics.totalStarts) * 100} className="h-2" />
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* TIME TAB */}
-              <TabsContent value="time">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Average Time per Section</CardTitle>
-                    <CardDescription>How long users spend on each section</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {analytics.averageTimePerSection.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">No time data recorded yet</p>
-                      ) : (
-                        analytics.averageTimePerSection.map((item) => (
-                          <div key={item.section} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Section {item.section}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {Math.floor(item.avgTime / 60)}m {item.avgTime % 60}s
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* SESSIONS TAB */}
-              <TabsContent value="sessions">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Sessions</CardTitle>
-                    <CardDescription>Latest user activity and progress</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[400px]">
-                      <div className="space-y-4">
-                        {analytics.recentSessions.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-8">No sessions recorded yet</p>
-                        ) : (
-                          analytics.recentSessions.map((session) => (
-                            <div
-                              key={session.session_id}
-                              className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
-                            >
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium">{session.email || "Anonymous"}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(session.started_at).toLocaleString()}
-                                </p>
-                              </div>
-                              <div className="text-right space-y-1">
-                                <p className="text-sm font-medium">Section {session.last_section}/8</p>
-                                <p className={`text-xs ${
-                                  session.status === "completed" ? "text-green-500"
-                                    : session.status === "abandoned" ? "text-red-500"
-                                    : "text-yellow-500"
-                                }`}>
-                                  {session.status}
-                                </p>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
               {/* GROUPS TAB */}
               <TabsContent value="groups">
                 <Card>
@@ -1276,6 +1181,14 @@ const Admin = () => {
 
               <TabsContent value="analytics">
                 <BehavioralAnalyticsTab />
+              </TabsContent>
+
+              <TabsContent value="prompts">
+                <SystemPromptsTab />
+              </TabsContent>
+
+              <TabsContent value="questionnaire">
+                <QuestionnaireEditorTab />
               </TabsContent>
 
               <TabsContent value="admins">

@@ -1242,6 +1242,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_prompts: {
+        Row: {
+          description: string | null
+          id: string
+          prompt_content: string
+          prompt_key: string
+          prompt_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          prompt_content: string
+          prompt_key: string
+          prompt_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          prompt_content?: string
+          prompt_key?: string
+          prompt_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       trip_bookings: {
         Row: {
           booking_date: string | null

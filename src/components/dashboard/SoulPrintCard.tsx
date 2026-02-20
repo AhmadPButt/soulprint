@@ -20,7 +20,10 @@ interface SoulPrintCardProps {
 const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
   const headline = narrative?.headline || generateHeadline(traits, computed);
   const tagline = narrative?.tagline || generateTagline(traits);
-  const description = narrative?.soulprint_summary || generateNarrative(traits);
+  // Only show narrative summary if it's NOT the old Azerbaijan content
+  const rawSummary = narrative?.soulprint_summary || "";
+  const isOldNarrative = rawSummary.toLowerCase().includes("azerbaijan") || rawSummary.includes("T_Social") || rawSummary.includes("O47") || rawSummary.length > 600;
+  const description = !isOldNarrative && rawSummary ? rawSummary : generateNarrative(traits);
 
   const top1Label = SENSORY_LABELS[traits.sensory.top1] || traits.sensory.top1;
   const top2Label = SENSORY_LABELS[traits.sensory.top2] || traits.sensory.top2;

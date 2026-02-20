@@ -541,8 +541,8 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Complete SoulPrint Journey */}
-                {computed && narrative && respondent && (
+                {/* Complete SoulPrint Journey — show charts without narrative card (narrative shown in SoulPrintCard above) */}
+                {computed && respondent && (
                   <div className="mt-8">
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                       <Fingerprint className="h-5 w-5 text-primary" />
@@ -550,7 +550,7 @@ export default function Dashboard() {
                     </h3>
                     <SoulPrintVisualization
                       computed={computed}
-                      narrative={narrative}
+                      narrative={null}
                       respondentId={respondent.id}
                     />
                   </div>
