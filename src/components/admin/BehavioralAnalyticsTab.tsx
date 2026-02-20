@@ -264,7 +264,7 @@ export function BehavioralAnalyticsTab() {
       </div>
 
       <Tabs defaultValue="funnel" className="space-y-4">
-        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-5 h-auto p-1">
           <TabsTrigger value="funnel">Conversion Funnel</TabsTrigger>
           <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
           <TabsTrigger value="time">Time per Section</TabsTrigger>

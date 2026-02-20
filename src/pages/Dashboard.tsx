@@ -631,7 +631,7 @@ export default function Dashboard() {
                 </div>
 
                 <Tabs defaultValue="mood" className="space-y-4">
-                  <TabsList>
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="mood">Mood Tracking</TabsTrigger>
                     <TabsTrigger value="utilities">Utilities</TabsTrigger>
                   </TabsList>

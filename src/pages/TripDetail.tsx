@@ -364,7 +364,7 @@ export default function TripDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview">
-          <TabsList className="mb-6 flex-wrap bg-secondary/50 p-1 rounded-xl">
+          <TabsList className="mb-6 grid w-full grid-cols-6 h-auto p-1">
             <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
             <TabsTrigger value="travelers" className="rounded-lg">Travelers ({members.length})</TabsTrigger>
             <TabsTrigger value="itinerary" className="rounded-lg">Itinerary</TabsTrigger>
