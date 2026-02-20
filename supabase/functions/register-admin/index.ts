@@ -29,7 +29,12 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { secret_key, admin_name, admin_email } = await req.json();
+    const { secret_key, admin_name, admin_email, role = "admin" } = await req.json();
+
+    // Validate role
+    if (!["admin", "moderator"].includes(role)) {
+      return new Response(JSON.stringify({ error: "Invalid role. Must be 'admin' or 'moderator'" }), { status: 400, headers: corsHeaders });
+    }
 
     if (!secret_key) {
       return new Response(JSON.stringify({ error: "Secret key is required" }), { status: 400, headers: corsHeaders });
@@ -40,45 +45,44 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid secret key" }), { status: 403, headers: corsHeaders });
     }
 
-    // Use service role to insert admin role
+    // Use service role to insert role
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if already admin
+    // Check if already has this role
     const { data: existingRole } = await supabaseAdmin
       .from("user_roles")
       .select("id")
       .eq("user_id", userId)
-      .eq("role", "admin")
+      .eq("role", role)
       .maybeSingle();
 
     if (existingRole) {
-      return new Response(JSON.stringify({ message: "Already an admin" }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ message: `Already a ${role}` }), { headers: corsHeaders });
     }
 
     const { error: insertError } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: userId, role: "admin" });
+      .insert({ user_id: userId, role });
 
     if (insertError) {
-      console.error("Error inserting admin role:", insertError);
-      return new Response(JSON.stringify({ error: "Failed to register admin" }), { status: 500, headers: corsHeaders });
+      console.error("Error inserting role:", insertError);
+      return new Response(JSON.stringify({ error: "Failed to register role" }), { status: 500, headers: corsHeaders });
     }
 
-    // Update user metadata with admin name/email if provided
+    // Update user metadata if provided
     if (admin_name || admin_email) {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: { admin_name: admin_name || "", admin_email: admin_email || "" }
       });
     }
 
-    // Save admin details to respondents table so they appear in AdminsTab
-    const resolvedName = admin_name || "Admin";
+    // Save to respondents table so they appear in the panel
+    const resolvedName = admin_name || (role === "admin" ? "Admin" : "Moderator");
     const resolvedEmail = admin_email || claimsData.claims.email || "";
-    
-    // Check if respondent record already exists for this user
+
     const { data: existingRespondent } = await supabaseAdmin
       .from("respondents")
       .select("id")
@@ -91,11 +95,11 @@ Deno.serve(async (req) => {
         name: resolvedName,
         email: resolvedEmail,
         raw_responses: {},
-        status: "admin",
+        status: role,
       });
     }
 
-    return new Response(JSON.stringify({ message: "Admin role granted successfully" }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ message: `${role} role granted successfully` }), { headers: corsHeaders });
   } catch (error) {
     console.error("Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: corsHeaders });
