@@ -156,54 +156,65 @@ function calculateBusinessKPIs(traits: any, eai: number) {
   };
 }
 
-async function generateNarrative(name: string, traits: any, tensions: any, kpis: any, eai: number, raw: any, model = "google/gemini-2.5-flash") {
-  const prompt = `You are the Erranza SoulPrint Narrator — a luxury travel intelligence service that speaks with the sophistication of haute couture.
+async function generateNarrative(name: string, traits: any, tensions: any, kpis: any, eai: number, raw: any, intake: any, model = "google/gemini-2.5-flash") {
+  // Build personality description in plain English (no technical codes)
+  const energyStyle = traits.E >= 60 ? "energetic and outgoing" : traits.E <= 40 ? "reflective and independent" : "balanced between social and solitary";
+  const openness = traits.O >= 60 ? "highly curious and open to new experiences" : traits.O <= 40 ? "preferring familiar comforts" : "selectively adventurous";
+  const conscientiousness = traits.C >= 60 ? "enjoys planning and structure" : traits.C <= 40 ? "spontaneous and flexible" : "comfortable with light planning";
+  const warmth = traits.A >= 60 ? "warm and connection-oriented" : traits.A <= 40 ? "independent and self-directed" : "selectively social";
+  const stability = traits.ES >= 60 ? "emotionally grounded" : traits.ES <= 40 ? "emotionally sensitive" : "emotionally balanced";
+  const pace = traits.SF >= 60 ? "prefers a flowing, unhurried pace" : traits.SF <= 40 ? "likes structured itineraries" : "adapts to the rhythm of the destination";
+  const motivations = `${traits.top_motivation_1} and ${traits.top_motivation_2}`.toLowerCase();
+  const elements = `${traits.dominant_element} and ${traits.secondary_element}` ;
 
-Craft an exquisite, bespoke narrative for ${name} that embodies refined elegance and psychological depth.
+  // Build intake context
+  let intakeContext = "";
+  if (intake) {
+    if (intake.geographic_constraint === "specific" && intake.geographic_value) {
+      intakeContext += `The traveler has expressed specific interest in visiting ${intake.geographic_value}. `;
+    } else if (intake.geographic_constraint === "region" && intake.geographic_value) {
+      intakeContext += `The traveler is interested in the ${intake.geographic_value} region. `;
+    }
+    if (intake.occasion) intakeContext += `The trip occasion is: ${intake.occasion}. `;
+    if (intake.desired_outcome) intakeContext += `Desired outcome: ${intake.desired_outcome}. `;
+    if (intake.duration) intakeContext += `Trip duration: ${intake.duration}. `;
+    if (intake.budget_range) intakeContext += `Budget: ${intake.budget_range}. `;
+    if (intake.party_composition) {
+      const party = typeof intake.party_composition === 'string' ? intake.party_composition : JSON.stringify(intake.party_composition);
+      intakeContext += `Travelling with: ${party}. `;
+    }
+  }
 
-PSYCHOMETRIC ARCHITECTURE:
-• Personality Canvas: E${traits.E.toFixed(0)} | O${traits.O.toFixed(0)} | C${traits.C.toFixed(0)} | A${traits.A.toFixed(0)} | ES${traits.ES.toFixed(0)}
-• Travel Signature: SF${traits.SF.toFixed(0)} | AO${traits.AO.toFixed(0)} | EA${traits.EA.toFixed(0)}
-• Elemental Resonance: ${traits.dominant_element} (primary) × ${traits.secondary_element} (accent)
-• Inner Compass: ${traits.top_motivation_1} → ${traits.top_motivation_2}
-• Life Chapter: ${traits.life_phase} | Seeking: ${traits.shift_desired}
-• Traveler Archetype: ${kpis.tribe}
+  const prompt = `You are a travel personality advisor for Erranza, a bespoke travel service. Write a clear, warm, and personal SoulPrint summary for ${name}.
 
-NARRATIVE REQUIREMENTS:
-Write 3-4 paragraphs with the sophistication of a private members' club and the insight of a master psychologist:
+PERSONALITY PROFILE:
+- Social style: ${energyStyle}
+- Curiosity level: ${openness}
+- Planning style: ${conscientiousness}
+- Connection style: ${warmth}
+- Emotional style: ${stability}
+- Travel pace: ${pace}
+- Core motivations: ${motivations}
+- Elemental affinities: ${elements}
+- Traveler type: ${kpis.tribe.replace(/_/g, ' ')}
 
-1. OPENING OVERTURE (Headline + First Paragraph)
-   • Begin with a poetic, evocative headline that captures their essence
-   • Open with metaphor drawn from their dominant element
-   • Weave their Big Five traits into a psychological portrait
-   • Establish their unique travel signature with elegance
+TRIP CONTEXT:
+${intakeContext || "No specific destination preference specified."}
 
-2. THE INNER ARCHITECTURE (Second Paragraph)
-   • Illuminate the tensions and paradoxes within (T_Social: ${tensions.T_Social.toFixed(0)}, T_Flow: ${tensions.T_Flow.toFixed(0)})
-   • Reveal growth edges with grace and nuance
-   • Connect their life phase to their travel motivations
-   • Frame challenges as invitations, not obstacles
+INSTRUCTIONS:
+Write 2 short paragraphs (3-4 sentences each) in a warm, clear, conversational tone. 
 
-3. THE DESTINATION PROPOSITION (Third Paragraph)
-   • What types of destinations and experiences will resonate most deeply with this traveler?
-   • How do their elemental resonances suggest ideal landscapes and environments?
-   • What cultural, sensory, and emotional experiences align with their inner compass?
-   • Frame their ideal journey as a natural extension of who they are
+Paragraph 1: Describe ${name}'s travel personality — what drives them, what kind of experiences they seek, and how they travel best. Use plain, vivid language. Do NOT use any technical codes, scores, or jargon.
 
-4. BESPOKE RECOMMENDATIONS (Final Paragraph)
-   • 2-3 highly specific, unexpected experiences tailored to their psychometric profile
-   • Speak to their tribe (${kpis.tribe}) with insider knowledge
-   • Recommendations should feel like secrets whispered by someone who truly sees them
-   • Close with an elegant, forward-looking statement
+Paragraph 2: Based on their personality and trip context, describe what kind of destination and experience would suit them. If they specified a destination, mention it and explain why it resonates. Keep it specific and personal, not generic.
 
-TONE PRINCIPLES:
-• Haute couture: refined, considered, never rushed
-• Psychologically astute: see beneath surface desires
-• Poetically precise: every word chosen with intention
-• Warmly exclusive: intimate without being familiar
-• Avoid: generic travel writing, obvious suggestions, platitudes, clichés
-
-Write as if composing a letter to a distinguished guest who deserves nothing less than complete understanding.`;
+RULES:
+- Maximum 150 words total
+- No bullet points, headers, or markdown
+- No technical codes (no E47, O29, T_Social, etc.)
+- No mention of Azerbaijan unless the traveler specifically requested it
+- No flowery, over-the-top language
+- Write as if speaking directly to the traveler`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -214,7 +225,7 @@ Write as if composing a letter to a distinguished guest who deserves nothing les
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: "You are the Erranza SoulPrint Narrator — a luxury travel psychologist with the elegance of haute couture." },
+        { role: "system", content: "You are a concise, warm travel personality advisor. Write clear, personal summaries without jargon or excessive language." },
         { role: "user", content: prompt }
       ],
     }),
@@ -320,8 +331,18 @@ serve(async (req) => {
       computedScore = newScore;
     }
 
+    // Fetch intake context to personalise the narrative
+    const { data: intakeData } = await supabase
+      .from("context_intake")
+      .select("geographic_constraint, geographic_value, occasion, desired_outcome, duration, budget_range, party_composition")
+      .eq("user_id", respondent.user_id || "")
+      .eq("completed", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     // Generate narrative with specified model
-    const narrative = await generateNarrative(respondent.name, traits, tensions, kpis, eai, raw, model);
+    const narrative = await generateNarrative(respondent.name, traits, tensions, kpis, eai, raw, intakeData, model);
 
     if (regenerate) {
       // Update existing narrative with new content and increment regeneration count
