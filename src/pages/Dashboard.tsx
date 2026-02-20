@@ -483,9 +483,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Two-column layout: SoulPrint left, Destinations right */}
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
                   {/* SoulPrint — takes 3/5 on xl */}
-                  <div className="xl:col-span-3">
+                  <div className="xl:col-span-3 flex flex-col">
                     {respondent?.raw_responses ? (
                       <SoulPrintCard
                         traits={calculateAllTraits(respondent.raw_responses, computed)}

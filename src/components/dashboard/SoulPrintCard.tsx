@@ -104,8 +104,8 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-      <Card className="overflow-hidden border-primary/20">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="h-full flex flex-col">
+      <Card className="overflow-hidden border-primary/20 flex flex-col flex-1">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 mb-2">
@@ -124,7 +124,7 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4 pt-0">
+        <CardContent className="space-y-4 pt-0 flex-1 flex flex-col">
           {/* Narrative */}
           <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
 
@@ -138,7 +138,7 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="personality" className="space-y-4">
+          <Tabs defaultValue="personality" className="flex-1 flex flex-col space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="personality">Personality</TabsTrigger>
               <TabsTrigger value="travel">Travel Behavior</TabsTrigger>
@@ -146,8 +146,8 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
             </TabsList>
 
             {/* PERSONALITY */}
-            <TabsContent value="personality" className="space-y-4">
-              <div className="w-full h-60">
+            <TabsContent value="personality" className="flex-1 flex flex-col space-y-4 mt-0">
+              <div className="flex-1 min-h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={bigFiveData} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" />
@@ -173,7 +173,7 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
             </TabsContent>
 
             {/* TRAVEL BEHAVIOR */}
-            <TabsContent value="travel" className="space-y-4">
+            <TabsContent value="travel" className="flex-1 flex flex-col space-y-4 mt-0">
               {travelSliders.length > 0 && (
                 <div className="space-y-4">
                   {travelSliders.map(({ label, value, left, right }) => (
@@ -196,7 +196,7 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
               {tensionsData.length > 0 && (
                 <>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Growth & Tension Areas</p>
-                  <div className="w-full h-52">
+                  <div className="flex-1 min-h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={tensionsData} cx="50%" cy="50%" outerRadius="65%">
                         <PolarGrid stroke="hsl(var(--border))" />
@@ -232,13 +232,13 @@ const SoulPrintCard = ({ traits, computed, narrative }: SoulPrintCardProps) => {
             </TabsContent>
 
             {/* INNER COMPASS */}
-            <TabsContent value="compass" className="space-y-4">
+            <TabsContent value="compass" className="flex-1 flex flex-col space-y-4 mt-0">
               {innerCompassData.length > 0 ? (
                 <>
-                  <div className="w-full h-64">
+                  <div className="flex-1 min-h-[260px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={innerCompassData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${Math.round(value)}`} labelLine={false}>
+                        <Pie data={innerCompassData} cx="50%" cy="50%" innerRadius={65} outerRadius={110} paddingAngle={4} dataKey="value" label={({ name, value }) => `${name}: ${Math.round(value)}`} labelLine={false}>
                           {innerCompassData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                         </Pie>
                         <Tooltip formatter={(val: any) => Math.round(val)} />
