@@ -48,6 +48,34 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Verify requesting user is a member of this group
+    const { data: userRespondent } = await supabase
+      .from('respondents')
+      .select('id')
+      .eq('user_id', authResult.userId)
+      .single();
+
+    if (!userRespondent) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied: user has no respondent profile' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: memberCheck } = await supabase
+      .from('group_members')
+      .select('id')
+      .eq('group_id', group_id)
+      .eq('respondent_id', userRespondent.id)
+      .single();
+
+    if (!memberCheck) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied: you are not a member of this group' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get group details
     const { data: group, error: groupError } = await supabase
       .from('groups')
@@ -103,7 +131,7 @@ serve(async (req) => {
     }
 
     // Build comprehensive prompt for group itinerary
-    const memberProfiles = members.map((member: any, index: number) => {
+    const memberProfiles = members.map((member: any) => {
       const computed = computedScores.find(c => c.respondent_id === member.respondent_id);
       const narrative = narratives?.find(n => n.respondent_id === member.respondent_id);
       const itinerary = itineraries?.find(i => i.respondent_id === member.respondent_id);

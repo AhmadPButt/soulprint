@@ -52,26 +52,23 @@ serve(async (req) => {
       );
     }
 
-    // Import Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Verify ownership: respondent must belong to authenticated user
-    const { data: respondent } = await supabaseClient
+    const { data: ownerCheck } = await supabaseClient
       .from('respondents')
       .select('user_id')
       .eq('id', respondent_id)
       .single();
 
-    if (!respondent || respondent.user_id !== authResult.userId) {
+    if (!ownerCheck || ownerCheck.user_id !== authResult.userId) {
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Check if itinerary already exists (unless force regenerate or editing)
     if (!force_regenerate && !edit_suggestions) {

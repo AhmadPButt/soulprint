@@ -381,7 +381,7 @@ export default function Dashboard() {
                     <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-200">Live</Badge>
                   )}
                   {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
-                  {!canAccessInTrip && <span className="ml-auto text-xs">🔒</span>}
+                  {!canAccessInTrip && <span className="ml-auto opacity-40 text-[10px] font-medium text-muted-foreground">Locked</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
@@ -400,7 +400,7 @@ export default function Dashboard() {
                   <Home className="mr-2 h-4 w-4 shrink-0" />
                   <span>Post-Trip</span>
                   {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
-                  {!canAccessPostTrip && <span className="ml-auto text-xs">🔒</span>}
+                  {!canAccessPostTrip && <span className="ml-auto opacity-40 text-[10px] font-medium text-muted-foreground">Locked</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
