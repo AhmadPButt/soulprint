@@ -57,11 +57,13 @@ export const useQuestionnaireAnalytics = (
     }
   }, [currentSection, email]);
 
-  // Track abandonment on unmount
+  // Track abandonment on unmount — only if not completed
+  const isCompletedRef = useRef(false);
+  
   useEffect(() => {
     return () => {
-      if (currentSection < 8) {
-        trackEvent("abandoned", currentSection, email);
+      if (!isCompletedRef.current && currentSection < 6) {
+        trackEvent("abandoned", currentSection > 0 ? currentSection : undefined, email);
       }
     };
   }, [currentSection, email]);
@@ -92,8 +94,9 @@ export const useQuestionnaireAnalytics = (
   };
 
   const trackCompletion = () => {
+    isCompletedRef.current = true;
     const timeSpent = Math.floor((Date.now() - sectionStartTimeRef.current) / 1000);
-    trackEvent("completed", 8, email, timeSpent);
+    trackEvent("completed", 6, email, timeSpent);
   };
 
   return { trackCompletion };
