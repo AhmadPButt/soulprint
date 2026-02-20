@@ -43,40 +43,10 @@ export function AdminsTab() {
 
   const loadAdmins = async () => {
     try {
-      const { data: roles, error } = await supabase
-        .from("user_roles")
-        .select("user_id, id, role")
-        .in("role", ["admin", "moderator"]);
-
+      const { data, error } = await supabase.functions.invoke("get-admins");
       if (error) throw error;
-
-      const users: AdminUser[] = [];
-      for (const role of roles || []) {
-        const { data: respondent } = await supabase
-          .from("respondents")
-          .select("email, name, created_at")
-          .eq("user_id", role.user_id)
-          .maybeSingle();
-
-        users.push({
-          user_id: role.user_id,
-          email: respondent?.email || "Unknown",
-          name: respondent?.name || (role.role === "admin" ? "Admin" : "Moderator"),
-          created_at: respondent?.created_at || new Date().toISOString(),
-          role: role.role,
-        });
-      }
-
-      // Sort: master admin first, then admins, then moderators
-      users.sort((a, b) => {
-        if (a.email === MASTER_ADMIN_EMAIL) return -1;
-        if (b.email === MASTER_ADMIN_EMAIL) return 1;
-        if (a.role === "admin" && b.role !== "admin") return -1;
-        if (b.role === "admin" && a.role !== "admin") return 1;
-        return 0;
-      });
-
-      setAdmins(users);
+      if (data?.error) throw new Error(data.error);
+      setAdmins(data.admins || []);
     } catch (err) {
       console.error("Error loading admins:", err);
     } finally {
