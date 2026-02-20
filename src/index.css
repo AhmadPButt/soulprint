@@ -8,60 +8,67 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Erranza Brand Colors - Dark Minimalist Palette */
-    --dark-base: 0 0% 23%;
-    --dark-card: 0 0% 18%;
-    --lavender-accent: 255 47% 72%;
-    --cream-accent: 44 39% 85%;
+    /* Erranza Brand Colors - Light Luxury Palette */
+    --lavender-accent: 255 47% 65%;
+    --cream-accent: 40 30% 93%;
     --purple-muted: 255 30% 50%;
     
     /* Extended Brand Palette */
-    --brand-drift-white: 60 23% 90%;
-    --brand-lavender-mood: 228 67% 81%;
+    --brand-drift-white: 45 20% 96%;
+    --brand-lavender-mood: 248 55% 72%;
     --brand-clay-blush: 1 65% 73%;
-    --brand-coastal-indigo: 226 58% 61%;
+    --brand-coastal-indigo: 226 58% 55%;
     --brand-olive-smoke: 75 40% 36%;
     --brand-desert-rose: 6 43% 73%;
-    --brand-lavender-haze: 242 67% 90%;
-    --brand-misty-sky: 149 100% 95%;
+    --brand-lavender-haze: 250 60% 94%;
+    --brand-misty-sky: 210 40% 96%;
     --brand-linen-white: 0 0% 100%;
-    --brand-obsidian-smoke: 0 0% 12%;
-    --brand-amethyst-spirit: 282 43% 42%;
-    --brand-coral-ember: 5 100% 69%;
+    --brand-obsidian-smoke: 220 15% 12%;
+    --brand-amethyst-spirit: 265 45% 52%;
+    --brand-coral-ember: 5 85% 62%;
+    --brand-warm-stone: 38 18% 88%;
+    --brand-ink: 220 20% 18%;
+    --brand-soft-border: 220 15% 88%;
     
-    /* Design System Tokens - Dark Theme Default */
-    --background: var(--dark-base);
-    --foreground: 0 0% 98%;
+    /* Design System Tokens - Light Theme */
+    --background: 45 20% 97%;
+    --foreground: 220 20% 14%;
 
-    --card: var(--dark-card);
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 14%;
 
-    --popover: var(--dark-card);
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 14%;
 
-    --primary: var(--lavender-accent);
-    --primary-foreground: 0 0% 10%;
+    --primary: 255 47% 62%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: var(--dark-card);
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 220 20% 20%;
 
-    --muted: 0 0% 30%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 220 15% 93%;
+    --muted-foreground: 220 10% 48%;
 
-    --accent: var(--cream-accent);
-    --accent-foreground: 0 0% 10%;
+    --accent: 250 55% 92%;
+    --accent-foreground: 255 47% 45%;
 
-    --destructive: 0 70% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 35%;
-    --input: 0 0% 25%;
-    --ring: var(--lavender-accent);
+    --border: 220 15% 88%;
+    --input: 220 15% 93%;
+    --ring: 255 47% 62%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    --glass-bg: 0 0% 20%;
-    --glass-border: 0 0% 40%;
+    --glass-bg: 0 0% 100%;
+    --glass-border: 220 15% 88%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px 0 hsl(220 15% 70% / 0.15), 0 1px 2px -1px hsl(220 15% 70% / 0.1);
+    --shadow-md: 0 4px 12px -2px hsl(220 15% 60% / 0.12), 0 2px 6px -2px hsl(220 15% 60% / 0.08);
+    --shadow-lg: 0 10px 30px -5px hsl(220 15% 50% / 0.12), 0 4px 12px -4px hsl(220 15% 50% / 0.08);
+    --shadow-lavender: 0 4px 20px -4px hsl(255 47% 62% / 0.25);
   }
 }
 
@@ -72,23 +79,57 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cabinet Grotesk', 'Inter', system-ui, sans-serif;
     font-weight: 700;
+    color: hsl(var(--foreground));
   }
 }
 
-/* Glass morphism utility classes */
+/* Glass morphism utility classes - Light Mode */
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-md);
 }
 
-/* Custom slider styling - Minimalist */
+/* Elevated card style */
+.card-elevated {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-md);
+}
+
+/* Lavender accent card */
+.card-accent {
+  background: hsl(var(--brand-lavender-haze));
+  border: 1px solid hsl(255 47% 85%);
+  border-radius: 0.75rem;
+}
+
+/* Sidebar style */
+.sidebar-item {
+  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all;
+  color: hsl(var(--muted-foreground));
+}
+
+.sidebar-item:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.sidebar-item.active {
+  background: hsl(var(--accent));
+  color: hsl(var(--primary));
+}
+
+/* Custom slider styling - Light Mode */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -107,33 +148,77 @@ input[type="range"]:hover {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: hsl(var(--brand-lavender-mood));
-  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary));
+  border: 2.5px solid hsl(var(--background));
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lavender);
   transition: all 0.2s;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px hsl(255 47% 62% / 0.35);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: hsl(var(--brand-lavender-mood));
-  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary));
+  border: 2.5px solid hsl(var(--background));
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lavender);
   transition: all 0.2s;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
+
+/* Scrollbar styling - Light */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* Status badge styles */
+.badge-planning {
+  background: hsl(40 90% 93%);
+  color: hsl(35 80% 35%);
+  border: 1px solid hsl(40 70% 80%);
+}
+
+.badge-booked {
+  background: hsl(145 60% 91%);
+  color: hsl(145 60% 25%);
+  border: 1px solid hsl(145 50% 75%);
+}
+
+.badge-in-progress {
+  background: hsl(var(--brand-lavender-haze));
+  color: hsl(var(--primary));
+  border: 1px solid hsl(255 47% 80%);
+}
+
+.badge-completed {
+  background: hsl(220 15% 93%);
+  color: hsl(220 15% 40%);
+  border: 1px solid hsl(var(--border));
+}
+

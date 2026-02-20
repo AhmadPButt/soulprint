@@ -75,6 +75,9 @@ export default {
       "brand-obsidian-smoke": "hsl(var(--brand-obsidian-smoke))",
       "brand-amethyst-spirit": "hsl(var(--brand-amethyst-spirit))",
       "brand-coral-ember": "hsl(var(--brand-coral-ember))",
+      "brand-warm-stone": "hsl(var(--brand-warm-stone))",
+      "brand-ink": "hsl(var(--brand-ink))",
+      "brand-soft-border": "hsl(var(--brand-soft-border))",
     },
       borderRadius: {
         lg: "var(--radius)",
