@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import {
   Loader2, ArrowLeft, MapPin, Calendar, Users, UserPlus,
   Mail, Check, Clock, Sparkles, Phone, FileText, Wrench, Heart, Trash2, AlertTriangle,
-  Download, RefreshCw, XCircle, PoundSterling, LayoutDashboard, Route, Star
+  Download, RefreshCw, XCircle, PoundSterling, LayoutDashboard, Route, Star,
+  ListOrdered, CalendarDays
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -22,6 +23,7 @@ import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuatio
 import { MoodInsights } from "@/components/trip/MoodInsights";
 import { TripReflection } from "@/components/trip/TripReflection";
 import { AIChatWidget } from "@/components/trip/AIChatWidget";
+import ItineraryTimeline from "@/components/trip/ItineraryTimeline";
 import fingerprintImg from "@/assets/fingerprint.png";
 import jsPDF from "jspdf";
 
@@ -72,6 +74,7 @@ export default function TripDetail() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [chatOpen, setChatOpen] = useState(false);
+  const [itineraryView, setItineraryView] = useState<"timeline" | "day">("timeline");
 
   useEffect(() => {
     loadTrip();
@@ -319,8 +322,37 @@ export default function TripDetail() {
           </div>
         </div>
 
-        {/* Day tabs */}
+        {/* View toggle */}
         {itinerary.days?.length > 0 && (
+          <div className="flex items-center gap-1 p-1 bg-secondary rounded-xl w-fit">
+            <button
+              onClick={() => setItineraryView("timeline")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                itineraryView === "timeline" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ListOrdered className="h-3.5 w-3.5" /> Timeline
+            </button>
+            <button
+              onClick={() => setItineraryView("day")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                itineraryView === "day" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" /> Day View
+            </button>
+          </div>
+        )}
+
+        {/* Timeline view */}
+        {itinerary.days?.length > 0 && itineraryView === "timeline" && (
+          <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+            <ItineraryTimeline itinerary={itinerary} />
+          </div>
+        )}
+
+        {/* Day tabs */}
+        {itinerary.days?.length > 0 && itineraryView === "day" && (
           <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-0 flex gap-1 overflow-x-auto bg-card">
               {itinerary.days.map((day: any) => (
