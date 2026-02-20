@@ -111,9 +111,24 @@ export default function TripDetail() {
       const { data: destData } = await supabase.from("echoprint_destinations").select("*").eq("id", tripData.destination_id).single();
       if (destData) setDestination(destData);
     }
-    if (tripData.itinerary_id) {
-      const { data: itinData } = await supabase.from("itineraries").select("*").eq("id", tripData.itinerary_id).single();
-      if (itinData) setItinerary(itinData.itinerary_data);
+    // Always load itinerary scoped to THIS trip first (prevents cross-trip leakage)
+    const { data: tripScopedItin } = await supabase
+      .from("itineraries")
+      .select("*")
+      .eq("trip_id", tripId!)
+      .maybeSingle();
+
+    if (tripScopedItin) {
+      setItinerary(tripScopedItin.itinerary_data);
+    } else if (tripData.itinerary_id) {
+      // Only fall back to trips.itinerary_id if it actually belongs to this trip
+      const { data: linkedItin } = await supabase
+        .from("itineraries")
+        .select("*")
+        .eq("id", tripData.itinerary_id)
+        .eq("trip_id", tripId!)
+        .maybeSingle();
+      if (linkedItin) setItinerary(linkedItin.itinerary_data);
     }
 
     setLoading(false);
@@ -152,7 +167,7 @@ export default function TripDetail() {
         }
 
         // Send invitation email via edge function
-        const { error: emailErr } = await supabase.functions.invoke("send-trip-invitation", {
+        const { data: emailData, error: emailErr } = await supabase.functions.invoke("send-trip-invitation", {
           body: {
             trip_id: tripId!,
             member_id: newMember.id,
@@ -162,7 +177,8 @@ export default function TripDetail() {
         });
 
         if (emailErr) {
-          console.warn("Email send failed:", emailErr);
+          console.error("Email send failed:", emailErr);
+          toast({ title: "Invite added but email failed", description: emailErr.message, variant: "destructive" });
         }
       }
 
@@ -269,7 +285,12 @@ export default function TripDetail() {
 
   const handleResendInvitation = async (memberId: string, email: string) => {
     try {
-      await supabase.functions.invoke("send-trip-invitation", { body: { trip_id: tripId, email, trip_name: trip.trip_name } });
+      const { data: { user } } = await supabase.auth.getUser();
+      const inviterName = user?.email?.split("@")[0] || "Your travel companion";
+      const { error: resendErr } = await supabase.functions.invoke("send-trip-invitation", {
+        body: { trip_id: tripId, member_id: memberId, inviter_name: inviterName },
+      });
+      if (resendErr) throw resendErr;
       toast({ title: `Invitation resent to ${email}` });
     } catch (err: any) {
       toast({ title: "Failed to resend", description: err.message, variant: "destructive" });
