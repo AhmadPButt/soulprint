@@ -337,22 +337,28 @@ export default function Dashboard() {
   const currentTripForView = currentView === "in-trip" ? activeTrip : completedTrip;
 
   const DashboardSidebar = () => (
-    <Sidebar className="border-r">
+    <Sidebar className="border-r border-border bg-card">
       <SidebarContent>
-        <div className="p-4 border-b flex items-center justify-center">
-          <img src={erranzaLogo} alt="Erranza" className="h-10 w-auto object-contain" />
+        <div className="p-5 border-b border-border flex items-center">
+          <img src={erranzaLogo} alt="Erranza" className="h-8 w-auto object-contain" />
         </div>
         
         <SidebarGroup>
-          <SidebarGroupLabel>Trip Status</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold tracking-widest uppercase text-muted-foreground px-4 pt-4 pb-1">
+            Journey
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="px-2 space-y-0.5">
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setCurrentView("pre-trip")}
-                  className={currentView === "pre-trip" ? "bg-muted text-primary font-medium" : ""}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    currentView === "pre-trip"
+                      ? "bg-brand-lavender-haze text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
                 >
-                  <Plane className="mr-2 h-4 w-4" />
+                  <Plane className="mr-2 h-4 w-4 shrink-0" />
                   <span>Pre-Trip</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -360,32 +366,50 @@ export default function Dashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => canAccessInTrip && setCurrentView("in-trip")}
-                  className={currentView === "in-trip" ? "bg-muted text-primary font-medium" : !canAccessInTrip ? "opacity-50 cursor-not-allowed" : ""}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    currentView === "in-trip"
+                      ? "bg-brand-lavender-haze text-primary"
+                      : !canAccessInTrip
+                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
                   disabled={!canAccessInTrip}
                 >
-                  <Compass className="mr-2 h-4 w-4" />
-                  <span>In-Trip {!canAccessInTrip && "🔒"}</span>
+                  <Compass className="mr-2 h-4 w-4 shrink-0" />
+                  <span>In-Trip</span>
                   {activeTrip && !isAdminMode && (
-                    <Badge className="ml-auto text-[10px] px-1 py-0 bg-amber-500/20 text-amber-400 border-amber-500/30">Live</Badge>
+                    <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-200">Live</Badge>
                   )}
-                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1 py-0 bg-primary/20 text-primary border-primary/30">Admin</Badge>}
+                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
+                  {!canAccessInTrip && <span className="ml-auto text-xs">🔒</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => canAccessPostTrip && setCurrentView("post-trip")}
-                  className={currentView === "post-trip" ? "bg-muted text-primary font-medium" : !canAccessPostTrip ? "opacity-50 cursor-not-allowed" : ""}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    currentView === "post-trip"
+                      ? "bg-brand-lavender-haze text-primary"
+                      : !canAccessPostTrip
+                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
                   disabled={!canAccessPostTrip}
                 >
-                  <Home className="mr-2 h-4 w-4" />
-                  <span>Post-Trip {!canAccessPostTrip && "🔒"}</span>
-                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1 py-0 bg-primary/20 text-primary border-primary/30">Admin</Badge>}
+                  <Home className="mr-2 h-4 w-4 shrink-0" />
+                  <span>Post-Trip</span>
+                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
+                  {!canAccessPostTrip && <span className="ml-auto text-xs">🔒</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate("/trips")}>
-                  <Briefcase className="mr-2 h-4 w-4" />
+                <SidebarMenuButton
+                  onClick={() => navigate("/trips")}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                >
+                  <Briefcase className="mr-2 h-4 w-4 shrink-0" />
                   <span>My Trips</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -393,23 +417,24 @@ export default function Dashboard() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Show active trip info in sidebar */}
         {activeTrip && (
           <SidebarGroup>
-            <SidebarGroupLabel>Active Trip</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs font-semibold tracking-widest uppercase text-muted-foreground px-4 pt-4 pb-1">
+              Active Trip
+            </SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="px-3 py-2 space-y-1">
-                <p className="text-sm font-medium truncate">{activeTrip.trip_name}</p>
+              <div className="px-4 py-3 mx-2 rounded-xl bg-brand-lavender-haze/50 border border-primary/10 space-y-1">
+                <p className="text-sm font-semibold text-foreground truncate">{activeTrip.trip_name}</p>
                 {activeTrip.destination && (
                   <p className="text-xs text-muted-foreground">{activeTrip.destination.name}, {activeTrip.destination.country}</p>
                 )}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full mt-2 text-xs"
+                  className="w-full mt-2 text-xs h-7 border-primary/20"
                   onClick={() => navigate(`/trips/${activeTrip.id}`)}
                 >
-                  View Trip Details
+                  View Trip
                 </Button>
               </div>
             </SidebarGroupContent>
@@ -418,10 +443,10 @@ export default function Dashboard() {
 
         {isAdminMode && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin Mode</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="px-3 py-2">
-                <p className="text-xs text-muted-foreground">All sections unlocked for admin viewing and editing.</p>
+              <div className="px-4 py-2 mx-2 rounded-xl bg-brand-lavender-haze border border-primary/20">
+                <p className="text-xs text-primary font-semibold">Admin View Active</p>
+                <p className="text-xs text-muted-foreground mt-0.5">All sections unlocked.</p>
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -438,44 +463,46 @@ export default function Dashboard() {
         <div className="flex-1 flex flex-col">
           {/* Cover Photo Section */}
           <div className="relative">
-            <div className="h-48 bg-gradient-to-r from-primary via-secondary to-accent relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzBoLTJ2LTJoMnYyem0tNiAwaDJ2LTJoLTJ2MnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-20"></div>
-              <SidebarTrigger className="absolute top-4 left-4 bg-background/80 backdrop-blur" />
+            <div className="h-44 bg-gradient-to-r from-brand-lavender-haze via-accent to-brand-warm-stone relative overflow-hidden border-b border-border">
+              <div className="absolute inset-0 opacity-30" style={{
+                backgroundImage: "radial-gradient(circle at 20% 50%, hsl(255 47% 80% / 0.4) 0%, transparent 60%), radial-gradient(circle at 80% 20%, hsl(40 30% 80% / 0.3) 0%, transparent 50%)"
+              }} />
+              <SidebarTrigger className="absolute top-4 left-4 bg-card/80 backdrop-blur border border-border shadow-sm" />
               <div className="absolute top-4 right-4 flex gap-2">
-                <Button variant="outline" onClick={() => navigate('/profile')} className="bg-background/80 backdrop-blur">
+                <Button variant="outline" onClick={() => navigate('/profile')} className="bg-card/80 backdrop-blur border-border shadow-sm text-foreground hover:bg-card">
                   <UserCircle className="h-4 w-4 mr-2" />
-                  Profile Settings
+                  Profile
                 </Button>
-                <Button variant="outline" onClick={handleSignOut} className="bg-background/80 backdrop-blur">
+                <Button variant="outline" onClick={handleSignOut} className="bg-card/80 backdrop-blur border-border shadow-sm text-foreground hover:bg-card">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </Button>
               </div>
             </div>
             
-            <div className="container mx-auto px-4">
-              <div className="relative -mt-16 mb-6">
+            <div className="container mx-auto px-8">
+              <div className="relative -mt-14 mb-6">
                 <div className="flex flex-col items-center text-center">
-                  <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
+                  <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
                     <AvatarImage src={respondent?.avatar_url} alt={respondent?.name} />
-                    <AvatarFallback className="bg-primary text-white text-3xl font-bold">
+                    <AvatarFallback className="bg-brand-lavender-haze text-primary text-3xl font-bold">
                       {respondent?.name?.charAt(0)?.toUpperCase() || 'T'}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="mt-4 flex items-center gap-2">
-                    <h1 className="text-3xl font-bold">{respondent?.name || 'Traveler'}</h1>
-                    <BadgeCheck className="h-7 w-7 text-primary fill-primary/20" />
+                    <h1 className="text-2xl font-bold text-foreground">{respondent?.name || 'Traveler'}</h1>
+                    <BadgeCheck className="h-6 w-6 text-primary" />
                   </div>
                   
-                  <div className="mt-2 flex items-center gap-2 text-muted-foreground">
-                    <span className="text-lg">Hello, {respondent?.name?.split(' ')[0] || 'Traveler'}</span>
-                    <Fingerprint className="h-5 w-5 text-primary" />
+                  <div className="mt-1 flex items-center gap-2 text-muted-foreground">
+                    <span className="text-sm">Hello, {respondent?.name?.split(' ')[0] || 'Traveler'}</span>
+                    <Fingerprint className="h-4 w-4 text-primary/60" />
                   </div>
 
                   {isAdminMode && (
                     <div className="mt-2">
-                      <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Admin View Active</span>
+                      <span className="text-xs bg-brand-lavender-haze text-primary px-2.5 py-1 rounded-full border border-primary/20 font-medium">Admin View Active</span>
                     </div>
                   )}
                 </div>
@@ -656,20 +683,13 @@ export default function Dashboard() {
                 <div className="mb-6">
                   <h2 className="text-3xl font-bold mb-2">In-Trip Experience</h2>
                   <p className="text-muted-foreground">Track your journey, log moods, and access trip utilities</p>
-                  {activeTrip && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                        {activeTrip.trip_name}
-                      </Badge>
-                      {activeTrip.destination && (
-                        <span className="text-sm text-muted-foreground">
-                          {activeTrip.destination.name}, {activeTrip.destination.country}
-                        </span>
-                      )}
-                    </div>
+                  {activeTrip && !isAdminMode && (
+                    <Badge className="mt-2 bg-amber-50 text-amber-700 border-amber-200 border">
+                      {activeTrip.trip_name}
+                    </Badge>
                   )}
                   {isAdminMode && !activeTrip && (
-                    <Badge className="mt-2 bg-primary/20 text-primary border-primary/30">Admin Preview Mode — No active trip</Badge>
+                    <Badge className="mt-2 bg-brand-lavender-haze text-primary border border-primary/20">Admin Preview Mode — No active trip</Badge>
                   )}
                 </div>
 
