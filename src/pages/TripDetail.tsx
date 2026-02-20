@@ -49,7 +49,7 @@ export default function TripDetail() {
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviting, setInviting] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
+  const [expandedDays, setExpandedDays] = useState<Record<string, any>>({});
   const [showCalendly, setShowCalendly] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -482,106 +482,213 @@ export default function TripDetail() {
             ))}
           </TabsContent>
 
-          {/* ITINERARY */}
+          {/* ITINERARY — day tabs format */}
           <TabsContent value="itinerary" className="space-y-4">
             {itinerary ? (
-              <div className="space-y-4">
-                {/* Itinerary Header */}
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  <div className="bg-gradient-to-br from-brand-lavender-haze via-accent/50 to-background px-6 py-6">
-                    <p className="text-xs font-semibold tracking-widest uppercase text-primary/60 mb-1">Itinerary</p>
+              <div className="space-y-0">
+                {/* Header */}
+                <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-4">
+                  <div className="bg-gradient-to-br from-brand-lavender-haze via-accent/50 to-background px-8 py-8">
+                    <p className="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-2">Itinerary</p>
                     <div className="flex items-start justify-between gap-4">
-                      <h2 className="text-xl font-bold text-foreground">{itinerary.title || "Your Itinerary"}</h2>
+                      <h2 className="text-2xl font-bold text-foreground">{itinerary.title || "Your Itinerary"}</h2>
                       {itinerary.total_estimated_cost && (
-                        <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1 shrink-0 bg-card">
+                        <Badge variant="outline" className="text-sm gap-1.5 px-3 py-1.5 shrink-0 bg-card">
                           <PoundSterling className="h-3.5 w-3.5" />
                           {itinerary.total_estimated_cost.toLocaleString()} total
                         </Badge>
                       )}
                     </div>
+                    {destination && (
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" />{destination.name}, {destination.country}
+                      </p>
+                    )}
                     {itinerary.overview && (
-                      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{itinerary.overview}</p>
+                      <p className="text-sm text-muted-foreground mt-3 leading-relaxed max-w-2xl">{itinerary.overview}</p>
                     )}
                   </div>
                 </div>
 
-                {/* Days */}
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  {itinerary.days?.map((day: any, idx: number) => (
-                    <div key={day.day} className={idx > 0 ? "border-t border-border" : ""}>
-                      <button
-                        onClick={() => toggleDay(day.day)}
-                        className="w-full flex items-center justify-between px-6 py-4 hover:bg-secondary/40 transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-9 h-9 rounded-full bg-brand-lavender-haze flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-primary">{day.day}</span>
-                          </div>
+                {/* Day tabs */}
+                {itinerary.days?.length > 0 && (
+                  <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-4">
+                    {/* Tab bar */}
+                    <div className="border-b border-border px-4 py-0 flex gap-1 overflow-x-auto bg-card">
+                      {itinerary.days.map((day: any) => (
+                        <button
+                          key={day.day}
+                          onClick={() => setExpandedDays(prev => ({ ...prev, activeDay: day.day }))}
+                          className={`px-5 py-3.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
+                            (expandedDays as any).activeDay === day.day || (!((expandedDays as any).activeDay) && day.day === (itinerary.days[0]?.day))
+                              ? 'border-primary text-primary'
+                              : 'border-transparent text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Day {day.day}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Active day content */}
+                    {(() => {
+                      const activeDayNum = (expandedDays as any).activeDay ?? itinerary.days[0]?.day;
+                      const activeDay = itinerary.days.find((d: any) => d.day === activeDayNum) || itinerary.days[0];
+                      if (!activeDay) return null;
+
+                      // Support both old format (morning/afternoon/evening) and new format (locations[])
+                      const hasLocations = activeDay.locations?.length > 0;
+                      const hasSlots = activeDay.morning || activeDay.afternoon || activeDay.evening;
+
+                      return (
+                        <div className="p-6 space-y-6">
                           <div>
-                            <span className="font-semibold text-foreground">{day.title || day.theme || `Day ${day.day}`}</span>
-                            {day.theme && day.title && (
-                              <p className="text-xs text-muted-foreground mt-0.5 italic">{day.theme}</p>
+                            <h2 className="text-xl font-bold text-foreground">{activeDay.title || activeDay.theme || `Day ${activeDay.day}`}</h2>
+                            {activeDay.theme && activeDay.title && (
+                              <p className="text-sm text-muted-foreground mt-1 italic">{activeDay.theme}</p>
+                            )}
+                            {activeDay.daily_total_gbp && (
+                              <Badge variant="outline" className="mt-2 gap-1">
+                                <PoundSterling className="h-3 w-3" />{activeDay.daily_total_gbp} today
+                              </Badge>
                             )}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {day.daily_total_gbp && (
-                            <span className="text-xs font-medium text-muted-foreground">£{day.daily_total_gbp}</span>
-                          )}
-                          {expandedDays[day.day]
-                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                        </div>
-                      </button>
 
-                      {expandedDays[day.day] && (
-                        <div className="px-6 pb-5 pt-1 border-t border-border/60 space-y-3">
-                          {["morning", "afternoon", "evening"].map(slot => {
-                            const s = day[slot];
-                            if (!s) return null;
-                            return (
-                              <div key={slot} className="flex gap-3 p-3.5 rounded-xl border border-border bg-background">
-                                <div className="flex-shrink-0">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary/60 bg-brand-lavender-haze px-2 py-0.5 rounded-full">
-                                    {slot}
-                                  </span>
-                                </div>
-                                <div className="flex-1 pt-0.5">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <p className="font-semibold text-sm text-foreground">{s.activity}</p>
-                                    {s.estimated_cost_gbp && (
-                                      <span className="text-xs text-muted-foreground shrink-0">£{s.estimated_cost_gbp}</span>
+                          {/* Activities — new format */}
+                          {hasLocations && (
+                            <div className="space-y-3">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5" /> Activities
+                              </p>
+                              {activeDay.locations.map((loc: any, idx: number) => (
+                                <div key={idx} className="flex gap-4 p-4 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors">
+                                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-lavender-haze flex items-center justify-center">
+                                    <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                      <h4 className="font-semibold text-foreground">{loc.name}</h4>
+                                      {loc.time && <span className="text-xs text-muted-foreground shrink-0 mt-0.5">{loc.time}</span>}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{loc.activity}</p>
+                                    {loc.psychological_alignment && (
+                                      <div className="mt-2 px-3 py-1.5 rounded-lg bg-brand-lavender-haze/50 flex items-center gap-1.5">
+                                        <Sparkles className="h-3 w-3 text-primary/60 shrink-0" />
+                                        <p className="text-xs text-primary/80 italic">{loc.psychological_alignment}</p>
+                                      </div>
                                     )}
                                   </div>
-                                  {s.time && <p className="text-xs text-muted-foreground mt-0.5">{s.time}</p>}
-                                  {s.why_it_fits && (
-                                    <p className="text-xs text-primary/70 mt-1.5 italic flex items-start gap-1">
-                                      <Sparkles className="h-3 w-3 shrink-0 mt-0.5" />{s.why_it_fits}
-                                    </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Activities — old slot format */}
+                          {hasSlots && (
+                            <div className="space-y-3">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5" /> Activities
+                              </p>
+                              {["morning", "afternoon", "evening"].map(slot => {
+                                const s = activeDay[slot];
+                                if (!s) return null;
+                                return (
+                                  <div key={slot} className="flex gap-4 p-4 rounded-xl border border-border bg-background hover:border-primary/30 transition-colors">
+                                    <div className="flex-shrink-0">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-brand-lavender-haze px-2 py-0.5 rounded-full">
+                                        {slot}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-start justify-between gap-2 mb-1">
+                                        <p className="font-semibold text-foreground">{s.activity}</p>
+                                        {s.estimated_cost_gbp && <span className="text-xs text-muted-foreground shrink-0">£{s.estimated_cost_gbp}</span>}
+                                      </div>
+                                      {s.time && <p className="text-xs text-muted-foreground">{s.time}</p>}
+                                      {s.why_it_fits && (
+                                        <div className="mt-2 flex items-start gap-1.5">
+                                          <Sparkles className="h-3 w-3 text-primary/60 shrink-0 mt-0.5" />
+                                          <p className="text-xs text-primary/80 italic">{s.why_it_fits}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Accommodation */}
+                          {activeDay.accommodation && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                🏨 Stay
+                              </p>
+                              <div className="p-4 rounded-xl border border-border bg-background flex gap-3 items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="font-semibold text-foreground">{activeDay.accommodation.name}</h4>
+                                    {activeDay.accommodation.type && (
+                                      <Badge variant="outline" className="text-xs">{activeDay.accommodation.type}</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {activeDay.accommodation.why || activeDay.accommodation.description || ""}
+                                  </p>
+                                  {activeDay.accommodation.estimated_cost_gbp && (
+                                    <p className="text-xs text-muted-foreground mt-1">£{activeDay.accommodation.estimated_cost_gbp}/night</p>
                                   )}
                                 </div>
                               </div>
-                            );
-                          })}
-                          {day.accommodation && (
-                            <div className="flex gap-3 p-3.5 rounded-xl border border-border bg-background">
-                              <span className="text-base shrink-0">🏨</span>
-                              <div>
-                                <p className="font-semibold text-sm">{day.accommodation.name}</p>
-                                {day.accommodation.estimated_cost_gbp && (
-                                  <p className="text-xs text-muted-foreground">£{day.accommodation.estimated_cost_gbp}/night</p>
-                                )}
+                            </div>
+                          )}
+
+                          {/* Meals */}
+                          {activeDay.meals?.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">🍽 Dining</p>
+                              <div className="grid grid-cols-3 gap-3">
+                                {["Breakfast", "Lunch", "Dinner"].map((label, idx) => (
+                                  activeDay.meals[idx] && (
+                                    <div key={idx} className="p-3 rounded-xl border border-border bg-background text-center">
+                                      <p className="text-xs text-muted-foreground mb-1 font-medium">{label}</p>
+                                      <p className="text-sm font-medium text-foreground">{activeDay.meals[idx]}</p>
+                                    </div>
+                                  )
+                                ))}
                               </div>
                             </div>
                           )}
                         </div>
-                      )}
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Psychological Design */}
+                {itinerary.psychological_insights && (
+                  <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-sm mb-4">
+                    <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h2 className="font-semibold text-sm">Psychological Design</h2>
                     </div>
-                  ))}
-                </div>
+                    <div className="p-6 space-y-5">
+                      {[
+                        { label: "Transformation Arc", value: itinerary.psychological_insights.transformation_arc },
+                        { label: "Growth Opportunities", value: itinerary.psychological_insights.growth_opportunities },
+                        { label: "Comfort Balance", value: itinerary.psychological_insights.comfort_balance },
+                      ].map(({ label, value }) => value && (
+                        <div key={label}>
+                          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+                          <p className="text-sm text-foreground leading-relaxed">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 mt-4">
                   <Button onClick={() => setShowCalendly(true)} className="flex-1">
                     <Phone className="h-4 w-4 mr-2" /> Book Now
                   </Button>
@@ -620,11 +727,32 @@ export default function TripDetail() {
             </TabsContent>
           )}
 
-          {/* MOOD & REFLECTION */}
+          {/* IN-TRIP — mood tracker + AI assistant prominently */}
           {showMoodTab && (
-            <TabsContent value="mood" className="space-y-8">
+            <TabsContent value="mood" className="space-y-6">
               {trip.status === "in_progress" && (
                 <>
+                  {/* AI Assistant banner — prominent */}
+                  <Card className="border-primary/20 bg-gradient-to-br from-brand-lavender-haze/40 to-background">
+                    <CardContent className="p-5 flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-1">Your AI Travel Assistant</h3>
+                        <p className="text-sm text-muted-foreground">Get real-time help, recommendations and answers during your trip.</p>
+                      </div>
+                      <Button
+                        className="shrink-0 gap-2"
+                        onClick={() => {
+                          // Trigger the floating chat widget
+                          const chatBtn = document.getElementById('ai-chat-open-btn');
+                          if (chatBtn) chatBtn.click();
+                        }}
+                      >
+                        💬 Open Chat
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Mood Logger */}
                   {trip.respondent_id && (
                     <MoodLogger
                       respondentId={trip.respondent_id}
@@ -634,57 +762,7 @@ export default function TripDetail() {
                     />
                   )}
 
-                  {itinerary?.days && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Rate Activities</CardTitle>
-                        <CardDescription>How did each activity make you feel?</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {itinerary.days.map((day: any) => (
-                          <div key={day.day} className="space-y-2">
-                            <p className="text-sm font-semibold text-primary">Day {day.day}: {day.title || day.theme || ""}</p>
-                            {["morning", "afternoon", "evening"].map(slot => {
-                              const s = day[slot];
-                              if (!s) return null;
-                              return (
-                                <div key={slot} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
-                                  <div>
-                                    <p className="text-sm font-medium">{s.activity}</p>
-                                    <p className="text-xs text-muted-foreground capitalize">{slot} — {s.time || ""}</p>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    {["😊", "😐", "😔"].map((emoji, idx) => (
-                                      <button
-                                        key={emoji}
-                                        className="text-xl hover:scale-125 transition-transform p-1"
-                                        onClick={async () => {
-                                          const score = [8, 5, 3][idx];
-                                          if (!trip.respondent_id) return;
-                                          await supabase.from('mood_logs').insert({
-                                            respondent_id: trip.respondent_id,
-                                            trip_id: tripId!,
-                                            mood_score: score,
-                                            activity_reference: s.activity,
-                                            location: destination?.name || null,
-                                            emotions: { selected: [] },
-                                          } as any);
-                                          toast({ title: "Mood logged for " + s.activity });
-                                        }}
-                                      >
-                                        {emoji}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
-
+                  {/* Emotional Graph */}
                   {trip.respondent_id && (
                     <EmotionalFluctuationGraph respondentId={trip.respondent_id} tripId={tripId!} />
                   )}
