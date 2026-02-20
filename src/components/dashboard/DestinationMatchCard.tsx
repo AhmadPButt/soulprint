@@ -63,7 +63,7 @@ const DestinationMatchCard = ({ match, index }: DestinationMatchCardProps) => {
     >
       <Card className="overflow-hidden group hover:border-primary/40 transition-colors">
         {/* Hero Image */}
-        <div className="relative h-48 overflow-hidden bg-muted">
+        <div className="relative h-36 overflow-hidden bg-muted">
           {dest.image_url ? (
             <img
               src={dest.image_url}
