@@ -16,6 +16,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require service role key or admin JWT
+  const authHeader = req.headers.get("Authorization");
+  let isAuthorized = false;
+
+  if (authHeader === `Bearer ${supabaseServiceKey}`) {
+    isAuthorized = true;
+  } else if (authHeader?.startsWith("Bearer ")) {
+    const supabaseAnon = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data, error } = await supabaseAnon.auth.getUser();
+    if (!error && data?.user) {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: roleData } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .single();
+      if (roleData) isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     console.log("Starting weekly analytics report generation...");
     
@@ -120,13 +150,6 @@ serve(async (req) => {
                   <p style="margin-top: 10px;">${dropoffList}</p>
                 </div>
               ` : ''}
-              
-              <div style="margin-top: 30px; text-align: center;">
-                <a href="${supabaseUrl.replace('https://', 'https://app.')}/admin" 
-                   style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  View Full Dashboard
-                </a>
-              </div>
             </div>
             <div class="footer">
               <p>This is an automated weekly report for the Erranza team.</p>

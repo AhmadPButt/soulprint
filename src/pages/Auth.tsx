@@ -23,89 +23,58 @@ const Auth = () => {
   const [showCheckEmail, setShowCheckEmail] = useState(false);
   const [showResetSent, setShowResetSent] = useState(false);
 
+  const redirectAfterAuth = async (userId: string) => {
+    const pendingRedirect = sessionStorage.getItem('pending_redirect');
+    if (pendingRedirect) {
+      sessionStorage.removeItem('pending_redirect');
+      navigate(pendingRedirect);
+      return;
+    }
+
+    const { data: respondent } = await supabase
+      .from('respondents')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (respondent) {
+      navigate('/dashboard');
+    } else {
+      const { data: intake } = await supabase
+        .from('context_intake')
+        .select('completed')
+        .eq('user_id', userId)
+        .eq('completed', true)
+        .limit(1)
+        .maybeSingle();
+      
+      navigate(intake ? '/questionnaire' : '/intake');
+    }
+  };
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(async () => {
-            const pendingRedirect = sessionStorage.getItem('pending_redirect');
-            if (pendingRedirect) {
-              sessionStorage.removeItem('pending_redirect');
-              navigate(pendingRedirect);
-              return;
-            }
-
-            const { data: respondent } = await supabase
-              .from('respondents')
-              .select('id')
-              .eq('user_id', session.user.id)
-              .single();
-            
-            if (respondent) {
-              navigate('/dashboard');
-            } else {
-              const { data: intake } = await supabase
-                .from('context_intake')
-                .select('completed')
-                .eq('user_id', session.user.id)
-                .eq('completed', true)
-                .limit(1)
-                .maybeSingle();
-              
-              if (intake) {
-                navigate('/questionnaire');
-              } else {
-                navigate('/intake');
-              }
-            }
-          }, 500);
-        }
-      }
-    );
-
+    // Check existing session first to avoid race condition with onAuthStateChange
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Existing session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      
-      if (session?.user) {
-        const pendingRedirect = sessionStorage.getItem('pending_redirect');
-        if (pendingRedirect) {
-          sessionStorage.removeItem('pending_redirect');
-          navigate(pendingRedirect);
-          return;
-        }
 
-        const { data: respondent } = await supabase
-          .from('respondents')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        if (respondent) {
-          navigate('/dashboard');
-        } else {
-          const { data: intake } = await supabase
-            .from('context_intake')
-            .select('completed')
-            .eq('user_id', session.user.id)
-            .eq('completed', true)
-            .limit(1)
-            .maybeSingle();
-          
-          if (intake) {
-            navigate('/questionnaire');
-          } else {
-            navigate('/intake');
-          }
-        }
+      if (session?.user) {
+        await redirectAfterAuth(session.user.id);
       }
     });
+
+    // Only listen for new SIGNED_IN events (not initial session restoration)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          await redirectAfterAuth(session.user.id);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, [navigate]);

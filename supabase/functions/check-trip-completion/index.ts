@@ -11,6 +11,45 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // This is an internal/admin-only function — require a service-level secret header
+  // or validate that the caller is an admin user
+  const authHeader = req.headers.get("Authorization");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  // Accept either the service role key (for cron/internal calls) or a valid admin JWT
+  let isAuthorized = false;
+
+  if (authHeader === `Bearer ${serviceKey}`) {
+    // Internal cron call using service role key
+    isAuthorized = true;
+  } else if (authHeader?.startsWith("Bearer ")) {
+    // Validate as admin user
+    const supabaseAnon = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data, error } = await supabaseAnon.auth.getUser();
+    if (!error && data?.user) {
+      // Check admin role
+      const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+      const { data: roleData } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .single();
+      if (roleData) isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

@@ -88,11 +88,12 @@ const Landing = () => {
                 {/* Hover glow effect */}
                 <div className="absolute inset-0 bg-lavender-accent/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-110" />
                 
-                <img 
-                  src={fingerprintImage} 
-                  alt="SoulPrint Fingerprint" 
-                  className="w-[400px] md:w-[500px] h-auto mx-auto relative z-10 opacity-90 transition-transform duration-500 group-hover:scale-105"
-                />
+              <img 
+                src={fingerprintImage} 
+                alt="SoulPrint Fingerprint" 
+                className="w-[400px] md:w-[500px] h-auto mx-auto relative z-10 transition-transform duration-500 group-hover:scale-105"
+                style={{ filter: "invert(0.15) sepia(0.3) saturate(0.8) hue-rotate(220deg)" }}
+              />
               </div>
             </motion.div>
 
@@ -131,10 +132,7 @@ const Landing = () => {
         <footer className="glass-card border-t border-border/30">
           <div className="container mx-auto px-4 py-6 text-center">
             <p className="text-xs text-muted-foreground">
-              © 2025 Erranza • All rights reserved •{" "}
-              <a href="/admin" className="hover:text-foreground transition-colors">
-                Admin
-              </a>
+              © 2025 Erranza • All rights reserved
             </p>
           </div>
         </footer>

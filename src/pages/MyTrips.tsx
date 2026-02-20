@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, MapPin, Users, Calendar, ArrowLeft } from "lucide-react";
 import erranzaLogo from "@/assets/erranza-logo.png";
 
@@ -26,8 +26,8 @@ interface Trip {
 
 const statusColors: Record<string, string> = {
   planning: "bg-amber-50 text-amber-700 border-amber-200",
-  booked: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  in_progress: "bg-brand-lavender-haze text-primary border-primary/20",
+  booked: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  in_progress: "bg-accent text-accent-foreground border-primary/20",
   completed: "bg-secondary text-secondary-foreground border-border",
 };
 
@@ -45,27 +45,36 @@ export default function MyTrips() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
 
-    // Get trips created by user
+    // Get trips created by user with destination info
     const { data: ownTrips } = await supabase
       .from("trips")
       .select("*, destination:echoprint_destinations(name, country, image_url)")
       .eq("created_by", session.user.id)
       .order("created_at", { ascending: false });
 
-    // Get member counts
-    const tripsWithCounts: Trip[] = [];
-    for (const trip of ownTrips || []) {
-      const { count } = await supabase
-        .from("trip_members")
-        .select("*", { count: "exact", head: true })
-        .eq("trip_id", trip.id);
-
-      tripsWithCounts.push({
-        ...trip,
-        destination: trip.destination as Trip["destination"],
-        member_count: count || 0,
-      });
+    if (!ownTrips || ownTrips.length === 0) {
+      setTrips([]);
+      setLoading(false);
+      return;
     }
+
+    // Fix N+1: fetch all member counts in a single query
+    const tripIds = ownTrips.map(t => t.id);
+    const { data: memberCounts } = await supabase
+      .from("trip_members")
+      .select("trip_id")
+      .in("trip_id", tripIds);
+
+    const countMap: Record<string, number> = {};
+    (memberCounts || []).forEach(m => {
+      countMap[m.trip_id] = (countMap[m.trip_id] || 0) + 1;
+    });
+
+    const tripsWithCounts: Trip[] = ownTrips.map(trip => ({
+      ...trip,
+      destination: trip.destination as Trip["destination"],
+      member_count: countMap[trip.id] || 0,
+    }));
 
     setTrips(tripsWithCounts);
     setLoading(false);
@@ -126,11 +135,14 @@ export default function MyTrips() {
                     {trip.destination?.image_url ? (
                       <img
                         src={trip.destination.image_url}
-                        alt=""
+                        alt={trip.destination.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-brand-lavender-haze">
+                      <div className="w-full h-full flex items-center justify-center bg-accent">
                         <MapPin className="h-6 w-6 text-primary/40" />
                       </div>
                     )}
@@ -184,7 +196,7 @@ export default function MyTrips() {
           </div>
         ) : (
           <div className="rounded-2xl border border-border bg-card p-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-brand-lavender-haze flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
               <MapPin className="h-7 w-7 text-primary/60" />
             </div>
             <h3 className="text-lg font-semibold mb-2 text-foreground">No trips yet</h3>
