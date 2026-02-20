@@ -74,6 +74,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Save admin details to respondents table so they appear in AdminsTab
+    const resolvedName = admin_name || "Admin";
+    const resolvedEmail = admin_email || claimsData.claims.email || "";
+    
+    // Check if respondent record already exists for this user
+    const { data: existingRespondent } = await supabaseAdmin
+      .from("respondents")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!existingRespondent) {
+      await supabaseAdmin.from("respondents").insert({
+        user_id: userId,
+        name: resolvedName,
+        email: resolvedEmail,
+        raw_responses: {},
+        status: "admin",
+      });
+    }
+
     return new Response(JSON.stringify({ message: "Admin role granted successfully" }), { headers: corsHeaders });
   } catch (error) {
     console.error("Error:", error);

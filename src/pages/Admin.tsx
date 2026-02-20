@@ -698,28 +698,37 @@ const Admin = () => {
         {/* Admin Trip Phase Navigation */}
         <Card className="mb-8">
           <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Trip Phase Preview (Admin)</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Trip Management</h3>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => navigate("/trips")}>
                 <MapPin className="h-4 w-4 mr-2" />
-                Pre-Trip (My Trips)
+                View All Trips
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => {
-                // Navigate to first available trip for in-trip view
-                if (respondents.length > 0) {
-                  supabase.from("trips").select("id").limit(1).then(({ data }) => {
-                    if (data?.[0]) navigate(`/trips/${data[0].id}`);
-                    else toast({ title: "No trips found", description: "Create a trip first to preview in-trip features.", variant: "destructive" });
-                  });
-                }
+                // Navigate to most recently updated trip with in_progress status
+                supabase.from("trips").select("id").eq("status", "in_progress").order("updated_at", { ascending: false }).limit(1).then(({ data }) => {
+                  if (data?.[0]) navigate(`/trips/${data[0].id}`);
+                  else {
+                    // Fall back to any trip
+                    supabase.from("trips").select("id").order("updated_at", { ascending: false }).limit(1).then(({ data: anyTrip }) => {
+                      if (anyTrip?.[0]) navigate(`/trips/${anyTrip[0].id}`);
+                      else toast({ title: "No trips found", description: "No trips exist yet.", variant: "destructive" });
+                    });
+                  }
+                });
               }}>
                 <Clock className="h-4 w-4 mr-2" />
                 In-Trip View
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => {
-                supabase.from("trips").select("id").limit(1).then(({ data }) => {
+                supabase.from("trips").select("id").eq("status", "completed").order("updated_at", { ascending: false }).limit(1).then(({ data }) => {
                   if (data?.[0]) navigate(`/trips/${data[0].id}`);
-                  else toast({ title: "No trips found", description: "Create a trip first to preview post-trip features.", variant: "destructive" });
+                  else {
+                    supabase.from("trips").select("id").order("updated_at", { ascending: false }).limit(1).then(({ data: anyTrip }) => {
+                      if (anyTrip?.[0]) navigate(`/trips/${anyTrip[0].id}`);
+                      else toast({ title: "No trips found", variant: "destructive" });
+                    });
+                  }
                 });
               }}>
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -786,10 +795,8 @@ const Admin = () => {
                 <TabsTrigger value="dropoffs">Dropoffs</TabsTrigger>
                 <TabsTrigger value="time">Time</TabsTrigger>
                 <TabsTrigger value="sessions">Sessions</TabsTrigger>
-                <TabsTrigger value="variants">A/B Tests</TabsTrigger>
                 <TabsTrigger value="groups">Groups</TabsTrigger>
                 <TabsTrigger value="destinations">Destinations</TabsTrigger>
-                <TabsTrigger value="discussions">Discussions</TabsTrigger>
                 <TabsTrigger value="support" className="gap-1"><HeadphonesIcon className="h-3.5 w-3.5" /> Support</TabsTrigger>
                 <TabsTrigger value="algorithm" className="gap-1"><Brain className="h-3.5 w-3.5" /> Algorithm</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
@@ -1160,68 +1167,6 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
-              {/* VARIANTS TAB */}
-              <TabsContent value="variants">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FlaskConical className="h-5 w-5" />
-                      A/B Test Variants
-                    </CardTitle>
-                    <CardDescription>Compare completion rates across different questionnaire variants</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {analytics?.variantMetrics && analytics.variantMetrics.length > 0 ? (
-                        analytics.variantMetrics.map((metric) => (
-                          <div key={metric.variant_id} className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="font-semibold">{metric.variant_name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {metric.starts} starts, {metric.completions} completions
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-2xl font-bold">{metric.completionRate.toFixed(1)}%</p>
-                                <p className="text-xs text-muted-foreground">Completion Rate</p>
-                              </div>
-                            </div>
-                            <Progress value={metric.completionRate} className="h-3" />
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground text-center py-8">No A/B test data available yet</p>
-                      )}
-                      
-                      <div className="pt-6 border-t">
-                        <h3 className="font-semibold mb-3">Active Variants</h3>
-                        <div className="space-y-2">
-                          {variants.map((variant) => (
-                            <div key={variant.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                              <div>
-                                <p className="font-medium">{variant.name}</p>
-                                {variant.description && (
-                                  <p className="text-sm text-muted-foreground">{variant.description}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Weight: {variant.weight}%</span>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  variant.is_active ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
-                                }`}>
-                                  {variant.is_active ? "Active" : "Inactive"}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
               {/* GROUPS TAB */}
               <TabsContent value="groups">
                 <Card>
@@ -1313,10 +1258,6 @@ const Admin = () => {
                   <DestinationsTab />
                   <MatchTestPanel respondents={respondents} />
                 </div>
-              </TabsContent>
-
-              <TabsContent value="discussions">
-                <GroupDiscussionsTab />
               </TabsContent>
 
               <TabsContent value="support">

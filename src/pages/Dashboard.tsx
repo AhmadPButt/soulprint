@@ -109,7 +109,7 @@ export default function Dashboard() {
   const [groupName, setGroupName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [destinationMatches, setDestinationMatches] = useState<any[]>([]);
-  const [currentView, setCurrentView] = useState<string>("pre-trip");
+  const [currentView, setCurrentView] = useState<string>("home");
   const [userId, setUserId] = useState<string>("");
 
   // Active trips for in-trip / post-trip views
@@ -345,72 +345,35 @@ export default function Dashboard() {
         
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold tracking-widest uppercase text-muted-foreground px-4 pt-4 pb-1">
-            Journey
+            Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="px-2 space-y-0.5">
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => setCurrentView("pre-trip")}
+                  onClick={() => setCurrentView("home")}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                    currentView === "pre-trip"
+                    currentView === "home"
                       ? "bg-brand-lavender-haze text-primary"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
-                >
-                  <Plane className="mr-2 h-4 w-4 shrink-0" />
-                  <span>Pre-Trip</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={() => canAccessInTrip && setCurrentView("in-trip")}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                    currentView === "in-trip"
-                      ? "bg-brand-lavender-haze text-primary"
-                      : !canAccessInTrip
-                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  }`}
-                  disabled={!canAccessInTrip}
-                >
-                  <Compass className="mr-2 h-4 w-4 shrink-0" />
-                  <span>In-Trip</span>
-                  {activeTrip && !isAdminMode && (
-                    <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border-amber-200">Live</Badge>
-                  )}
-                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
-                  {!canAccessInTrip && <span className="ml-auto opacity-40 text-[10px] font-medium text-muted-foreground">Locked</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={() => canAccessPostTrip && setCurrentView("post-trip")}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                    currentView === "post-trip"
-                      ? "bg-brand-lavender-haze text-primary"
-                      : !canAccessPostTrip
-                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  }`}
-                  disabled={!canAccessPostTrip}
                 >
                   <Home className="mr-2 h-4 w-4 shrink-0" />
-                  <span>Post-Trip</span>
-                  {isAdminMode && <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-brand-lavender-haze text-primary border-primary/20">Admin</Badge>}
-                  {!canAccessPostTrip && <span className="ml-auto opacity-40 text-[10px] font-medium text-muted-foreground">Locked</span>}
+                  <span>Home</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate("/trips")}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    currentView === "trips"
+                      ? "bg-brand-lavender-haze text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
                 >
                   <Briefcase className="mr-2 h-4 w-4 shrink-0" />
-                  <span>My Trips</span>
+                  <span>Trips</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -511,12 +474,12 @@ export default function Dashboard() {
           </div>
 
           <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
-            {/* PRE-TRIP VIEW */}
-            {currentView === "pre-trip" && (
+            {/* HOME VIEW */}
+            {currentView === "home" && (
               <div className="space-y-8">
                 <div className="mb-6">
-                  <h2 className="text-3xl font-bold mb-2">Pre-Trip Preparation</h2>
-                  <p className="text-muted-foreground">Review your SoulPrint, matched destinations, and group details</p>
+                  <h2 className="text-3xl font-bold mb-2">Your SoulPrint</h2>
+                  <p className="text-muted-foreground">Your travel personality profile and matched destinations</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -590,16 +553,6 @@ export default function Dashboard() {
                       narrative={narrative}
                       respondentId={respondent.id}
                     />
-                  </div>
-                )}
-
-                {/* Itinerary */}
-                {itinerary && (
-                  <div className="mt-8">
-                    <ItineraryDisplay itinerary={itinerary.itinerary_data} />
-                    <div className="mt-4">
-                      <ItineraryDiscussionForum itineraryId={itinerary.id} itineraryData={itinerary.itinerary_data} />
-                    </div>
                   </div>
                 )}
 
@@ -697,7 +650,6 @@ export default function Dashboard() {
                   <TabsList>
                     <TabsTrigger value="mood">Mood Tracking</TabsTrigger>
                     <TabsTrigger value="utilities">Utilities</TabsTrigger>
-                    <TabsTrigger value="discussion">Discussion</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="mood" className="space-y-6">
