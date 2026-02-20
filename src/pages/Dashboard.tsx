@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import erranzaLogo from "@/assets/erranza-logo.png";
 import ItineraryDisplay from "@/components/user/ItineraryDisplay";
-import SoulPrintVisualization from "@/components/admin/SoulPrintVisualization";
+
 import { ItineraryDiscussionForum } from "@/components/discussion/ItineraryDiscussionForum";
 import { MoodLogger } from "@/components/trip/MoodLogger";
 import { EmotionalFluctuationGraph } from "@/components/trip/EmotionalFluctuationGraph";
@@ -482,34 +482,33 @@ export default function Dashboard() {
                   <p className="text-muted-foreground">Your travel personality profile and matched destinations</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div>
-                    {respondent?.raw_responses ? (
-                      <SoulPrintCard
-                        traits={calculateAllTraits(respondent.raw_responses, computed)}
-                        computed={computed}
-                        narrative={narrative}
-                      />
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>SoulPrint Not Yet Computed</CardTitle>
-                          <CardDescription>
-                            Complete your questionnaire to see your travel personality profile.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button onClick={() => navigate('/questionnaire')}>
-                            <Fingerprint className="h-4 w-4 mr-2" />
-                            Take the Questionnaire
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
+                <div className="max-w-3xl mx-auto space-y-8">
+                  {respondent?.raw_responses ? (
+                    <SoulPrintCard
+                      traits={calculateAllTraits(respondent.raw_responses, computed)}
+                      computed={computed}
+                      narrative={narrative}
+                    />
+                  ) : (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>SoulPrint Not Yet Computed</CardTitle>
+                        <CardDescription>
+                          Complete your questionnaire to see your travel personality profile.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button onClick={() => navigate('/questionnaire')}>
+                          <Fingerprint className="h-4 w-4 mr-2" />
+                          Take the Questionnaire
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
 
+                  {/* Matched Destinations below SoulPrint */}
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" />
                       <h3 className="text-xl font-bold">Your Matched Destinations</h3>
                       {destinationMatches.length >= 2 && (
@@ -540,21 +539,6 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-
-                {/* Complete SoulPrint Journey — show charts without narrative card (narrative shown in SoulPrintCard above) */}
-                {computed && respondent && (
-                  <div className="mt-8">
-                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <Fingerprint className="h-5 w-5 text-primary" />
-                      Your Complete SoulPrint Journey
-                    </h3>
-                    <SoulPrintVisualization
-                      computed={computed}
-                      narrative={null}
-                      respondentId={respondent.id}
-                    />
-                  </div>
-                )}
 
                 {/* Group Section */}
                 {showGroupSection && (
