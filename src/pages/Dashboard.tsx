@@ -473,58 +473,62 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <main className="flex-1 container mx-auto px-4 py-8 overflow-y-auto">
+          <main className="flex-1 px-6 py-8 overflow-y-auto">
             {/* HOME VIEW */}
             {currentView === "home" && (
-              <div className="space-y-8">
-                <div className="mb-6">
-                  <h2 className="text-3xl font-bold mb-2">Your SoulPrint</h2>
-                  <p className="text-muted-foreground">Your travel personality profile and matched destinations</p>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">Your SoulPrint</h2>
+                  <p className="text-muted-foreground text-sm">Your travel personality profile and matched destinations</p>
                 </div>
 
-                <div className="max-w-3xl mx-auto space-y-8">
-                  {respondent?.raw_responses ? (
-                    <SoulPrintCard
-                      traits={calculateAllTraits(respondent.raw_responses, computed)}
-                      computed={computed}
-                      narrative={narrative}
-                    />
-                  ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>SoulPrint Not Yet Computed</CardTitle>
-                        <CardDescription>
-                          Complete your questionnaire to see your travel personality profile.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button onClick={() => navigate('/questionnaire')}>
-                          <Fingerprint className="h-4 w-4 mr-2" />
-                          Take the Questionnaire
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Two-column layout: SoulPrint left, Destinations right */}
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+                  {/* SoulPrint — takes 3/5 on xl */}
+                  <div className="xl:col-span-3">
+                    {respondent?.raw_responses ? (
+                      <SoulPrintCard
+                        traits={calculateAllTraits(respondent.raw_responses, computed)}
+                        computed={computed}
+                        narrative={narrative}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>SoulPrint Not Yet Computed</CardTitle>
+                          <CardDescription>
+                            Complete your questionnaire to see your travel personality profile.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button onClick={() => navigate('/questionnaire')}>
+                            <Fingerprint className="h-4 w-4 mr-2" />
+                            Take the Questionnaire
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
 
-                  {/* Matched Destinations below SoulPrint */}
-                  <div className="space-y-4">
+                  {/* Matched Destinations — takes 2/5 on xl, sidebar style */}
+                  <div className="xl:col-span-2 space-y-3">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <h3 className="text-xl font-bold">Your Matched Destinations</h3>
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h3 className="text-base font-semibold">Matched Destinations</h3>
                       {destinationMatches.length >= 2 && (
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="ml-auto gap-1.5"
+                          className="ml-auto gap-1 h-7 text-xs px-2"
                           onClick={() => navigate(`/compare?destinations=${destinationMatches.map(m => m.destination.id).join(",")}`)}
                         >
-                          <GitCompare className="h-3.5 w-3.5" /> Compare
+                          <GitCompare className="h-3 w-3" /> Compare
                         </Button>
                       )}
                     </div>
 
                     {destinationMatches.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {destinationMatches.map((match, i) => (
                           <DestinationMatchCard key={match.id} match={match} index={i} />
                         ))}
@@ -533,7 +537,7 @@ export default function Dashboard() {
                       <Card>
                         <CardContent className="p-6 text-center text-muted-foreground">
                           <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                          <p>No matches yet. Complete your SoulPrint to discover your ideal destinations.</p>
+                          <p className="text-sm">No matches yet. Complete your SoulPrint to discover your ideal destinations.</p>
                         </CardContent>
                       </Card>
                     )}
