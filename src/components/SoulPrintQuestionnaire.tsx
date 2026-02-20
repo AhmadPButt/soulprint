@@ -60,7 +60,7 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
     { component: Section3, title: "Travel Behavior", subtitle: "Tell us how you move through the world." },
     { component: Section4, title: "Luxury & Pace", subtitle: "What does the perfect trip feel like?" },
     { component: Section5, title: "Sensory Priorities", subtitle: "What experiences matter most to you?" },
-    { component: Section6, title: "Your Details", subtitle: "Almost there — just a few essentials." },
+    { component: Section6, title: "Your Details", subtitle: "Just one more thing — add your phone number." },
   ];
 
   const CurrentComponent = sections[currentSection]?.component;
@@ -318,6 +318,10 @@ const SoulPrintQuestionnaire = ({ user }: SoulPrintQuestionnaireProps) => {
                   initialData={responses}
                   onNext={handleNext}
                   onBack={currentSection > 0 ? handleBack : undefined}
+                  {...(currentSection === 5 ? {
+                    authName: user.user_metadata?.full_name || user.user_metadata?.name || "",
+                    authEmail: user.email || "",
+                  } : {})}
                 />
               )}
             </div>

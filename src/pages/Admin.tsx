@@ -826,20 +826,15 @@ const Admin = () => {
                           respondents.map((respondent) => {
                             const itineraries = Array.isArray(respondent.itineraries) ? respondent.itineraries : [];
                             const itinerary = itineraries[0];
-                            const itineraryData = itinerary?.itinerary_data;
                             const hasComputed = respondent.computed_scores?.length > 0;
-                            const isExpanded = expandedTraveler === respondent.id;
                             
                             return (
-                              <div
+                              <button
                                 key={respondent.id}
-                                className="rounded-lg border bg-card transition-colors space-y-0 overflow-hidden"
+                                onClick={() => navigate(`/admin/traveler/${respondent.id}`)}
+                                className="w-full rounded-lg border bg-card hover:bg-muted/50 transition-colors text-left"
                               >
-                                {/* Traveler Summary Row */}
-                                <div 
-                                  className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/50"
-                                  onClick={() => setExpandedTraveler(isExpanded ? null : respondent.id)}
-                                >
+                                <div className="p-4 flex items-center justify-between gap-4">
                                   <div className="flex items-center gap-3 flex-1 min-w-0">
                                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                       <User className="h-5 w-5 text-primary" />
@@ -847,9 +842,7 @@ const Admin = () => {
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
                                         <p className="font-semibold truncate">{respondent.name}</p>
-                                        {hasComputed && (
-                                          <Fingerprint className="h-4 w-4 text-primary shrink-0" />
-                                        )}
+                                        {hasComputed && <Fingerprint className="h-4 w-4 text-primary shrink-0" />}
                                       </div>
                                       <p className="text-sm text-muted-foreground truncate">{respondent.email}</p>
                                     </div>
@@ -866,206 +859,15 @@ const Admin = () => {
                                       </Badge>
                                     )}
                                     {!hasComputed && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Pending
-                                      </Badge>
+                                      <Badge variant="secondary" className="text-xs">Pending</Badge>
                                     )}
                                     <span className="text-xs text-muted-foreground">
                                       {new Date(respondent.created_at).toLocaleDateString()}
                                     </span>
+                                    <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
                                   </div>
                                 </div>
-
-                                {/* Expanded Details */}
-                                {isExpanded && (
-                                  <div className="border-t px-4 py-4 space-y-4 bg-muted/20">
-                                    {/* Personal Info Grid */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Email</p>
-                                        <p className="text-sm font-medium">{respondent.email}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Country</p>
-                                        <p className="text-sm font-medium">{respondent.country || '—'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Passport</p>
-                                        <p className="text-sm font-medium">{respondent.passport_nationality || '—'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Travel Companion</p>
-                                        <p className="text-sm font-medium capitalize">{respondent.travel_companion || '—'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Room Type</p>
-                                        <p className="text-sm font-medium capitalize">{respondent.room_type || '—'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Dietary</p>
-                                        <p className="text-sm font-medium capitalize">{respondent.dietary_preferences || '—'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Status</p>
-                                        <p className="text-sm font-medium capitalize">{respondent.status || 'pending'}</p>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <p className="text-xs text-muted-foreground">Submitted</p>
-                                        <p className="text-sm font-medium">{new Date(respondent.created_at).toLocaleString()}</p>
-                                      </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-wrap gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={(e) => { e.stopPropagation(); downloadJSON(respondent); }}
-                                      >
-                                        <FileJson className="h-4 w-4 mr-1" />
-                                        Download JSON
-                                      </Button>
-
-                                      {!hasComputed && (
-                                        <Button
-                                          size="sm"
-                                          onClick={(e) => { e.stopPropagation(); computeSoulPrint(respondent.id); }}
-                                          disabled={computingId === respondent.id}
-                                        >
-                                          <Brain className="h-4 w-4 mr-1" />
-                                          {computingId === respondent.id ? "Computing..." : "Compute SoulPrint"}
-                                        </Button>
-                                      )}
-
-                                      {hasComputed && (
-                                        <Button
-                                          size="sm"
-                                          onClick={(e) => { e.stopPropagation(); viewSoulPrint(respondent); }}
-                                        >
-                                          <Fingerprint className="h-4 w-4 mr-1" />
-                                          View SoulPrint
-                                        </Button>
-                                      )}
-
-                                      {hasComputed && itinerary && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={(e) => { e.stopPropagation(); viewItinerary(respondent.id); }}
-                                          >
-                                            <MapPin className="h-4 w-4 mr-1" />
-                                            View Itinerary
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={(e) => { e.stopPropagation(); generateItinerary(respondent.id, true); }}
-                                            disabled={generatingItinerary === respondent.id}
-                                          >
-                                            {generatingItinerary === respondent.id ? "Regenerating..." : "Regenerate"}
-                                          </Button>
-                                        </>
-                                      )}
-
-                                      {hasComputed && !itinerary && (
-                                        <Button
-                                          size="sm"
-                                          variant="secondary"
-                                          onClick={(e) => { e.stopPropagation(); generateItinerary(respondent.id); }}
-                                          disabled={generatingItinerary === respondent.id}
-                                        >
-                                          <MapPin className="h-4 w-4 mr-1" />
-                                          {generatingItinerary === respondent.id ? "Generating..." : "Generate Itinerary"}
-                                        </Button>
-                                      )}
-                                    </div>
-
-                                    {/* Itinerary Preview */}
-                                    {itinerary && itineraryData && (
-                                      <div className="border border-border rounded-lg p-3 bg-background/50">
-                                        <div className="flex items-start justify-between gap-4">
-                                          <div className="flex-1">
-                                            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                              <MapPin className="h-4 w-4" />
-                                              {itineraryData.title || "Personalized Journey"}
-                                            </h4>
-                                            <p className="text-xs text-muted-foreground mb-2">
-                                              {itineraryData.duration || "7 days"} • {itineraryData.days?.length || 7} locations
-                                            </p>
-                                            <div className="flex flex-wrap gap-1 mb-2">
-                                              {itineraryData.days?.slice(0, 3).map((day: any, idx: number) => (
-                                                <Badge key={idx} variant="outline" className="text-xs">
-                                                  {day.location}
-                                                </Badge>
-                                              ))}
-                                              {itineraryData.days?.length > 3 && (
-                                                <Badge variant="outline" className="text-xs">
-                                                  +{itineraryData.days.length - 3} more
-                                                </Badge>
-                                              )}
-                                            </div>
-                                          </div>
-                                          {itineraryData.estimated_cost && (
-                                            <div className="text-right">
-                                              <p className="text-xs text-muted-foreground">Est. Cost</p>
-                                              <p className="text-lg font-bold text-primary">
-                                                ${itineraryData.estimated_cost}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Trip Status Control */}
-                                    {respondent.user_id && (
-                                      <TripStatusControl userId={respondent.user_id} respondentName={respondent.name} />
-                                    )}
-
-                                    {/* Payment Tracking */}
-                                    <div className="border border-border rounded-lg p-3 bg-background/50">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Payment Status:</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        <Button
-                                          size="sm"
-                                          variant={respondent.paid_flights ? "default" : "outline"}
-                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_flights', respondent.paid_flights); }}
-                                          className="text-xs"
-                                        >
-                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_flights ? '' : 'opacity-30'}`} />
-                                          Flights {respondent.paid_flights ? 'Paid' : 'Unpaid'}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant={respondent.paid_hotels ? "default" : "outline"}
-                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_hotels', respondent.paid_hotels); }}
-                                          className="text-xs"
-                                        >
-                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_hotels ? '' : 'opacity-30'}`} />
-                                          Hotels {respondent.paid_hotels ? 'Paid' : 'Unpaid'}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant={respondent.paid_activities ? "default" : "outline"}
-                                          onClick={(e) => { e.stopPropagation(); togglePaymentStatus(respondent.id, 'paid_activities', respondent.paid_activities); }}
-                                          className="text-xs"
-                                        >
-                                          <CheckCircle className={`h-3 w-3 mr-1 ${respondent.paid_activities ? '' : 'opacity-30'}`} />
-                                          Activities {respondent.paid_activities ? 'Paid' : 'Unpaid'}
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    {/* Admin Document Upload */}
-                                    <AdminDocumentUpload
-                                      respondentId={respondent.id}
-                                      respondentName={respondent.name}
-                                      userId={respondent.user_id}
-                                    />
-                                  </div>
-                                )}
-                              </div>
+                              </button>
                             );
                           })
                         )}

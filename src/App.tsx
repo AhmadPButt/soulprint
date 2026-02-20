@@ -18,6 +18,7 @@ import TripDetail from "./pages/TripDetail";
 import JoinTrip from "./pages/JoinTrip";
 import CompareDestinations from "./pages/CompareDestinations";
 import ResetPassword from "./pages/ResetPassword";
+import AdminTravelerDetail from "./pages/AdminTravelerDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => {
             <Route path="/compare" element={<CompareDestinations />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/traveler/:respondentId" element={<AdminTravelerDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

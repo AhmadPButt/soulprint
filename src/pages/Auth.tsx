@@ -19,6 +19,7 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [showCheckEmail, setShowCheckEmail] = useState(false);
   const [showResetSent, setShowResetSent] = useState(false);
@@ -131,11 +132,17 @@ const Auth = () => {
 
     try {
       if (isSignUp) {
+        if (!fullName.trim()) {
+          toast({ title: "Name Required", description: "Please enter your full name.", variant: "destructive" });
+          setAuthLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/intake`,
+            data: { full_name: fullName.trim(), name: fullName.trim() },
           }
         });
 
@@ -319,6 +326,19 @@ const Auth = () => {
             </div>
 
             <form onSubmit={handleEmailAuth} className="space-y-4">
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required={isSignUp}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
                 <Input

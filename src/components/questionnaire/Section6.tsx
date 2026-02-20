@@ -14,25 +14,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { QuestionnaireData } from "../SoulPrintQuestionnaire";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Lock } from "lucide-react";
 
 interface Section6Props {
   initialData: QuestionnaireData;
   onNext: (data: QuestionnaireData) => void;
   onBack?: () => void;
+  authName?: string;
+  authEmail?: string;
 }
 
-const Section6 = ({ initialData, onNext, onBack }: Section6Props) => {
-  const [name, setName] = useState(initialData.Q42_name || "");
-  const [email, setEmail] = useState(initialData.Q43_email || "");
+const Section6 = ({ initialData, onNext, onBack, authName = "", authEmail = "" }: Section6Props) => {
   const [phone, setPhone] = useState(initialData.Q44_phone || "");
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Use auth data as source of truth; fallback to any previously saved data
+  const name = authName || initialData.Q42_name || "";
+  const email = authEmail || initialData.Q43_email || "";
 
   const handleSubmit = () => {
     onNext({ Q42_name: name, Q43_email: email, Q44_phone: phone });
   };
-
-  const isValid = name.trim().length > 0 && email.trim().length > 0 && email.includes("@");
 
   return (
     <motion.div
@@ -41,41 +43,49 @@ const Section6 = ({ initialData, onNext, onBack }: Section6Props) => {
       className="space-y-8"
     >
       <div className="bg-card rounded-2xl p-8 shadow-sm border border-border space-y-8">
-        {/* Name */}
+        {/* Name — read-only from auth */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-3"
         >
-          <Label htmlFor="name" className="text-lg font-semibold">Full Name</Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-lg font-semibold">Full Name</Label>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <Lock className="h-3 w-3" /> From your account
+            </span>
+          </div>
           <Input
-            id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your full name"
-            className="text-base"
+            readOnly
+            disabled
+            className="text-base bg-muted/50 cursor-not-allowed"
           />
         </motion.div>
 
-        {/* Email */}
+        {/* Email — read-only from auth */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
           className="space-y-3"
         >
-          <Label htmlFor="email" className="text-lg font-semibold">Email</Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-lg font-semibold">Email</Label>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <Lock className="h-3 w-3" /> From your account
+            </span>
+          </div>
           <Input
-            id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your.email@example.com"
-            className="text-base"
+            readOnly
+            disabled
+            className="text-base bg-muted/50 cursor-not-allowed"
           />
         </motion.div>
 
-        {/* Phone */}
+        {/* Phone — editable */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -105,7 +115,7 @@ const Section6 = ({ initialData, onNext, onBack }: Section6Props) => {
         )}
         <Button
           onClick={() => setShowConfirmation(true)}
-          disabled={!isValid}
+          disabled={!name || !email}
           size="lg"
           className="ml-auto gap-2"
         >
