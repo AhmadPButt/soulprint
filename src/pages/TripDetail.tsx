@@ -129,9 +129,18 @@ export default function TripDetail() {
 
       for (const email of emails) {
         // Insert member
+        // Generate a unique token for the invitation link
+        const invitationToken = crypto.randomUUID();
+
         const { data: newMember, error: insertErr } = await supabase
           .from("trip_members")
-          .insert({ trip_id: tripId!, email, role: "member", invitation_status: "pending" })
+          .insert({ 
+            trip_id: tripId!, 
+            email, 
+            role: "member", 
+            invitation_status: "pending",
+            invitation_token: invitationToken,
+          })
           .select()
           .single();
 

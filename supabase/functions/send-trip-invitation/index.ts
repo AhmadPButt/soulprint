@@ -52,7 +52,7 @@ serve(async (req) => {
       throw new Error('Trip not found');
     }
 
-    // Get member email
+    // Get member email + token
     const { data: member, error: memberError } = await supabase
       .from('trip_members')
       .select('email, invitation_token')
@@ -63,8 +63,14 @@ serve(async (req) => {
       throw new Error('Member not found');
     }
 
-    const token = invitation_token || member.invitation_token;
-    const appUrl = Deno.env.get('APP_URL') || supabaseUrl.replace('.supabase.co', '.lovable.app');
+    // Use provided token, or existing token, or generate a new one
+    let token = invitation_token || member.invitation_token;
+    if (!token) {
+      token = crypto.randomUUID();
+      await supabase.from('trip_members').update({ invitation_token: token }).eq('id', member_id);
+    }
+
+    const appUrl = 'https://erranza.lovable.app';
     const invitationUrl = `${appUrl}/join-trip/${token}`;
 
     const destName = trip.destination?.name || 'an amazing destination';
@@ -82,7 +88,7 @@ serve(async (req) => {
     const resend = new Resend(resendKey);
 
     const emailResponse = await resend.emails.send({
-      from: 'Erranza <onboarding@resend.dev>',
+      from: 'Erranza <notifications@erranza.ai>',
       to: [member.email],
       subject: `Join ${inviter_name}'s trip to ${destName}`,
       html: `

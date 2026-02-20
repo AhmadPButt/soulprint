@@ -65,14 +65,19 @@ const Auth = () => {
       }
     });
 
-    // Only listen for new SIGNED_IN events (not initial session restoration)
+    // Only redirect on explicit sign-in actions, not on passive token refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Only redirect on explicit user-initiated sign-in, not TOKEN_REFRESHED or passive restores
         if (event === 'SIGNED_IN' && session?.user) {
-          await redirectAfterAuth(session.user.id);
+          // Guard: only redirect if we weren't already logged in (prevents cross-account session swaps)
+          const currentUser = (await supabase.auth.getUser()).data.user;
+          if (currentUser?.id === session.user.id) {
+            await redirectAfterAuth(session.user.id);
+          }
         }
       }
     );
