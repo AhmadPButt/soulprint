@@ -185,6 +185,7 @@ export default function TripDetail() {
       const { data, error } = await supabase.functions.invoke("generate-itinerary", {
         body: {
           respondent_id: trip.respondent_id,
+          trip_id: tripId,
           destination_id: destination.id,
           destination_name: destination.name,
           destination_country: destination.country,

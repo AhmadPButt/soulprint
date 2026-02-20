@@ -35,7 +35,7 @@ serve(async (req) => {
     if (authResult instanceof Response) return authResult;
 
     const { 
-      respondent_id, force_regenerate = false, edit_suggestions,
+      respondent_id, trip_id, force_regenerate = false, edit_suggestions,
       destination_id, destination_name, destination_country, 
       destination_description, destination_highlights, duration_days
     } = await req.json();
@@ -70,13 +70,16 @@ serve(async (req) => {
       );
     }
 
-    // Check if itinerary already exists (unless force regenerate or editing)
+    // Check if itinerary already exists for this trip (unless force regenerate or editing)
     if (!force_regenerate && !edit_suggestions) {
-      const { data: existingItinerary, error: fetchError } = await supabaseClient
-        .from('itineraries')
-        .select('*')
-        .eq('respondent_id', respondent_id)
-        .single();
+      // Look up by trip_id first (preferred), fallback to respondent_id for legacy
+      let existingQuery = supabaseClient.from('itineraries').select('*');
+      if (trip_id) {
+        existingQuery = existingQuery.eq('trip_id', trip_id);
+      } else {
+        existingQuery = existingQuery.eq('respondent_id', respondent_id);
+      }
+      const { data: existingItinerary, error: fetchError } = await existingQuery.maybeSingle();
 
       if (existingItinerary && !fetchError) {
         console.log('Returning existing itinerary');
@@ -148,12 +151,13 @@ serve(async (req) => {
     // Fetch existing itinerary if editing
     let existingItinerary = null;
     if (edit_suggestions) {
-      const { data: itineraryData } = await supabaseClient
-        .from('itineraries')
-        .select('itinerary_data')
-        .eq('respondent_id', respondent_id)
-        .single();
-      
+      let editQuery = supabaseClient.from('itineraries').select('itinerary_data');
+      if (trip_id) {
+        editQuery = editQuery.eq('trip_id', trip_id);
+      } else {
+        editQuery = editQuery.eq('respondent_id', respondent_id);
+      }
+      const { data: itineraryData } = await editQuery.maybeSingle();
       existingItinerary = itineraryData?.itinerary_data;
     }
 
@@ -357,14 +361,14 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
     // Save or update itinerary in database
     let itineraryId;
     if (edit_suggestions) {
-      // Update existing itinerary
-      const { data: updateData, error: updateError } = await supabaseClient
-        .from('itineraries')
-        .update({ itinerary_data: parsedItinerary })
-        .eq('respondent_id', respondent_id)
-        .select()
-        .single();
-
+      // Update existing itinerary (trip-scoped or respondent-scoped)
+      let updateQuery = supabaseClient.from('itineraries').update({ itinerary_data: parsedItinerary });
+      if (trip_id) {
+        updateQuery = updateQuery.eq('trip_id', trip_id);
+      } else {
+        updateQuery = updateQuery.eq('respondent_id', respondent_id);
+      }
+      const { data: updateData, error: updateError } = await updateQuery.select().single();
       if (updateError) {
         console.error('Error updating itinerary:', updateError);
         throw updateError;
@@ -372,25 +376,51 @@ Ensure all activities, accommodations, and experiences are real and bookable in 
       itineraryId = updateData.id;
       console.log('Itinerary updated in database');
     } else {
-      // Insert new itinerary or update if exists
-      const { data: upsertData, error: upsertError } = await supabaseClient
-        .from('itineraries')
-        .upsert(
-          { 
-            respondent_id: respondent_id, 
-            itinerary_data: parsedItinerary 
-          },
-          { onConflict: 'respondent_id' }
-        )
-        .select()
-        .single();
+      if (trip_id) {
+        // Trip-scoped: check if one already exists for this trip, update or insert
+        const { data: existingForTrip } = await supabaseClient
+          .from('itineraries')
+          .select('id')
+          .eq('trip_id', trip_id)
+          .maybeSingle();
 
-      if (upsertError) {
-        console.error('Error saving itinerary:', upsertError);
-        throw upsertError;
+        let saveResult;
+        if (existingForTrip) {
+          saveResult = await supabaseClient
+            .from('itineraries')
+            .update({ itinerary_data: parsedItinerary, respondent_id })
+            .eq('id', existingForTrip.id)
+            .select()
+            .single();
+        } else {
+          saveResult = await supabaseClient
+            .from('itineraries')
+            .insert({ respondent_id, trip_id, itinerary_data: parsedItinerary })
+            .select()
+            .single();
+        }
+        if (saveResult.error) {
+          console.error('Error saving itinerary:', saveResult.error);
+          throw saveResult.error;
+        }
+        itineraryId = saveResult.data.id;
+      } else {
+        // Legacy fallback: upsert by respondent_id
+        const { data: upsertData, error: upsertError } = await supabaseClient
+          .from('itineraries')
+          .upsert(
+            { respondent_id, itinerary_data: parsedItinerary },
+            { onConflict: 'respondent_id' }
+          )
+          .select()
+          .single();
+        if (upsertError) {
+          console.error('Error saving itinerary:', upsertError);
+          throw upsertError;
+        }
+        itineraryId = upsertData.id;
       }
-      itineraryId = upsertData.id;
-      console.log('Itinerary saved to database');
+      console.log('Itinerary saved to database, id:', itineraryId);
     }
 
     return new Response(
