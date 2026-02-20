@@ -797,7 +797,7 @@ export default function TripDetail() {
         <AIChatWidget
           tripId={tripId!}
           destinationName={destination?.name}
-          externalOpen={chatOpen}
+          externalOpen={chatOpen ? true : undefined}
           onClose={() => setChatOpen(false)}
         />
       )}
