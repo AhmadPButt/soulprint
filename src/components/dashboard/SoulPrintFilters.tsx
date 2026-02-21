@@ -60,7 +60,7 @@ export function SoulPrintFilters({ activeFilters, onToggle, onClear }: SoulPrint
               className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 activeFilters.has(f.label)
                   ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                  : "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 hover:text-primary"
               }`}
             >
               {f.label}

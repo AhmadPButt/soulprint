@@ -15,7 +15,7 @@ export function getAffinityLabel(score: number): string {
 
 /** Returns semantic color classes for affinity labels */
 export function getAffinityColor(score: number): string {
-  if (score >= 85) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+  if (score >= 85) return "text-primary-foreground bg-primary border-primary";
   if (score >= 70) return "text-primary bg-primary/10 border-primary/30";
   return "text-amber-400 bg-amber-500/10 border-amber-500/30";
 }
