@@ -21,6 +21,7 @@ import { MoodInsights } from "@/components/trip/MoodInsights";
 import { TripReflection } from "@/components/trip/TripReflection";
 import SoulPrintCard from "@/components/dashboard/SoulPrintCard";
 import DestinationMatchCard from "@/components/dashboard/DestinationMatchCard";
+import { SoulPrintFilters, applyFilters } from "@/components/dashboard/SoulPrintFilters";
 import { calculateAllTraits } from "@/lib/soulprint-traits";
 import { DocumentsSection } from "@/components/trip/DocumentsSection";
 import { DestinationInfoSection } from "@/components/trip/DestinationInfoSection";
@@ -109,6 +110,7 @@ export default function Dashboard() {
   const [groupName, setGroupName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [destinationMatches, setDestinationMatches] = useState<any[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [currentView, setCurrentView] = useState<string>("home");
   const [userId, setUserId] = useState<string>("");
 
@@ -520,27 +522,74 @@ export default function Dashboard() {
                           variant="ghost"
                           size="sm"
                           className="ml-auto gap-1 h-7 text-xs px-2"
-                          onClick={() => navigate(`/compare?destinations=${destinationMatches.map(m => m.destination.id).join(",")}`)}
+                          onClick={() => navigate(`/compare?destinations=${destinationMatches.filter(m => Math.round(m.fit_score) >= 55).map(m => m.destination.id).join(",")}`)}
                         >
                           <GitCompare className="h-3 w-3" /> Compare
                         </Button>
                       )}
                     </div>
 
-                    {destinationMatches.length > 0 ? (
-                      <div className="space-y-3">
-                        {destinationMatches.map((match, i) => (
-                          <DestinationMatchCard key={match.id} match={match} index={i} />
-                        ))}
-                      </div>
-                    ) : (
-                      <Card>
-                        <CardContent className="p-6 text-center text-muted-foreground">
-                          <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                          <p className="text-sm">No matches yet. Complete your SoulPrint to discover your ideal destinations.</p>
-                        </CardContent>
-                      </Card>
+                    {destinationMatches.length > 0 && (
+                      <SoulPrintFilters
+                        activeFilters={activeFilters}
+                        onToggle={(label) => {
+                          setActiveFilters(prev => {
+                            const next = new Set(prev);
+                            if (next.has(label)) next.delete(label);
+                            else next.add(label);
+                            return next;
+                          });
+                        }}
+                        onClear={() => setActiveFilters(new Set())}
+                      />
                     )}
+
+                    {(() => {
+                      const userTraits = respondent?.raw_responses ? calculateAllTraits(respondent.raw_responses, computed) : null;
+                      const qualifiedMatches = destinationMatches.filter(m => Math.round(m.fit_score) >= 55);
+                      const filteredMatches = applyFilters(qualifiedMatches, activeFilters);
+                      
+                      if (filteredMatches.length > 0) {
+                        return (
+                          <div className="grid grid-cols-1 gap-3">
+                            {filteredMatches.map((match, i) => (
+                              <DestinationMatchCard key={match.id} match={match} index={i} traits={userTraits} />
+                            ))}
+                          </div>
+                        );
+                      }
+                      
+                      if (qualifiedMatches.length === 0 && destinationMatches.length > 0) {
+                        return (
+                          <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                              <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                              <p className="text-sm">No strong matches found. Try adjusting your geographic preferences to discover more destinations.</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                      
+                      if (activeFilters.size > 0) {
+                        return (
+                          <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                              <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                              <p className="text-sm">No destinations match your current filters. Try adjusting them.</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                      
+                      return (
+                        <Card>
+                          <CardContent className="p-6 text-center text-muted-foreground">
+                            <MapPin className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">No matches yet. Complete your SoulPrint to discover your ideal destinations.</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
                   </div>
                 </div>
 
